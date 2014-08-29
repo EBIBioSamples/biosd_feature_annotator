@@ -1,0 +1,160 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>uk.ac.ebi.fg.biosd</groupId>
+    <artifactId>biosd_common</artifactId>
+    <version>1.1.1-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>biosd_feature_annotator</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>BioSD Feature Annotator</name>
+  <description>
+  	Annotates sample and sample group characteristics, such as organisms or age, with ontology terms obtained via the
+  	ZOOMA tool and number/date/range annotations, extracted via some text mining.
+  </description>
+  <url>http://github.com/EBIBioSamples/biosd_feature_annotator</url>
+	
+	<scm>
+		<developerConnection>TODO</developerConnection>
+	</scm>
+
+
+
+	<dependencies>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<!-- Use Logback as concrete logger -->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+		</dependency>
+
+		<!-- Intercepts log4j and sends it to SL4J -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>log4j-over-slf4j</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>commons-cli</groupId>
+			<artifactId>commons-cli</artifactId>
+		</dependency>
+
+		<dependency>
+      <groupId>uk.ac.ebi.fgpt</groupId>
+      <artifactId>zooma-client</artifactId>
+      <version>2.0-SNAPSHOT</version>
+	    <exclusions>
+	    	<!-- We use our own logger (see above) -->
+	    	<exclusion>
+	    		<artifactId>slf4j-log4j12</artifactId>
+	    		<groupId>org.slf4j</groupId>
+	    	</exclusion>
+	    </exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>uk.ac.ebi.fg</groupId>
+			<artifactId>biosd_loader</artifactId>
+			<version>2.0-SNAPSHOT</version>
+		</dependency>
+
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>uk.ac.ebi</groupId>
+			<artifactId>jutils</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+
+		<finalName>${project.artifactId}_${project.version}</finalName>
+
+
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<filtering>true</filtering>
+			</testResource>
+		</testResources>
+
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+
+		<plugins>
+
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.7</source>
+					<target>1.7</target>
+					<encoding>utf-8</encoding>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<properties>
+						<property>
+							<name>listener</name>
+							<value>uk.ac.ebi.utils.test.junit.TestOutputDecorator</value>
+						</property>
+					</properties>
+				</configuration>
+			</plugin>
+
+
+			<!-- The package for line commands is built through this -->
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<archiverConfig>
+						<fileMode>0755</fileMode>
+						<directoryMode>0755</directoryMode>
+						<defaultDirectoryMode>0755</defaultDirectoryMode>
+					</archiverConfig>
+				</configuration>
+				<executions>
+					<execution>
+						<id>pkg</id>
+						<configuration>
+							<finalName>${project.artifactId}_${project.version}</finalName>
+							<appendAssemblyId>false</appendAssemblyId>
+							<attach>true</attach>
+							<descriptors>
+								<descriptor>src/main/assembly/pkg.xml</descriptor>
+							</descriptors>
+						</configuration>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+
+	</build>
+
+</project>
