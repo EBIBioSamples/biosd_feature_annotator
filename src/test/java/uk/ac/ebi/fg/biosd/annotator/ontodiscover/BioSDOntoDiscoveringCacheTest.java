@@ -2,10 +2,12 @@ package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
+import static uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache.NULL_TERM_ACC;
 
 import java.util.List;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -13,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
+import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
@@ -94,5 +97,60 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		log.info ( "Second-call versus first-call time: {}, {}", time2, time1 );
 		assertTrue ( "WTH?! Second call time bigger than first!", time2 < time1 );
+		
+		// Clean-up
+		// TODO: use the DAOs 
+		EntityTransaction tx = em.getTransaction ();
+		tx.begin ();
+		for ( Object[] tuple: dbentries )
+		{
+			OntologyEntry dbOe = (OntologyEntry) tuple [ 0 ];
+			for ( Annotation ann: dbOe.getAnnotations () )
+				em.remove ( ann );
+			em.remove ( dbOe );
+		}
+		tx.commit ();
+	}
+	
+	
+	@Test
+	public void testNullMapping ()
+	{
+		BioSDOntoDiscoveringCache baseCache = new BioSDOntoDiscoveringCache ();
+		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ();
+		zoomaDiscoverer.setZoomaThreesholdScore ( 50.0f );
+		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
+
+		String value = "bla bla foo value 1234", type = "foo type 2233";
+
+		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
+		
+		assertTrue ( "Wron mapping returned!", terms.isEmpty () );
+		
+
+		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( value, type );
+
+		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		
+		List<Object[]> dbentries = em.createNamedQuery ( "findOntoAnnotations" )
+	  .setParameter ( "provenance", zoomaMarker.getProvenance ().getName () )
+	  .setParameter ( "annotation", zoomaMarker.getText () )
+		.getResultList ();
+		
+		assertEquals ( "nothing saved in the cache!", 1, dbentries.size () );
+				
+		OntologyEntry dbOe = ((OntologyEntry) dbentries.get ( 0 ) [ 0 ]);
+		
+		assertEquals ( "Null mapping didn't save null ontology term!", 
+			NULL_TERM_ACC, 
+			dbOe.getAcc ()
+		);
+		
+		EntityTransaction tx = em.getTransaction ();
+		tx.begin ();
+		for ( Annotation ann: dbOe.getAnnotations () )
+			em.remove ( ann );
+		em.remove ( dbOe );
+		tx.commit ();
 	}
 }

@@ -41,6 +41,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		{
 			// Save the special case where this entry isn't mapped to any term. We need to mark this, so that we won't
 			// re-discover it
+			discoveredTerms = new ArrayList<> ();
 			ExtendedDiscoveredTerm nullDt = new ExtendedDiscoveredTerm ( null, -1f, null );
 			discoveredTerms.add ( nullDt );
 		}
