@@ -10,12 +10,12 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.DBStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotatableNormalizer;
+import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.terms.OntologyEntryNormalizer;
+import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.terms.OntologyEntryDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.AnnotationType;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotatable;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
@@ -32,10 +32,14 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyDiscoveryException;
  */
 public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 {
-	public final static String NULL_TERM_ACC = "__NULL TERM__";
+	public final static String NULL_TERM_URI = "http://rdf.ebi.ac.uk/terms/biosd/NullOntologyTerm";
 			
+	/**
+	 * Note that this method is synchronized, because we noticed DB lock problems when it wasn't. The speed isn't affected
+	 * too much.
+	 */
 	@Override
-	public List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> discoveredTerms ) throws OntologyDiscoveryException
+	public synchronized List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> discoveredTerms ) throws OntologyDiscoveryException
 	{
 		if ( discoveredTerms.isEmpty () )
 		{
@@ -53,7 +57,8 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 
 		OntologyEntryDAO<OntologyEntry> ontoDao = new OntologyEntryDAO<> ( OntologyEntry.class, em );
-		AnnotatableNormalizer<Annotatable> annotatableNormalizer = new AnnotatableNormalizer<> ( new DBStore ( em ) );
+		OntologyEntryNormalizer oeNormalizer = new OntologyEntryNormalizer ( new DBStore ( em ) );
+		AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
 
 		
 		for ( int i = 0; i < discoveredTerms.size (); i++ )
@@ -65,36 +70,38 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			//
 			boolean isProperDiscovery = !(dterm instanceof ExtendedDiscoveredTerm);
 			
-			OntologyEntry oterm;
-			if ( isProperDiscovery )
-			{
-				// So, if this URI is real, try to map it to an existing ontology entry, or to create a new one
-				//
-				String dtermUri = dterm.getUri ().toASCIIString ();
-				List<OntologyEntry> oterms = ontoDao.find ( dtermUri, null );
-				
-				oterm = oterms.isEmpty () 
-						// Create the ontology term that represents this mapping
-					? new OntologyEntry ( dterm.getUri ().toASCIIString (), null )
-						// Reuse the existing term
-				  : oterms.iterator ().next ();
-			}
-			else
-				// dterm is a fake entry, which should generate the mapping to the 'null' ontology entry + NULL_RESULT 
-				oterm = new OntologyEntry ( NULL_TERM_ACC, null );
+			
+			// If it's not real, mark that this entries has no mapping, ie, cache this too
+			String dtermUri = isProperDiscovery ? dterm.getUri ().toASCIIString () : NULL_TERM_URI;
+			
+			EntityTransaction tx = em.getTransaction ();
+			tx.begin ();
+			
+			// Try to map it to an existing ontology entry, or to create a new one
+			OntologyEntry otermDb = ontoDao.find ( dtermUri, null, null, null );
+
+			OntologyEntry oterm = otermDb == null 
+					// Create the ontology term that represents this mapping
+				? new OntologyEntry ( dtermUri, null )
+					// Reuse the existing term
+			  : otermDb;
 				
 			// Annotate the origin of this mapping
 			float dscore = dterm.getScore ();
 			Double savedScore = dscore == -1 ? null : (double) dscore;
 			Annotation zoomaMarker = createZOOMAMarker ( valueLabel, typeLabel, savedScore, now );
-			oterm.addAnnotation ( zoomaMarker );
+			
+			// This annotation is certainly new, due to the way the cache works, however the type and provenance are likely
+			// to be factorised. We cannot invoke the Ontology annotation only, cause the annotations are ignored when the OE
+			// is not new.
+			annNormalizer.normalize ( zoomaMarker );
+			oterm.addAnnotation ( zoomaMarker ); // Typically it doesn't do anything, but just in case.
 			
 			// Save it all to the DB
-			annotatableNormalizer.normalize ( oterm );
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
+			oeNormalizer.normalize ( oterm );
 			if ( oterm.getId () == null ) ontoDao.create ( oterm ); else em.merge ( oterm );
 			tx.commit ();
+			em.close (); // FLush changes to the DB and make them available to the other threads
 			
 			if ( isProperDiscovery)
 			{
@@ -128,6 +135,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			List<Object[]> dbentries =  (List<Object[]>) em.createNamedQuery ( "findOntoAnnotations" )
 			  .setParameter ( "provenance", zoomaMarker.getProvenance ().getName () )
 			  .setParameter ( "annotation", zoomaMarker.getText () )
+			  .setHint ( "org.hibernate.readOnly", true )
 				.getResultList ();
 			
 			// The text entry doesn't exist at all: we don't have it yet and therefore we have to report null
@@ -138,7 +146,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 				OntologyEntry oterm = (OntologyEntry) tuple [ 0 ];
 				Double score = (Double) tuple [ 1 ];
 				
-				if ( NULL_TERM_ACC.equals ( oterm ) )
+				if ( NULL_TERM_URI.equals ( oterm ) )
 					// This entry is reported to map to an empty result, so return the corresponding value
 					return CachedOntoTermDiscoverer.NULL_RESULT;
 				
@@ -164,11 +172,11 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	}
 
 	
-	public static TextAnnotation createZOOMAMarker ( String provValue, String provType, Double score, Date timestamp )
+	public static TextAnnotation createZOOMAMarker ( String propValue, String propType, Double score, Date timestamp )
 	{
 		TextAnnotation result = new TextAnnotation ( 
 			new AnnotationType ( "Mapped from Text Values" ),
-			String.format ( "value: '%s', type: '%s'", provValue, provType ) 
+			String.format ( "value: '%s', type: '%s'", propValue, propType ) 
 		);
 		
 		result.setProvenance ( new AnnotationProvenance ( "BioSD Feature Annotation Tool, based on ZOOMA" ) );
@@ -178,9 +186,9 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		return result;
 	}
 	
-	public static TextAnnotation createZOOMAMarker ( String provValue, String provType )
+	public static TextAnnotation createZOOMAMarker ( String propValue, String propType )
 	{
-		return createZOOMAMarker ( provValue, provType, null, null );
+		return createZOOMAMarker ( propValue, propType, null, null );
 	}
 
 	

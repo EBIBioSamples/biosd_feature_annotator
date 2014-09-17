@@ -76,9 +76,13 @@
 		<dependency>
 			<groupId>uk.ac.ebi</groupId>
 			<artifactId>jutils</artifactId>
-			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+				<groupId>joda-time</groupId>
+				<artifactId>joda-time</artifactId>
+				<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

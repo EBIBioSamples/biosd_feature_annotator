@@ -1,8 +1,9 @@
 package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
-import static uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache.NULL_TERM_ACC;
+import static uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache.NULL_TERM_URI;
 
 import java.util.List;
 
@@ -13,11 +14,13 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
+import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryMemCache;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
@@ -30,6 +33,7 @@ import uk.ac.ebi.utils.time.XStopWatch;
  * @author Marco Brandizi
  *
  */
+@SuppressWarnings ( "unchecked" )
 public class BioSDOntoDiscoveringCacheTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
@@ -41,7 +45,7 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		BioSDOntoDiscoveringCache baseCache = new BioSDOntoDiscoveringCache ();
 		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ();
-		zoomaDiscoverer.setZoomaThreesholdScore ( 50.0f );
+		zoomaDiscoverer.setZoomaThreesholdScore ( 54.0f );
 		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
 
 		
@@ -88,7 +92,7 @@ public class BioSDOntoDiscoveringCacheTest
 		timer.start ();
 		for ( int i = 0; i < 100; i++ )
 		{
-			terms = client.getOntologyTermUris ( "homo sapiens", "organism" );
+			terms = client.getOntologyTermUris ( value, type );
 			log.trace ( "Call {}, time {}", i, timer.getTime () );
 		}
 		timer.stop ();
@@ -118,7 +122,6 @@ public class BioSDOntoDiscoveringCacheTest
 	{
 		BioSDOntoDiscoveringCache baseCache = new BioSDOntoDiscoveringCache ();
 		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ();
-		zoomaDiscoverer.setZoomaThreesholdScore ( 50.0f );
 		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
 
 		String value = "bla bla foo value 1234", type = "foo type 2233";
@@ -142,7 +145,7 @@ public class BioSDOntoDiscoveringCacheTest
 		OntologyEntry dbOe = ((OntologyEntry) dbentries.get ( 0 ) [ 0 ]);
 		
 		assertEquals ( "Null mapping didn't save null ontology term!", 
-			NULL_TERM_ACC, 
+			NULL_TERM_URI, 
 			dbOe.getAcc ()
 		);
 		
@@ -153,4 +156,56 @@ public class BioSDOntoDiscoveringCacheTest
 		em.remove ( dbOe );
 		tx.commit ();
 	}
+	
+	
+	@Test
+	public void testBothCacheLevels ()
+	{
+		OntoTermDiscoveryMemCache memCache = new OntoTermDiscoveryMemCache ();
+		BioSDOntoDiscoveringCache dbCache = new BioSDOntoDiscoveringCache ();
+		
+		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ();
+		zoomaDiscoverer.setZoomaThreesholdScore ( 50.0f );
+		
+		OntologyTermDiscoverer level2Client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, dbCache );
+		
+		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( level2Client, memCache );
+	
+
+		String value = "homo sapiens", type = "specie";
+
+		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
+		log.info ( "Discovered entries:\n{}", terms.toString () );
+
+		
+		assertNotNull ( "Entry not saved in memory cache!", memCache.getOntologyTermUris ( value, type ) );
+		assertNotNull ( "Entry not saved in DB cache!", dbCache.getOntologyTermUris ( value, type ) );
+		
+		
+		
+		// Clean-up
+		// TODO: use the DAOs 
+		//
+		
+		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( value, type );
+
+		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		
+		List<Object[]> dbentries = em.createNamedQuery ( "findOntoAnnotations" )
+	  .setParameter ( "provenance", zoomaMarker.getProvenance ().getName () )
+	  .setParameter ( "annotation", zoomaMarker.getText () )
+		.getResultList ();
+		
+		EntityTransaction tx = em.getTransaction ();
+		tx.begin ();
+		for ( Object[] tuple: dbentries )
+		{
+			OntologyEntry dbOe = (OntologyEntry) tuple [ 0 ];
+			for ( Annotation ann: dbOe.getAnnotations () )
+				em.remove ( ann );
+			em.remove ( dbOe );
+		}
+		tx.commit ();
+	}
+	
 }

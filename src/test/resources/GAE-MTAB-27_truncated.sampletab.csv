@@ -1,0 +1,102 @@
+[MSI]
+Submission Title	Transcription profiling of mouse samples - re-analysis of data on the MG_U74Av2 platform
+Submission Identifier	GAE-MTAB-27
+Submission Description	This is a dataset of integrated high quality mouse expression data generated on affymetrix MG_U74Av2 platform. The original data were selected from ArrayExpress. Please refer to the original ArrayExpress experiments to find additional details. The normalized data file is updated on 2009-07-17.
+Submission Version	1.2
+Submission Reference Layer	false
+Submission Release Date	2009/11/26
+Submission Update Date	2013/06/14
+Person Last Name	Zheng	
+Person Initials		
+Person First Name	Holly	
+Person Email	zheng@ebi.ac.uk	
+Person Role		
+Term Source Name	NCBI Taxonomy	EFO	
+Term Source URI	http://www.ncbi.nlm.nih.gov/taxonomy/	http://www.ebi.ac.uk/efo/	
+Term Source Version			
+Database Name	ArrayExpress	
+Database ID	E-MTAB-27	
+Database URI	http://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-27	
+
+[SCD]
+Sample Name	Sample Accession	Characteristic[organism part]	Term Source REF	Term Source ID	Organism	Term Source REF	Term Source ID	Characteristic[disease state]	Term Source REF	Term Source ID	Characteristic[BioSourceType]	Characteristic[BioSourceProvider]	Comment[Source EXP]	Same As	Sex	Term Source REF	Term Source ID	Characteristic[strain]	Term Source REF	Term Source ID	Characteristic[GeneticModification]	Term Source REF	Term Source ID	Characteristic[genotype]	Term Source REF	Term Source ID	Characteristic[cell type]	Term Source REF	Term Source ID	Characteristic[developmental stage]	Term Source REF	Term Source ID	Characteristic[phenotype]	Term Source REF	Term Source ID	Characteristic[individual]	Characteristic[Compound]	Term Source REF	Term Source ID	Characteristic[Dose]	Characteristic[Transfect]	Term Source REF	Term Source ID	Characteristic[age]	Characteristic[Fraction]	Characteristic[ClinicalInformation]	Characteristic[strain]	Characteristic[InitialTimePoint]	Characteristic[genotype]	Characteristic[ClinicalTreatment]	Group Name	Group Accession	
+source E-AFMX-1:BioSource:m1	SAMEA425230	frontal lobe	EFO	EFO_0000913	Mus musculus	NCBI Taxonomy	10090	normal	EFO	EFO_0000761	frozen_sample	University of Montpellier II	E-AFMX-1	SAMEA218648																																					Other Group	SAMEG20470	
+source E-AFMX-1:BioSource:m2	SAMEA425217	frontal lobe	EFO	EFO_0000913	Mus musculus	NCBI Taxonomy	10090	normal	EFO	EFO_0000761	frozen_sample	University of Montpellier II	E-AFMX-1	SAMEA218632																																					Other Group	SAMEG20470	
+source E-AFMX-1:BioSource:m3	SAMEA425206	frontal lobe	EFO	EFO_0000913	Mus musculus	NCBI Taxonomy	10090	normal	EFO	EFO_0000761	frozen_sample	University of Montpellier II	E-AFMX-1	SAMEA218726																																					Other Group	SAMEG20470	
+source E-AFMX-1:BioSource:m4	SAMEA437825	frontal lobe	EFO	EFO_0000913	Mus musculus	NCBI Taxonomy	10090	normal	EFO	EFO_0000761	frozen_sample	University of Montpellier II	E-AFMX-1	SAMEA218617																																					Other Group	SAMEG20470	
+source E-AFMX-1:BioSource:m5	SAMEA425252	frontal lobe	EFO	EFO_0000913	Mus musculus	NCBI Taxonomy	10090	normal	EFO	EFO_0000761	frozen_sample	University of Montpellier II	E-AFMX-1	SAMEA218693																																					Other Group	SAMEG20470	
+source E-AFMX-1:BioSource:m6	SAMEA425240	frontal lobe	EFO	EFO_0000913	Mus musculus	NCBI Taxonomy	10090	normal	EFO	EFO_0000761	frozen_sample	University of Montpellier II	E-AFMX-1	SAMEA218602																																					Other Group	SAMEG20470	
+source E-AFMX-1:BioSource:s1	SAMEA433277	frontal lobe	EFO	EFO_0000913	Mus spretus	NCBI Taxonomy	10096	normal	EFO	EFO_0000761	frozen_sample	University of Montpellier II	E-AFMX-1	SAMEA218707																																					Other Group	SAMEG20470	
+source E-AFMX-1:BioSource:s3	SAMEA433291	frontal lobe	EFO	EFO_0000913	Mus spretus	NCBI Taxonomy	10096	normal	EFO	EFO_0000761	frozen_sample	University of Montpellier II	E-AFMX-1	SAMEA218745																																					Other Group	SAMEG20470	
+source E-CBIL-22:PGC-1a_KO_fasted_liver - Mouse 1	SAMEA423541	liver	EFO	http://www.ebi.ac.uk/efo/EFO_0000887	Mus musculus	NCBI Taxonomy	10090						E-CBIL-22	SAMEA442384	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	c57BL6/sv129			PGC-1a gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-22:PGC-1a_KO_fed_liver - Mouse 1	SAMEA435872	liver	EFO	http://www.ebi.ac.uk/efo/EFO_0000887	Mus musculus	NCBI Taxonomy	10090						E-CBIL-22	SAMEA442620	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	c57BL6/sv129			PGC-1a gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-22:PGC-1a_KO_fed_liver - Mouse 2	SAMEA435882	liver	EFO	http://www.ebi.ac.uk/efo/EFO_0000887	Mus musculus	NCBI Taxonomy	10090						E-CBIL-22	SAMEA442592	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	c57BL6/sv129			PGC-1a gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-22:WildType_fasted_liver - Mouse 3	SAMEA434431	liver	EFO	http://www.ebi.ac.uk/efo/EFO_0000887	Mus musculus	NCBI Taxonomy	10090						E-CBIL-22	SAMEA442560	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	c57BL6/sv129						wild type																											Other Group	SAMEG20470	
+source E-CBIL-22:WildType_fed_liver - Mouse 1	SAMEA427814	liver	EFO	http://www.ebi.ac.uk/efo/EFO_0000887	Mus musculus	NCBI Taxonomy	10090						E-CBIL-22	SAMEA442430	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	c57BL6/sv129						wild type																											Other Group	SAMEG20470	
+source E-CBIL-22:WildType_fed_liver - Mouse 2	SAMEA427823	liver	EFO	http://www.ebi.ac.uk/efo/EFO_0000887	Mus musculus	NCBI Taxonomy	10090						E-CBIL-22	SAMEA442464	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	c57BL6/sv129						wild type																											Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 1	SAMEA434901	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570547							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 2	SAMEA434877	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570559							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 3	SAMEA434888	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571193							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 4	SAMEA434934	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570580							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 5	SAMEA434943	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570597							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 6	SAMEA434912	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570609							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 7	SAMEA434924	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570621							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 8	SAMEA434955	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570513							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_FIRKO - Mouse 9	SAMEA434966	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570525							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_IR_Lox - Mouse 10	SAMEA434601	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571743							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_IR_Lox - Mouse 11	SAMEA434589	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571731							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_IR_Lox - Mouse 12	SAMEA434625	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571720							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_IR_Lox - Mouse 13	SAMEA434613	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571708							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_IR_Lox - Mouse 14	SAMEA434647	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571701							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_IR_Lox - Mouse 15	SAMEA434637	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571689							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_IR_Lox - Mouse 16	SAMEA434657	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571678							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Large_IR_Lox - Mouse 9	SAMEA426873	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570953							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 1	SAMEA427238	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571434							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 19	SAMEA435364	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571215							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 2	SAMEA427217	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571446							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 20	SAMEA438623	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571926							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 21	SAMEA438606	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571915							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 22	SAMEA438645	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571904							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 23	SAMEA438635	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571893							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 24	SAMEA438573	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571240							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 25	SAMEA438563	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571226							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 26	SAMEA438596	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571952							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 27	SAMEA438585	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571936							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 3	SAMEA427228	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571457							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 4	SAMEA427271	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571468							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 5	SAMEA427286	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571476							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 6	SAMEA427244	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571487							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 7	SAMEA427259	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571497							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 8	SAMEA427193	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571511							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_FIRKO - Mouse 9	SAMEA427204	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571520							insulin receptor gene_knock_out																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_IR_Lox - Mouse 10	SAMEA428372	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA572067							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_IR_Lox - Mouse 11	SAMEA428359	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA572056							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_IR_Lox - Mouse 12	SAMEA428389	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA572042							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_IR_Lox - Mouse 13	SAMEA428378	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA572032							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_IR_Lox - Mouse 14	SAMEA428416	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA572020							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_IR_Lox - Mouse 15	SAMEA428404	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA572011							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_IR_Lox - Mouse 16	SAMEA428426	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA571999							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-23:Small_IR_Lox - Mouse 9	SAMEA422225	white, adipocyte			Mus musculus	NCBI Taxonomy	10090						E-CBIL-23	SAMEA570977							IR(Lox-Lox) transfection																														Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 1	SAMEA438815				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339733	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 10	SAMEA429536				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339663	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 11	SAMEA429520				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339672	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 12	SAMEA429548				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339649	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 2	SAMEA438851				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339745	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 3	SAMEA438840				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339757	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 4	SAMEA438873				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339685	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 5	SAMEA438861				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339696	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 6	SAMEA438894				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339709	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 7	SAMEA438883				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339724	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 8	SAMEA438779				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339864	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_HighFat_Mouse_6week 9	SAMEA438675				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339873	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 1	SAMEA427537				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340051	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 10	SAMEA422949				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340142	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 11	SAMEA422956				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340131	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 12	SAMEA422967				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340152	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 2	SAMEA427514				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339946	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 3	SAMEA427524				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340164	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 4	SAMEA427573				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340096	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 5	SAMEA427586				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340086	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 6	SAMEA427549				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340121	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 7	SAMEA427563				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA340110	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
+source E-CBIL-24:129_LowFat_Mouse_6week 8	SAMEA427492				Mus musculus	NCBI Taxonomy	10090						E-CBIL-24	SAMEA339855	male	EFO	http://www.ebi.ac.uk/efo/EFO_0001266	129																																	Other Group	SAMEG20470	
