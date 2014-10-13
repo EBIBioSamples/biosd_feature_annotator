@@ -101,7 +101,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			oeNormalizer.normalize ( oterm );
 			if ( oterm.getId () == null ) ontoDao.create ( oterm ); else em.merge ( oterm );
 			tx.commit ();
-			em.close (); // FLush changes to the DB and make them available to the other threads
+			//em.close (); // FLush changes to the DB and make them available to the other threads
 			
 			if ( isProperDiscovery)
 			{

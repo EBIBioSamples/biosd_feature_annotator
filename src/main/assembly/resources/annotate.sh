@@ -44,7 +44,7 @@ export CLASSPATH="$CLASSPATH:$MYDIR:$MYDIR/lib/*"
 # http://stackoverflow.com/questions/743454/space-in-java-command-line-arguments 
 
 java \
-  $OPTS uk.ac.ebi.example.App ${1+"$@"}
+  $OPTS uk.ac.ebi.fg.biosd.annotator.cli.AnnotateCmd ${1+"$@"}
 
 EXCODE=$?
 
