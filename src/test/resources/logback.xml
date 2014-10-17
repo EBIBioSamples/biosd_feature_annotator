@@ -3,25 +3,19 @@
 <configuration>
 
   <appender name="ConsoleApp" class="ch.qos.logback.core.ConsoleAppender">
-  	<Target>System.err</Target>
+  	<target>System.err</target>
     <encoder>
       <pattern>%date{HH:mm:ss.SSS} [%-5level]: %message%n</pattern>
     </encoder>
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>ALL</level>
+      <level>INFO</level>
     </filter>
   </appender>
   
-  <!-- 
- 		The path specified here is overridden by the -r option and the log file name that is created has a timestamp postfix
-		(something like myequivalents_date_hour.log).
-		If you don't want this behaviour (e.g., you want a fixed file name in a fixed location) just use an appender with a 
-		different name (or add it, if you want both behaviours).
-  -->  
   <appender name="FileApp" class="ch.qos.logback.core.FileAppender">
     <!-- Adds up to a possibly existing file -->
-    <Append>false</Append>
-    <File>target/test.log</File>
+    <append>false</append>
+    <file>target/test.log</file>
     <encoder>
     	<!-- TODO: %class and %line are useful, but possibly slow, is it worth to ship with these? -->
       <pattern>%date{dd MMM yyyy HH:mm:ss.SSS} [%-6thread] [%-5level] \(%class{1},%line\): %message%n</pattern>
@@ -39,6 +33,6 @@
   </root>
 
 	<!-- Add Loggers this way if you want finer reports for selected components -->
-  <!-- logger name="uk.ac.ebi.fg.biosd.annotator" level="INFO"/ -->
+  <logger name="uk.ac.ebi.fg.biosd.annotator" level="DEBUG" /> 
   
 </configuration>

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 
 import org.apache.commons.lang.StringUtils;
@@ -56,21 +57,32 @@ public class PropertyValAnnotator
 	@SuppressWarnings ( "rawtypes" )
 	public boolean annotate ( long pvalId )
 	{
-		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+		EntityManager em = emf.createEntityManager ();
+		
 		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
-
-		ExperimentalPropertyValue<?> pval = pvdao.find ( pvalId );
-
 		EntityTransaction tx = em.getTransaction ();
 		tx.begin ();
-		for ( DiscoveredTerm dterm: getNewOntoClassUris ( pval, false ) )
-		{
-			OntologyEntry oe = ((ExtendedDiscoveredTerm) dterm).getOntologyTerm ();
-			oe = em.merge ( oe );
-			pval.addOntologyTerm ( oe );
-		}
+		ExperimentalPropertyValue<?> pval = pvdao.find ( pvalId );
 		tx.commit ();
 		
+		try
+		{
+			for ( DiscoveredTerm dterm: getNewOntoClassUris ( pval, false ) )
+			{
+					tx = em.getTransaction ();
+					tx.begin ();
+					OntologyEntry oe = ((ExtendedDiscoveredTerm) dterm).getOntologyTerm ();
+					oe = em.merge ( oe );
+					pval = em.merge ( pval );
+					pval.addOntologyTerm ( oe );
+					tx.commit ();
+			}
+		}
+		finally {
+			if ( em.isOpen () ) em.close ();
+		}
+
 		return true;
 	}
 	

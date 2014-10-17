@@ -52,17 +52,32 @@ public class AnnotateCmd
 			{
 				if ( cli.hasOption ( "submission" ) || cli.hasOption ( "sampletab" ) ) xopts++;
 				if ( cli.hasOption ( "offset" ) || cli.hasOption ( "limit" ) ) xopts++;
-				if ( cli.hasOption ( "property-count" )) xopts++;
+				if ( cli.hasOption ( "property-count" ) )
+				{
+					if ( cli.hasOption ( "random-quota" ) )
+						xopts = 2;
+					else
+						xopts++;
+				}
 			}
 			
-			if ( xopts != 1 ) 
+			if ( xopts > 1 ) 
 			{
 				printUsage ();
 				return;
 			}
 			
+			
 			PropertyValAnnotationService annService = new PropertyValAnnotationService ();
 			
+		  if ( cli.hasOption ( "property-count" ) )
+		  {
+		  	out.println ( annService.getPropValCount () );
+				log.info ( "all went fine!" );
+		  	return;
+		  }
+			
+		  
 			String msiAccs[] = cli.getOptionValues ( "submission" );
 			if ( msiAccs != null )
 			{
@@ -77,8 +92,11 @@ public class AnnotateCmd
 					annService.submitMSI ( new FileInputStream ( new File ( sampleTab ) ) );
 			}
 			
-			if ( cli.hasOption ( "offset" ) || cli.hasOption ( "limit" ) )
+			if ( cli.hasOption ( "offset" ) || cli.hasOption ( "limit" ) || sampleTabs == null && msiAccs == null )
 			{
+				Double rndQuota = Double.valueOf ( cli.getOptionValue ( "random-quota", "100.0" ) );
+				if ( rndQuota < 100.0 && rndQuota >= 0.0 ) annService.setRandomSelectionQuota ( rndQuota / 100.0 );
+				
 				String offsetStr = cli.getOptionValue ( "offset" );
 				String limitStr = cli.getOptionValue ( "limit" );
 				annService.submit ( 
@@ -87,11 +105,8 @@ public class AnnotateCmd
 				);
 			}
 			
-		  if ( cli.hasOption ( "property-count" ) )
-		  	out.println ( annService.getPropValCount () );
-			
 		  annService.waitAllFinished ();
-			log.info ( "all went fine!" );
+			log.info ( "all should have gone fine!" );
 		}
 		catch ( Throwable ex ) 
 		{
@@ -130,7 +145,6 @@ public class AnnotateCmd
 			.withDescription ( "annotates the property value table, starting from this offset (used by the LSF command)" )
 			.withLongOpt ( "offset" )
 			.withArgName ( "0-n" )
-			.withType ( new Integer ( 0 ) )
 			.hasArg ()
 			.create ( 'o' )
 		);
@@ -148,12 +162,19 @@ public class AnnotateCmd
 					+ " (incompatible with --submission or --sampletab)" )
 			.withLongOpt ( "limit" )
 			.withArgName ( "1-n" )
-			.withType ( new Integer ( 0 ) )
 			.hasArg ()
 			.create ( 'l' )
 		);
 
-		
+
+		opts.addOption ( OptionBuilder
+			.withDescription ( "picks up a random subset of property values, expressed in percentage of the total" )
+			.withLongOpt ( "random-quota" )
+			.withArgName ( "0-100" )
+			.hasArg ()
+			.create ( 'r' )
+		);
+
 		opts.addOption ( OptionBuilder
 			.withDescription ( "Prints out this message" )
 			.withLongOpt ( "help" )

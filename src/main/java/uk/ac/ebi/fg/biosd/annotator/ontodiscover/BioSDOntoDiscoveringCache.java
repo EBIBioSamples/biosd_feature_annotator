@@ -35,7 +35,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	public final static String NULL_TERM_URI = "http://rdf.ebi.ac.uk/terms/biosd/NullOntologyTerm";
 			
 	/**
-	 * Note that this method is synchronized, because we noticed DB lock problems when it wasn't. The speed isn't affected
+	 * Note that this method is synchronised, because we noticed DB lock problems when it wasn't. The speed isn't affected
 	 * too much.
 	 */
 	@Override
@@ -54,82 +54,92 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		// Now you have ontology term URIs to associate to this pair, let's turn it all to BioSD model objects
 		//
 		Date now = new Date ();
+
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		EntityTransaction tx = em.getTransaction ();
+		tx.begin ();
 
-		OntologyEntryDAO<OntologyEntry> ontoDao = new OntologyEntryDAO<> ( OntologyEntry.class, em );
-		OntologyEntryNormalizer oeNormalizer = new OntologyEntryNormalizer ( new DBStore ( em ) );
-		AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
-
-		
-		for ( int i = 0; i < discoveredTerms.size (); i++ )
+		try
 		{
-			DiscoveredTerm dterm = discoveredTerms.get ( i );
-
-			// When it's an extended discovered term, that's because the previous block here above has set the 
-			// empty result special case
-			//
-			boolean isProperDiscovery = !(dterm instanceof ExtendedDiscoveredTerm);
-			
-			
-			// If it's not real, mark that this entries has no mapping, ie, cache this too
-			String dtermUri = isProperDiscovery ? dterm.getUri ().toASCIIString () : NULL_TERM_URI;
-			
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
-			
-			// Try to map it to an existing ontology entry, or to create a new one
-			OntologyEntry otermDb = ontoDao.find ( dtermUri, null, null, null );
-
-			OntologyEntry oterm = otermDb == null 
-					// Create the ontology term that represents this mapping
-				? new OntologyEntry ( dtermUri, null )
-					// Reuse the existing term
-			  : otermDb;
-				
-			// Annotate the origin of this mapping
-			float dscore = dterm.getScore ();
-			Double savedScore = dscore == -1 ? null : (double) dscore;
-			Annotation zoomaMarker = createZOOMAMarker ( valueLabel, typeLabel, savedScore, now );
-			
-			// This annotation is certainly new, due to the way the cache works, however the type and provenance are likely
-			// to be factorised. We cannot invoke the Ontology annotation only, cause the annotations are ignored when the OE
-			// is not new.
-			annNormalizer.normalize ( zoomaMarker );
-			oterm.addAnnotation ( zoomaMarker ); // Typically it doesn't do anything, but just in case.
-			
-			// Save it all to the DB
-			oeNormalizer.normalize ( oterm );
-			if ( oterm.getId () == null ) ontoDao.create ( oterm ); else em.merge ( oterm );
-			tx.commit ();
-			//em.close (); // FLush changes to the DB and make them available to the other threads
-			
-			if ( isProperDiscovery)
+			for ( int i = 0; i < discoveredTerms.size (); i++ )
 			{
-				// Replace the current discovered term with a new one having the ontology term attached, which is 
-				// needed by the annotator tool to link property values
-				ExtendedDiscoveredTerm dtermNew = new ExtendedDiscoveredTerm ( dterm.getUri (), dscore, oterm );
-				discoveredTerms.set ( i, dtermNew );
-			}
-			else
-				// Return the empty result, the annotator will need to deal with such a case
-				return CachedOntoTermDiscoverer.NULL_RESULT; 
-		}
+				OntologyEntryDAO<OntologyEntry> ontoDao = new OntologyEntryDAO<> ( OntologyEntry.class, em );
+				OntologyEntryNormalizer oeNormalizer = new OntologyEntryNormalizer ( new DBStore ( em ) );
+				AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
+	
+				DiscoveredTerm dterm = discoveredTerms.get ( i );
+	
+				// When it's an extended discovered term, that's because the previous block here above has set the 
+				// empty result special case
+				//
+				boolean isProperDiscovery = !(dterm instanceof ExtendedDiscoveredTerm);
+				
+				
+				// If it's not real, mark that this entries has no mapping, ie, cache this too
+				String dtermUri = isProperDiscovery ? dterm.getUri ().toASCIIString () : NULL_TERM_URI;
+				
+				
+				// Try to map it to an existing ontology entry, or to create a new one
+				OntologyEntry otermDb = ontoDao.find ( dtermUri, null, null, null );
+	
+				OntologyEntry oterm = otermDb == null 
+						// Create the ontology term that represents this mapping
+					? new OntologyEntry ( dtermUri, null )
+						// Reuse the existing term
+				  : otermDb;
+					
+				// Annotate the origin of this mapping
+				float dscore = dterm.getScore ();
+				Double savedScore = dscore == -1 ? null : (double) dscore;
+				Annotation zoomaMarker = createZOOMAMarker ( valueLabel, typeLabel, savedScore, now );
+				
+				// This annotation is certainly new, due to the way the cache works, however the type and provenance are likely
+				// to be factorised. We cannot invoke the Ontology annotation only, cause the annotations are ignored when the OE
+				// is not new.
+				annNormalizer.normalize ( zoomaMarker );
+				oterm.addAnnotation ( zoomaMarker ); // Typically it doesn't do anything, but just in case.
+				
+				// Save it all to the DB
+				oeNormalizer.normalize ( oterm );
+				if ( oterm.getId () == null ) ontoDao.create ( oterm ); else em.merge ( oterm );
+			
+				if ( isProperDiscovery)
+				{
+					// Replace the current discovered term with a new one having the ontology term attached, which is 
+					// needed by the annotator tool to link property values
+					ExtendedDiscoveredTerm dtermNew = new ExtendedDiscoveredTerm ( dterm.getUri (), dscore, oterm );
+					discoveredTerms.set ( i, dtermNew );
+				}
+				else
+				{
+					// Return the empty result, the annotator will need to deal with such a case
+					tx.commit (); // close the current transaction before
+					return CachedOntoTermDiscoverer.NULL_RESULT;
+				}
+			} // for discoveredTerms
 		
-		return discoveredTerms;
+			tx.commit ();
+
+			return discoveredTerms;
+		}
+		finally {
+			if ( em.isOpen () ) em.close ();
+		} 
 	}
 
 	@Override
 	@SuppressWarnings ( "unchecked" )
 	public List<DiscoveredTerm> getOntologyTermUris ( String valueLabel, String typeLabel ) throws OntologyDiscoveryException
 	{
+		// Search if there are ontology terms to which this textual entry is mapped
+		// 
+		TextAnnotation zoomaMarker = createZOOMAMarker ( valueLabel, typeLabel );
+		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+
 		try
 		{
-			// Search if there are ontology terms to which this textual entry is mapped
-			// 
-			TextAnnotation zoomaMarker = createZOOMAMarker ( valueLabel, typeLabel );
-			EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-
-			
+			EntityTransaction tx = em.getTransaction ();
+			tx.begin ();
 			// Turn the result into appropriate format
 			List<DiscoveredTerm> result = new ArrayList<> ();
 			List<Object[]> dbentries =  (List<Object[]>) em.createNamedQuery ( "findOntoAnnotations" )
@@ -137,6 +147,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			  .setParameter ( "annotation", zoomaMarker.getText () )
 			  .setHint ( "org.hibernate.readOnly", true )
 				.getResultList ();
+			tx.commit ();
 			
 			// The text entry doesn't exist at all: we don't have it yet and therefore we have to report null
 			if ( dbentries.isEmpty () ) return null;
@@ -146,7 +157,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 				OntologyEntry oterm = (OntologyEntry) tuple [ 0 ];
 				Double score = (Double) tuple [ 1 ];
 				
-				if ( NULL_TERM_URI.equals ( oterm ) )
+				if ( NULL_TERM_URI.equals ( oterm.getAcc () ) )
 					// This entry is reported to map to an empty result, so return the corresponding value
 					return CachedOntoTermDiscoverer.NULL_RESULT;
 				
@@ -168,6 +179,9 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 				),
 				ex 
 			);
+		}
+		finally {
+			if ( em.isOpen () ) em.close ();
 		}
 	}
 

@@ -114,6 +114,8 @@ public class BioSDOntoDiscoveringCacheTest
 			em.remove ( dbOe );
 		}
 		tx.commit ();
+		
+		//if ( em.isOpen () ) em.close ();
 	}
 	
 	
@@ -155,6 +157,8 @@ public class BioSDOntoDiscoveringCacheTest
 			em.remove ( ann );
 		em.remove ( dbOe );
 		tx.commit ();
+
+		//if ( em.isOpen () ) em.close ();
 	}
 	
 	
@@ -206,6 +210,8 @@ public class BioSDOntoDiscoveringCacheTest
 			em.remove ( dbOe );
 		}
 		tx.commit ();
+		
+		//if ( em.isOpen () ) em.close ();
 	}
 	
 }

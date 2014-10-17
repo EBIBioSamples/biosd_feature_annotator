@@ -12,21 +12,17 @@ import java.util.Set;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
-import javax.persistence.Query;
 
 import junit.framework.Assert;
 
 import org.joda.time.DateTime;
-import org.joda.time.ReadableDuration;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.logback.core.util.Duration;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
-import uk.ac.ebi.fg.biosd.model.utils.test.TestModel;
 import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
 import uk.ac.ebi.fg.biosd.sampletab.persistence.Persister;
 import uk.ac.ebi.fg.biosd.sampletab.persistence.Unloader;
@@ -76,11 +72,13 @@ public class PropertyValAnnotationServiceTest
 		tx.begin ();
 		for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: pvs ) em.persist ( pv );
 		tx.commit ();
+
+		//if ( em.isOpen () ) em.close ();
 		
 		PropertyValAnnotationService service = new PropertyValAnnotationService ();
 		service.submitAll ();
 		service.waitAllFinished ();
-		
+
 		
 		em = emf.createEntityManager ();
 		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
@@ -121,6 +119,8 @@ public class PropertyValAnnotationServiceTest
 		em.remove ( nullOe );
 		
 		tx.commit ();
+		
+		//if ( em.isOpen () ) em.close ();
 	}
 	
 	
@@ -180,6 +180,8 @@ public class PropertyValAnnotationServiceTest
 			tx.commit ();
 		}
 		
+		//if ( em.isOpen () ) em.close ();
+
 		
 		Unloader unloader = new Unloader ();
 		unloader.setDoPurge ( true );

@@ -9,7 +9,8 @@ if [ "$http_proxy" != '' ]; then
 fi
 
 # These are passed to the JVM. they're appended, so that you can predefine it from the shell
-OPTS="$OPTS -Xms2G -Xmx4G -XX:PermSize=128m -XX:MaxPermSize=256m"
+# My Laptop OPTS="$OPTS -Xms2G -Xmx4G -XX:PermSize=128m -XX:MaxPermSize=256m"
+OPTS="$OPTS -Xms12G -Xmx24G -XX:PermSize=512m -XX:MaxPermSize=1G"
 
 # We always work with universal text encoding.
 OPTS="$OPTS -Dfile.encoding=UTF-8"
@@ -24,10 +25,6 @@ OPTS="$OPTS -Dfile.encoding=UTF-8"
 #OPTS="$OPTS -Xdebug -Xnoagent"
 #OPTS="$OPTS -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"
 
-# The Database driver. You need to set this to your driver, in case you don't use one of the provided ones
-# 
-#JDBCPATH=/path/to/jdbc_driver.jar
-
 # You shouldn't need to change the rest
 #
 ###
@@ -35,8 +32,8 @@ OPTS="$OPTS -Dfile.encoding=UTF-8"
 cd "$(dirname $0)"
 MYDIR="$(pwd)"
 
-# This includes the core and the db module, plus the HSQL JDBC driver. If you want to use other databases or 
-# other myEquivalents managers, you need to download the .jar files you need and set up the classpath here
+# This includes the core and the db module, plus the H2 JDBC driver. If you want to use other databases 
+# you need to download the .jar files you need and set up the classpath here
 # (see http://kevinboone.net/classpath.html for details)  
 export CLASSPATH="$CLASSPATH:$MYDIR:$MYDIR/lib/*"
 

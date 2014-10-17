@@ -3,14 +3,17 @@ package uk.ac.ebi.fg.biosd.annotator.threading;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
 import javax.persistence.Query;
 
 import org.apache.commons.lang3.StringUtils;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotator;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.BioSampleGroup;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
@@ -29,6 +32,12 @@ import uk.ac.ebi.utils.threading.BatchService;;
  */
 public class PropertyValAnnotationService extends BatchService<PropertyValAnnotationTask>
 {
+	private double randomSelectionQuota = 100.0;
+	private Random rndGenerator = new Random ( System.currentTimeMillis () );
+
+	private PropertyValAnnotator propertyValAnnotator = new PropertyValAnnotator ();
+	
+	
 	public PropertyValAnnotationService ()
 	{
 		super ();
@@ -45,11 +54,14 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			this.poolSizeTuner.setMaxThreadIncr ( this.poolSizeTuner.getMaxThreads () / 4 );
 			this.poolSizeTuner.setMinThreadIncr ( 5 );
 		}
+		
+		
 	}
 	
 	public void submit ( long pvalId )
 	{
-		super.submit ( new PropertyValAnnotationTask ( pvalId ) );
+		if ( randomSelectionQuota < 100.0 && rndGenerator.nextDouble () >= randomSelectionQuota ) return;
+		super.submit ( new PropertyValAnnotationTask ( pvalId, this.propertyValAnnotator ) );
 	}
 
 	@SuppressWarnings ( { "unchecked" } )
@@ -57,17 +69,22 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	{
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 		
-		Query q = em.createQuery ( "SELECT id FROM ExperimentalPropertyValue pv" );
-		if ( offset != null ) q.setFirstResult ( offset );
-		if ( limit != null ) q.setMaxResults ( limit );
+		try 
+		{
+			EntityTransaction tx = em.getTransaction ();
+			tx.begin ();
+			Query q = em.createQuery ( "SELECT id FROM ExperimentalPropertyValue pv" );
+			if ( offset != null ) q.setFirstResult ( offset );
+			if ( limit != null ) q.setMaxResults ( limit );
+				
+			for ( Number id: (List<Number>) q.getResultList () )
+				submit ( id.intValue () );
 			
-		for ( Number id: (List<Number>) q.getResultList () )
-			submit ( id.intValue () );
-	}
-
-	public void submit ( int offset, int nodes, int propValCount )
-	{
-		submit ( offset, (int) Math.ceil ( propValCount / nodes ) );
+			tx.commit ();
+		}
+		finally {
+			if ( em.isOpen () ) em.close ();
+		}
 	}
 
 	public void submitAll ()
@@ -98,12 +115,20 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	public void submitMSI ( String msiAcc )
 	{
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
 		
-		MSI msi = dao.find ( msiAcc );
-		if ( msi == null ) throw new RuntimeException ( "Cannot find submission '" + msiAcc + "'" );
-		
-		submitMSI ( msi );
+		try
+		{
+			AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
+			EntityTransaction tx = em.getTransaction ();
+			tx.begin ();
+			MSI msi = dao.find ( msiAcc );
+			if ( msi == null ) throw new RuntimeException ( "Cannot find submission '" + msiAcc + "'" );
+			submitMSI ( msi );
+			tx.commit ();
+		}
+		finally {
+			if ( em.isOpen () ) em.close ();
+		}
 	}
 
 	public void submitMSI ( InputStream sampleTabIn )
@@ -132,11 +157,29 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	public int getPropValCount ()
 	{
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		Number count = (Number) em.createQuery (
-			"SELECT COUNT (DISTINCT pv.id) FROM ExperimentalPropertyValue pv"
-		).getSingleResult ();
-		
-		return count.intValue ();
+		try
+		{
+			EntityTransaction tx = em.getTransaction ();
+			tx.begin ();
+			Number count = (Number) em.createQuery (
+				"SELECT COUNT (DISTINCT pv.id) FROM ExperimentalPropertyValue pv"
+			).getSingleResult ();
+			tx.commit ();
+			return count.intValue ();
+		}
+		finally {
+			if ( em.isOpen () ) em.close ();
+		}
+	}
+
+	public double getRandomSelectionQuota ()
+	{
+		return randomSelectionQuota;
+	}
+
+	public void setRandomSelectionQuota ( double randomSelectionQuota )
+	{
+		this.randomSelectionQuota = randomSelectionQuota;
 	}
 
 }
