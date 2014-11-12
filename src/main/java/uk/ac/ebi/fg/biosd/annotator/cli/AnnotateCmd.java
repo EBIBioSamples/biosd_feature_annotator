@@ -52,6 +52,7 @@ public class AnnotateCmd
 			{
 				if ( cli.hasOption ( "submission" ) || cli.hasOption ( "sampletab" ) ) xopts++;
 				if ( cli.hasOption ( "offset" ) || cli.hasOption ( "limit" ) ) xopts++;
+				if ( cli.hasOption ( "purge" ) ) xopts++;
 				if ( cli.hasOption ( "property-count" ) )
 				{
 					if ( cli.hasOption ( "random-quota" ) )
@@ -128,7 +129,7 @@ public class AnnotateCmd
 		opts.addOption ( OptionBuilder
 			.withDescription ( "annotates all the sample (group) properties related to a given submission" )
 			.withLongOpt ( "submission" )
-			.withArgName ( "submission accession" )
+			.withArgName ( "accession" )
 			.hasArg ()
 			.create ( 's' )
 		);
@@ -136,7 +137,7 @@ public class AnnotateCmd
 		opts.addOption ( OptionBuilder
 			.withDescription ( "like --submission, takes the submission accession from the SampleTab submission file" )
 			.withLongOpt ( "sampletab" )
-			.withArgName ( "submission accession" )
+			.withArgName ( "path" )
 			.hasArg ()
 			.create ( 't' )
 		);
@@ -176,7 +177,14 @@ public class AnnotateCmd
 		);
 
 		opts.addOption ( OptionBuilder
-			.withDescription ( "Prints out this message" )
+			.withDescription ( "remove older entries created by the annotator, so that annotations can be updated (incompatible with other options)" )
+			.withLongOpt ( "purge" )
+			.create ( 'g' )
+		);
+		
+		
+		opts.addOption ( OptionBuilder
+			.withDescription ( "prints out this message" )
 			.withLongOpt ( "help" )
 			.create ( 'h' )
 		);

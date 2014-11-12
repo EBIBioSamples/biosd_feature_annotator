@@ -5,6 +5,7 @@ import static junit.framework.Assert.assertTrue;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,11 +17,13 @@ import javax.persistence.EntityTransaction;
 import junit.framework.Assert;
 
 import org.joda.time.DateTime;
+import org.junit.After;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
 import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
@@ -46,6 +49,13 @@ public class PropertyValAnnotationServiceTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 
+	@After
+	public void cleanUp ()
+	{
+		new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
+	}
+
+	
 	@Test
 	@SuppressWarnings ( "rawtypes" )
 	public void testService ()
@@ -98,7 +108,7 @@ public class PropertyValAnnotationServiceTest
 		assertEquals ( "Couldn't find expected ontology entries!", 2, foundOeIds.size () );
 	
 		
-		// Clean-up. TODO: use proper facilities
+		// Clean-up
 		tx = em.getTransaction ();
 		tx.begin ();		
 		for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: pvs )
@@ -120,12 +130,10 @@ public class PropertyValAnnotationServiceTest
 		
 		tx.commit ();
 		
-		//if ( em.isOpen () ) em.close ();
 	}
 	
 	
-	@Test
-	@SuppressWarnings ( "unchecked" )
+	//@Test
 	public void testSubmitMsi () throws Exception
 	{
     URL sampleTabUrl = getClass().getClassLoader().getResource( "GAE-MTAB-27_truncated.sampletab.csv" );
@@ -161,27 +169,6 @@ public class PropertyValAnnotationServiceTest
 						hasFoundAnn = true;
 		}
 		
-		
-		// Clean-up. TODO: use proper facilities.
-		DateTime timeThreeshold = new DateTime ().minusMinutes ( 1 );
-		for ( OntologyEntry oe: (List<OntologyEntry>) em.createQuery ( "SELECT DISTINCT oe FROM OntologyEntry oe" ).getResultList () )
-		{
-			log.info ( "Removing annotations for {}", oe );
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
-			Set<Annotation> anns = new HashSet<Annotation> ( oe.getAnnotations () );
-			oe.getAnnotations ().clear ();
-			for ( Annotation ann: anns )
-			{
-				if ( new DateTime ( ann.getTimestamp () ).isBefore ( timeThreeshold ) ) continue; 
-				log.info ( "Removing {}", ann );
-				em.remove ( ann );
-			}
-			tx.commit ();
-		}
-		
-		//if ( em.isOpen () ) em.close ();
-
 		
 		Unloader unloader = new Unloader ();
 		unloader.setDoPurge ( true );

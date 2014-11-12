@@ -5,16 +5,20 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 import static uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache.NULL_TERM_URI;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
+import org.joda.time.DateTime;
+import org.junit.After;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
@@ -38,6 +42,13 @@ public class BioSDOntoDiscoveringCacheTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 
+	@After
+	public void cleanUp ()
+	{
+		new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
+	}
+	
+	
 	@Test
 	public void testDbCache()
 	{
@@ -101,21 +112,6 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		log.info ( "Second-call versus first-call time: {}, {}", time2, time1 );
 		assertTrue ( "WTH?! Second call time bigger than first!", time2 < time1 );
-		
-		// Clean-up
-		// TODO: use the DAOs 
-		EntityTransaction tx = em.getTransaction ();
-		tx.begin ();
-		for ( Object[] tuple: dbentries )
-		{
-			OntologyEntry dbOe = (OntologyEntry) tuple [ 0 ];
-			for ( Annotation ann: dbOe.getAnnotations () )
-				em.remove ( ann );
-			em.remove ( dbOe );
-		}
-		tx.commit ();
-		
-		//if ( em.isOpen () ) em.close ();
 	}
 	
 	
@@ -151,14 +147,6 @@ public class BioSDOntoDiscoveringCacheTest
 			dbOe.getAcc ()
 		);
 		
-		EntityTransaction tx = em.getTransaction ();
-		tx.begin ();
-		for ( Annotation ann: dbOe.getAnnotations () )
-			em.remove ( ann );
-		em.remove ( dbOe );
-		tx.commit ();
-
-		//if ( em.isOpen () ) em.close ();
 	}
 	
 	
@@ -185,33 +173,6 @@ public class BioSDOntoDiscoveringCacheTest
 		assertNotNull ( "Entry not saved in memory cache!", memCache.getOntologyTermUris ( value, type ) );
 		assertNotNull ( "Entry not saved in DB cache!", dbCache.getOntologyTermUris ( value, type ) );
 		
-		
-		
-		// Clean-up
-		// TODO: use the DAOs 
-		//
-		
-		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( value, type );
-
-		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		
-		List<Object[]> dbentries = em.createNamedQuery ( "findOntoAnnotations" )
-	  .setParameter ( "provenance", zoomaMarker.getProvenance ().getName () )
-	  .setParameter ( "annotation", zoomaMarker.getText () )
-		.getResultList ();
-		
-		EntityTransaction tx = em.getTransaction ();
-		tx.begin ();
-		for ( Object[] tuple: dbentries )
-		{
-			OntologyEntry dbOe = (OntologyEntry) tuple [ 0 ];
-			for ( Annotation ann: dbOe.getAnnotations () )
-				em.remove ( ann );
-			em.remove ( dbOe );
-		}
-		tx.commit ();
-		
-		//if ( em.isOpen () ) em.close ();
 	}
 	
 }

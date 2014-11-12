@@ -3,6 +3,7 @@ package uk.ac.ebi.fg.biosd.annotator.cli;
 import static junit.framework.Assert.assertTrue;
 
 import java.net.URL;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -11,11 +12,13 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
+import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
 import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
@@ -81,25 +84,8 @@ public class AnnotateCmdTest
 		}
 		
 		
-		// Clean-up. TODO: use proper facilities.
-		DateTime timeThreeshold = new DateTime ().minusMinutes ( 1 );
-		for ( OntologyEntry oe: (List<OntologyEntry>) em.createQuery ( "SELECT DISTINCT oe FROM OntologyEntry oe" ).getResultList () )
-		{
-			log.info ( "Removing annotations for {}", oe );
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
-			Set<Annotation> anns = new HashSet<Annotation> ( oe.getAnnotations () );
-			oe.getAnnotations ().clear ();
-			for ( Annotation ann: anns )
-			{
-				if ( new DateTime ( ann.getTimestamp () ).isBefore ( timeThreeshold ) ) continue; 
-				log.info ( "Removing {}", ann );
-				em.remove ( ann );
-			}
-			tx.commit ();
-		}
-		
-		//if ( em.isOpen () ) em.close ();
+		// Clean-up
+		new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
 		
 		Unloader unloader = new Unloader ();
 		unloader.setDoPurge ( true );

@@ -68,7 +68,7 @@ public class PropertyValAnnotator
 		
 		try
 		{
-			for ( DiscoveredTerm dterm: getNewOntoClassUris ( pval, false ) )
+			for ( DiscoveredTerm dterm: getOntoClassUris ( pval, false ) )
 			{
 					tx = em.getTransaction ();
 					tx.begin ();
@@ -87,7 +87,7 @@ public class PropertyValAnnotator
 	}
 	
 	
-	public List<DiscoveredTerm> getNewOntoClassUris ( ExperimentalPropertyValue<?> pval, boolean isNumberOrDate ) 
+	public List<DiscoveredTerm> getOntoClassUris ( ExperimentalPropertyValue<?> pval, boolean isNumberOrDate ) 
 	{
 		if ( pval == null ) return Collections.emptyList ();
 		
