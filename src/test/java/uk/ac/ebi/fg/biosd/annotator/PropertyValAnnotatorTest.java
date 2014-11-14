@@ -89,7 +89,7 @@ public class PropertyValAnnotatorTest
 						)
 				{
 					hasZooma = true;
-					nelems++;
+					nelems += 3; // corresponds to the ann, the link to pv and the link from oe
 				}
 			}
 		}
@@ -98,7 +98,7 @@ public class PropertyValAnnotatorTest
 	
 		// Clean-up
 		int deleted = new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
-		assertEquals ( "Annotations not deleted!", nelems + (int) (nelems / 2), deleted );
+		assertEquals ( "Annotations not deleted!", nelems, deleted );
 		
 		tx = em.getTransaction ();
 		tx.begin ();

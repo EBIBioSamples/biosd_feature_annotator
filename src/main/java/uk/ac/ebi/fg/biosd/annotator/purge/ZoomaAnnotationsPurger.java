@@ -12,6 +12,8 @@ import org.hibernate.Query;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.core_model.resources.Resources;
@@ -28,6 +30,8 @@ import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
  */
 public class ZoomaAnnotationsPurger
 {
+	private Logger log = LoggerFactory.getLogger ( this.getClass () );
+	
 	public int purgeOlderThan ( Date endTime )
 	{
 		return purge ( new Date ( 0 ), endTime );
@@ -91,7 +95,12 @@ public class ZoomaAnnotationsPurger
 				result++;
 			}
 			
-			// And now we can remove the old annotation
+			// Current old annotation going to be removed, but first the links with OEs which were kept on by other annotations
+			String sqlDelOeAnn = "DELETE FROM onto_entry_annotation WHERE annotation_id = :annId";
+			javax.persistence.Query sDelOe = em.createNativeQuery ( sqlDelOeAnn ).setParameter ( "annId", ann.getId () );
+			result += sDelOe.executeUpdate ();
+			
+			// And now we can go with the annotation
 			em.remove ( ann );
 			result++;
 			
@@ -101,6 +110,8 @@ public class ZoomaAnnotationsPurger
 				em.flush ();
 				em.clear ();
 			}
+			
+			if ( annCt % 1000 == 0 ) log.info ( "{} annotations processed", annCt );
 		}
 		
 		tx.commit ();

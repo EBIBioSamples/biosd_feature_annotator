@@ -15,11 +15,12 @@ import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
 
 /**
  * 
- * TODO: Comment me!
+ * The annotation command. All the work is invoked through an .sh script in the final binary, which in turn invokes this.
  *
  * <dl><dt>date</dt><dd>13 Oct 2014</dd></dl>
  * @author Marco Brandizi
@@ -45,6 +46,7 @@ public class AnnotateCmd
 			CommandLineParser clparser = new GnuParser ();
 			CommandLine cli = clparser.parse ( getOptions(), args );
 			
+			// Check argument consistency.
 			int xopts = 0;
 			if ( cli.hasOption ( "help" ) )
 				xopts = 2;
@@ -71,6 +73,7 @@ public class AnnotateCmd
 			
 			PropertyValAnnotationService annService = new PropertyValAnnotationService ();
 			
+			// Count experimental property values, invoked by the cluster-based command
 		  if ( cli.hasOption ( "property-count" ) )
 		  {
 		  	out.println ( annService.getPropValCount () );
@@ -78,7 +81,23 @@ public class AnnotateCmd
 		  	return;
 		  }
 			
+			// Clean-up older annotations
+		  if ( cli.hasOption ( "purge" ) )
+		  {
+		  	int age = Integer.valueOf ( cli.getOptionValue ( "purge", "90" ) );
+		  	Purger purger = new Purger ();
+		  	
+		  	log.info ( "--------- removing annotator entities older than {} day(s), please wait... ---------\n", age );
+		  	int nitems = purger.purgeOlderThan ( age );
+		  	log.info ( "older annotator entries purged, {} item(s) removed", nitems ); 
+		  	return;
+		  }
 		  
+		  
+		  // This is the real annotation job
+		  //
+
+		  // Per submission accession invocation
 			String msiAccs[] = cli.getOptionValues ( "submission" );
 			if ( msiAccs != null )
 			{
@@ -86,6 +105,7 @@ public class AnnotateCmd
 					annService.submitMSI ( msiAcc );
 			}
 
+			// Per submission file invocation
 			String sampleTabs[] = cli.getOptionValues ( "sampletab" );
 			if ( sampleTabs != null )
 			{
@@ -93,6 +113,7 @@ public class AnnotateCmd
 					annService.submitMSI ( new FileInputStream ( new File ( sampleTab ) ) );
 			}
 			
+			// Invocation over all properties, considering a given window. This is used by the LSF-based script.
 			if ( cli.hasOption ( "offset" ) || cli.hasOption ( "limit" ) || sampleTabs == null && msiAccs == null )
 			{
 				Double rndQuota = Double.valueOf ( cli.getOptionValue ( "random-quota", "100.0" ) );
@@ -106,6 +127,7 @@ public class AnnotateCmd
 				);
 			}
 			
+			// Whatever you did, wait that all the annotators finish.
 		  annService.waitAllFinished ();
 			log.info ( "all should have gone fine!" );
 		}
@@ -116,6 +138,7 @@ public class AnnotateCmd
 		}
 		finally 
 		{
+			// See NO_EXIT_PROP definition
 			if ( !"true".equals ( System.getProperty ( NO_EXIT_PROP ) ) )
 				System.exit ( exitCode );
 		}
@@ -177,8 +200,11 @@ public class AnnotateCmd
 		);
 
 		opts.addOption ( OptionBuilder
-			.withDescription ( "remove older entries created by the annotator, so that annotations can be updated (incompatible with other options)" )
+			.withDescription ( "remove entries created by the annotator, which are older than <age-days> (default is 90),"
+				+ " so that annotations can be updated (incompatible with other options)" )
 			.withLongOpt ( "purge" )
+			.withArgName ( "age-days" )
+			.hasOptionalArg ()
 			.create ( 'g' )
 		);
 		

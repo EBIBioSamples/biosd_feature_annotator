@@ -9,9 +9,12 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
+import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.DBStore;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.terms.OntologyEntryNormalizer;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.terms.OntologyEntryDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.AnnotationType;
@@ -24,7 +27,16 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryCache;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyDiscoveryException;
 
 /**
- * TODO: Comment me!
+ * <p>An {@link OntoTermDiscoveryCache} that is based on the BioSD database and its object model.</p>
+ *  
+ * <p>When it is asked to save a term, this cache stores it as an {@link OntologyEntry}, plus an {@link TextAnnotation}
+ * that track the ZOOMA provenance and which string pairs originated the ontology term.</p>
+ * 
+ * <p>Dually, {@link #getOntologyTermUris(String, String)} checks that an annotation with the parameter strings exist and,
+ * if yes, fetches the linked ontology term.</p>
+ * 
+ * <p>Older ontology terms and annotations are supposed to be deleted periodically, via the command line 
+ * (@see {@link Purger}), so that the DB-cached annotations are periodically refreshed.</p> 
  *
  * <dl><dt>date</dt><dd>1 Aug 2014</dd></dl>
  * @author Marco Brandizi
@@ -35,15 +47,19 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	public final static String NULL_TERM_URI = "http://rdf.ebi.ac.uk/terms/biosd/NullOntologyTerm";
 			
 	/**
+	 * Works as explained in the class comment.
+	 * 
 	 * Note that this method is synchronised, because we noticed DB lock problems when it wasn't. The speed isn't affected
 	 * too much.
 	 */
 	@Override
-	public synchronized List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> discoveredTerms ) throws OntologyDiscoveryException
+	public synchronized List<DiscoveredTerm> save ( 
+		String valueLabel, String typeLabel, List<DiscoveredTerm> discoveredTerms 
+	) throws OntologyDiscoveryException
 	{
 		if ( discoveredTerms.isEmpty () )
 		{
-			// Save the special case where this entry isn't mapped to any term. We need to mark this, so that we won't
+			// Save the special case where this entry isn't mapped to any term. We need to track this, so that we won't
 			// re-discover it
 			discoveredTerms = new ArrayList<> ();
 			ExtendedDiscoveredTerm nullDt = new ExtendedDiscoveredTerm ( null, -1f, null );
@@ -51,7 +67,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		}
 
 		
-		// Now you have ontology term URIs to associate to this pair, let's turn it all to BioSD model objects
+		// Now you have ontology term URIs to associate to this string pair, let's turn it all to BioSD model objects
 		//
 		Date now = new Date ();
 
@@ -69,11 +85,10 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	
 				DiscoveredTerm dterm = discoveredTerms.get ( i );
 	
-				// When it's an extended discovered term, that's because the previous block here above has set the 
+				// When it's already an extended discovered term, that's because the previous block here above has set the 
 				// empty result special case
 				//
 				boolean isProperDiscovery = !(dterm instanceof ExtendedDiscoveredTerm);
-				
 				
 				// If it's not real, mark that this entries has no mapping, ie, cache this too
 				String dtermUri = isProperDiscovery ? dterm.getUri ().toASCIIString () : NULL_TERM_URI;
@@ -90,16 +105,18 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 					
 				// Annotate the origin of this mapping
 				float dscore = dterm.getScore ();
-				Double savedScore = dscore == -1 ? null : (double) dscore;
+				Double savedScore = dscore == -1 ? null : (double) dscore; // as above, it's null when it's mapped to a null term
 				Annotation zoomaMarker = createZOOMAMarker ( valueLabel, typeLabel, savedScore, now );
 				
-				// This annotation is certainly new, due to the way the cache works, however the type and provenance are likely
-				// to be factorised. We cannot invoke the Ontology annotation only, cause the annotations are ignored when the OE
-				// is not new.
+				// This annotation is certainly new, due to the way the cache works, however the type and provenance objects
+				// are likely to be normalised.
+				// Normally the annotation normaliser is triggered by the ontology normaliser, however this might not happen here,
+				// cause the ontology entry might already exist (ie, a new annotation about a new string pair is being added) 
+				//
 				annNormalizer.normalize ( zoomaMarker );
 				oterm.addAnnotation ( zoomaMarker ); // Typically it doesn't do anything, but just in case.
 				
-				// Save it all to the DB
+				// Almost done, save it all to the DB
 				oeNormalizer.normalize ( oterm );
 				if ( oterm.getId () == null ) ontoDao.create ( oterm ); else em.merge ( oterm );
 			
@@ -113,13 +130,13 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 				else
 				{
 					// Return the empty result, the annotator will need to deal with such a case
+					// We can stop the for loop here, because we're sure there is only this null element in discoveredTerms
 					tx.commit (); // close the current transaction before
 					return CachedOntoTermDiscoverer.NULL_RESULT;
 				}
 			} // for discoveredTerms
 		
 			tx.commit ();
-
 			return discoveredTerms;
 		}
 		finally {
@@ -127,6 +144,9 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		} 
 	}
 
+	/**
+	 * Works as explained in the class comment.
+	 */
 	@Override
 	@SuppressWarnings ( "unchecked" )
 	public List<DiscoveredTerm> getOntologyTermUris ( String valueLabel, String typeLabel ) throws OntologyDiscoveryException
@@ -138,10 +158,11 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 
 		try
 		{
+			// Hibernate protects against concurrency issues by wrapping readings into transactions too.
+			// Ridiculous...
 			EntityTransaction tx = em.getTransaction ();
 			tx.begin ();
-			// Turn the result into appropriate format
-			List<DiscoveredTerm> result = new ArrayList<> ();
+		
 			List<Object[]> dbentries =  (List<Object[]>) em.createNamedQuery ( "findOntoAnnotations" )
 			  .setParameter ( "provenance", zoomaMarker.getProvenance ().getName () )
 			  .setParameter ( "annotation", zoomaMarker.getText () )
@@ -151,27 +172,32 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			
 			// The text entry doesn't exist at all: we don't have it yet and therefore we have to report null
 			if ( dbentries.isEmpty () ) return null;
-			
+
+			// Now turn the real result into the required return format
+			List<DiscoveredTerm> result = new ArrayList<> ();
+
 			for ( Object[] tuple: dbentries )
 			{
 				OntologyEntry oterm = (OntologyEntry) tuple [ 0 ];
 				Double score = (Double) tuple [ 1 ];
 				
 				if ( NULL_TERM_URI.equals ( oterm.getAcc () ) )
-					// This entry is reported to map to an empty result, so return the corresponding value
+					// This entry is reported to map to an empty result, so return the corresponding value (an empty list)
 					return CachedOntoTermDiscoverer.NULL_RESULT;
 				
-				// return the discovered term that correspond to this entry
+				// else return the discovered term that correspond to this entry
 				ExtendedDiscoveredTerm dterm = new ExtendedDiscoveredTerm ( 
 					new URI ( oterm.getAcc () ),  score.floatValue (), oterm 
 				);
 				result.add ( dterm );
 			}
 			
+			// Here you are all the terms found in the DB cache
 			return result;
 		} 
 		catch ( URISyntaxException ex )
 		{
+			// If this really happens, you're doomed, sorry
 			throw new OntologyDiscoveryException (
 				String.format ( 
 					"Error while fetching ZOOMA annotation from the BioSD DB for '%s'/'%s': %s", 
@@ -185,7 +211,16 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		}
 	}
 
-	
+	/**
+	 * Creates the TextAnnotation that marks an ontology entry computed via the ZOOMA tool, which is what we 
+	 * do in the feature annotator. This has a constant marker in {@link AnnotationType} and {@link AnnotationProvenance},
+	 * while the variable parts are filled with the parameters in this method. 
+	 * 
+	 * @param propValue the {@link ExperimentalPropertyValue} text value used to compute this ontology annotation via ZOOMA 
+	 * @param propType the {@link ExperimentalPropertyType} text value used etc etc
+	 * @param score the confidence score that ZOOMA returns about the ontology result it found for this string pair
+	 * @param timestamp when you computed this
+	 */
 	public static TextAnnotation createZOOMAMarker ( String propValue, String propType, Double score, Date timestamp )
 	{
 		TextAnnotation result = new TextAnnotation ( 
@@ -200,6 +235,10 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		return result;
 	}
 	
+	/**
+	 * Invokes {@link #createZOOMAMarker(String, String, Double, Date)} and creates an annotation with null score and
+	 * the current time.
+	 */
 	public static TextAnnotation createZOOMAMarker ( String propValue, String propType )
 	{
 		return createZOOMAMarker ( propValue, propType, null, null );
