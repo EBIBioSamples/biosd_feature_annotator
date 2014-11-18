@@ -16,13 +16,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 
 /**
- * TODO: Comment me!
+ * Removes old {@link OntologyEntry}es that ZOOMA has attached to {@link ExperimentalPropertyValue}s, including 
+ * the {@link TextAnnotation}s that track their ZOOMA provenance.  
  *
  * <dl><dt>date</dt><dd>11 Nov 2014</dd></dl>
  * @author Marco Brandizi
@@ -36,7 +38,7 @@ public class ZoomaAnnotationsPurger
 	{
 		return purge ( new Date ( 0 ), endTime );
 	}
-
+	
 	public int purge ( Date startTime, Date endTime )
 	{
 		int result = 0;
@@ -69,7 +71,7 @@ public class ZoomaAnnotationsPurger
 		
 		long annCt = 0;
 		
-		// Select all annotations that are too old
+		// Start from the old annotations
 		for ( ScrollableResults annRs = qAnn.scroll ( ScrollMode.FORWARD_ONLY ); annRs.next (); )
 		{
 			TextAnnotation ann = (TextAnnotation) annRs.get ( 0 );

@@ -34,7 +34,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.OutputStreamAppender;
 
 /**
- * TODO: Comment me!
+ * Tests the syntax and invocation of {@link AnnotateCmd}.
  *
  * <dl><dt>date</dt><dd>14 Oct 2014</dd></dl>
  * @author Marco Brandizi
@@ -97,8 +97,8 @@ public class AnnotateCmdTest
 		// Catch the logger output, to verify results
 		//
     LoggerContext logCtx = (LoggerContext) LoggerFactory.getILoggerFactory();
-    
-		PatternLayoutEncoder encoder = new PatternLayoutEncoder ();
+
+    PatternLayoutEncoder encoder = new PatternLayoutEncoder ();
 		encoder.setPattern ( "%message%n" );
 		encoder.setContext ( logCtx );
 		encoder.start ();
@@ -116,12 +116,10 @@ public class AnnotateCmdTest
 		appender.setContext ( logCtx );
 		appender.start ();
 		
-		/*ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger( 
-			org.slf4j.Logger.ROOT_LOGGER_NAME
-		);*/
 		ch.qos.logback.classic.Logger rootLogger = logCtx.getLogger ( AnnotateCmd.class );
     rootLogger.addAppender ( appender );
-		
+
+    // catching logger set, now go with the call
 		AnnotateCmd.main ( "--purge", "" + 365 * 5 );
 		
 		// Check results
@@ -133,14 +131,13 @@ public class AnnotateCmdTest
 		);
 		int nelems = Integer.valueOf ( nelemRe.groups ( purgeOut ) [ 1 ] );
 		assertTrue ( "--purge command didn't work!", nelems > 0 );
-		
-		
-		// new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
-		
+
+		// Remove the submission too.
 		Unloader unloader = new Unloader ();
 		unloader.setDoPurge ( true );
 		unloader.unload ( msi );
 
+		// Report about initial check.
 		assertTrue ( "No annotation found!", hasFoundAnn );
 	}
 }

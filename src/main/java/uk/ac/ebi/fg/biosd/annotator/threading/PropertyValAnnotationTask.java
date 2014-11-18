@@ -7,10 +7,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotator;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.utils.threading.BatchServiceTask;
 
 /**
- * TODO: Comment me!
+ * This wraps the invocation of {@link PropertyValAnnotator} into a proper {@link PropertyValAnnotationTask task}
+ * for the {@link PropertyValAnnotationService annotator service}. Essentially, a task annotates a single
+ * {@link ExperimentalPropertyValue} into a single thread. 
  *
  * <dl><dt>date</dt><dd>3 Sep 2014</dd></dl>
  * @author Marco Brandizi
@@ -24,7 +27,7 @@ public class PropertyValAnnotationTask extends BatchServiceTask
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
 	/**
-	 * @param name
+	 * We share a single instance of the annotator, which keeps links to caches and the like.
 	 */
 	public PropertyValAnnotationTask ( long pvalId, PropertyValAnnotator pvalAnnotator )
 	{
@@ -33,6 +36,9 @@ public class PropertyValAnnotationTask extends BatchServiceTask
 		this.pvalAnnotator = pvalAnnotator;
 	}
 
+	/**
+	 * Runs the annotation task, plus some wrapping about exception handling.
+	 */
 	@Override
 	public void run ()
 	{
@@ -40,6 +46,7 @@ public class PropertyValAnnotationTask extends BatchServiceTask
 		{
 			PersistenceException theEx = null;
 			
+			// Try more times, in the attempt to face concurrency issues we have in cluster mode.
 			for ( int attempts = 5; attempts > 0; attempts-- )
 			{
 				try 

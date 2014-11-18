@@ -233,6 +233,10 @@ public class AnnotateCmd
 		PrintWriter pw = new PrintWriter ( out, true );
 		helpFormatter.printOptions ( pw, 100, getOptions (), 2, 4 );
 		
+		out.println ( "\nEnvironment:" );
+		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationService.MAX_THREAD_PROP + "\": max number of threads that can be used" );
+		out.println ( "  (very important in LSF mode)" );
+		
 		out.println ( "\n\n" );
 		
 		exitCode = 1;

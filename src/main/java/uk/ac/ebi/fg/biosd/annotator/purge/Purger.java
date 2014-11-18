@@ -4,8 +4,12 @@ import java.util.Date;
 
 import org.joda.time.DateTime;
 
+import uk.ac.ebi.fg.biosd.annotator.cli.AnnotateCmd;
+
 /**
- * TODO: Comment me!
+ * <p>A purger of old sample feature annotations that are created by the feature annotator.</p>
+ * 
+ * <p>This entry point calls specific purgers and it's used to implement the {@link AnnotateCmd command line}.</p>
  *
  * <dl><dt>date</dt><dd>12 Nov 2014</dd></dl>
  * @author Marco Brandizi

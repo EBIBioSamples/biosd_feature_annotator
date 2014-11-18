@@ -39,7 +39,7 @@ import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 
 /**
- * TODO: Comment me!
+ * Tests the {@link PropertyValAnnotationService} and how things work in multi-thread mode.
  *
  * <dl><dt>date</dt><dd>3 Sep 2014</dd></dl>
  * @author Marco Brandizi
@@ -49,17 +49,24 @@ public class PropertyValAnnotationServiceTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 
+	/**
+	 * Uses the {@link Purger} to remove the ZOOMA-related objects created in these tests.
+	 */
 	@After
 	public void cleanUp ()
 	{
 		new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
 	}
 
-	
+	/**
+	 * Basic test against a couple of properties.
+	 */
 	@Test
 	@SuppressWarnings ( "rawtypes" )
 	public void testService ()
 	{
+		// Test against these.
+		//
 		List<ExperimentalPropertyValue<ExperimentalPropertyType>> pvs = new ArrayList<> ();
 		pvs.add ( new ExperimentalPropertyValue<> ( 
 			"homo sapiens", new ExperimentalPropertyType ( "specie" ) 
@@ -74,7 +81,8 @@ public class PropertyValAnnotationServiceTest
 			pvs.get ( 0 ).getTermText (), pvs.get ( 0 ). getType ()
 		));
 		
-		
+		// Save them
+		// 
 		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
 		EntityManager em = emf.createEntityManager ();
 		
@@ -83,13 +91,14 @@ public class PropertyValAnnotationServiceTest
 		for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: pvs ) em.persist ( pv );
 		tx.commit ();
 
-		//if ( em.isOpen () ) em.close ();
-		
+		// Annotate them with the multi-thread service
+		//
 		PropertyValAnnotationService service = new PropertyValAnnotationService ();
 		service.submitAll ();
 		service.waitAllFinished ();
 
-		
+		// Verify
+		//
 		em = emf.createEntityManager ();
 		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
 
@@ -106,7 +115,6 @@ public class PropertyValAnnotationServiceTest
 		}
 		
 		assertEquals ( "Couldn't find expected ontology entries!", 2, foundOeIds.size () );
-	
 		
 		// Clean-up
 		tx = em.getTransaction ();
@@ -132,10 +140,14 @@ public class PropertyValAnnotationServiceTest
 		
 	}
 	
-	
-	//@Test
+	/**
+	 * Tests against a real-world submission.
+	 */
+	@Test
 	public void testSubmitMsi () throws Exception
 	{
+		// The test case is stored in the Maven project, load it
+		//
     URL sampleTabUrl = getClass().getClassLoader().getResource( "GAE-MTAB-27_truncated.sampletab.csv" );
 
 		Loader loader = new Loader ();
@@ -143,6 +155,8 @@ public class PropertyValAnnotationServiceTest
 		Persister persister = new Persister ();
 		persister.persist ( msi );
 		
+		// Use the multi-thread service
+		//
 		PropertyValAnnotationService service = new PropertyValAnnotationService ();
 		service.submitMSI ( sampleTabUrl.openStream () );
 		service.waitAllFinished ();
@@ -169,11 +183,13 @@ public class PropertyValAnnotationServiceTest
 						hasFoundAnn = true;
 		}
 		
-		
+		// Remove the submission
+		//
 		Unloader unloader = new Unloader ();
 		unloader.setDoPurge ( true );
 		unloader.unload ( msi );
 
+		// Report about verified annotations.
 		assertTrue ( "No annotation found!", hasFoundAnn );
 	}
 }

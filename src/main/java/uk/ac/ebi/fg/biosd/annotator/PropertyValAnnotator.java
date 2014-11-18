@@ -25,8 +25,14 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.utils.regex.RegEx;
 
 /**
- * TODO: Comment me!
- *
+ * This annotates a {@link ExperimentalPropertyValue} with ontology entries returned by {@link OntologyTermDiscoverer},
+ * which in turn uses a memory cache and {@link BioSDOntoDiscoveringCache}. Details about how this happens are explained
+ * in {@link ExtendedDiscoveredTerm}.
+ * 
+ * TODO: This also annotates a property value with information extracted from it about 1) explicity ontology entries
+ * (which are checked via Bioportal) 2) numeric/date values, including ranges, and units (Unit Ontology + Bioportal
+ * are used for this).
+ * 
  * <dl><dt>date</dt><dd>1 Sep 2014</dd></dl>
  * @author Marco Brandizi
  *
@@ -40,6 +46,7 @@ public class PropertyValAnnotator
 	
 	public PropertyValAnnotator ( float zoomaThreesholdScore )
 	{
+		// Double cache results in memory and in the BioSD database.
 		this.ontoTermDiscoverer = new CachedOntoTermDiscoverer (
 			new CachedOntoTermDiscoverer ( 
 				new ZoomaOntoTermDiscoverer ( zoomaThreesholdScore ), new BioSDOntoDiscoveringCache ()
@@ -49,11 +56,19 @@ public class PropertyValAnnotator
 		
 	}
 
+	/**
+	 * Defaults to a score threshold of 80.
+	 */
 	public PropertyValAnnotator ()
 	{
 		this ( 80f );
 	}
 
+	/**
+	 * Call different types of annotators and link the computed results to the property value. pvalId is the 
+	 * property #ID in the BioSD database.
+	 *  
+	 */
 	@SuppressWarnings ( "rawtypes" )
 	public boolean annotate ( long pvalId )
 	{
@@ -68,11 +83,13 @@ public class PropertyValAnnotator
 		
 		try
 		{
+			// This are the ontology terms associated to the property value by ZOOMA
 			for ( DiscoveredTerm dterm: getOntoClassUris ( pval, false ) )
 			{
 					tx = em.getTransaction ();
 					tx.begin ();
 					OntologyEntry oe = ((ExtendedDiscoveredTerm) dterm).getOntologyTerm ();
+					// This will save the term, if it's new.
 					oe = em.merge ( oe );
 					pval = em.merge ( pval );
 					pval.addOntologyTerm ( oe );
@@ -86,7 +103,15 @@ public class PropertyValAnnotator
 		return true;
 	}
 	
-	
+	/**
+	 * This will get the ontology terms associated to the property value, either from ZOOMA, or the previous
+	 * ZOOMA results stored in BioSD, or the memory cache.
+	 * 
+	 * The method also takes into account if the property value has already been deemed to be a number/range/date, in which 
+	 * case it will only use its {@link ExperimentalPropertyType type}, to annotate the numberish value with a type.
+	 * This last part is TODO.
+	 * 
+	 */
 	public List<DiscoveredTerm> getOntoClassUris ( ExperimentalPropertyValue<?> pval, boolean isNumberOrDate ) 
 	{
 		if ( pval == null ) return Collections.emptyList ();

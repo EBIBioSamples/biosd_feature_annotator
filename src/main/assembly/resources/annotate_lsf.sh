@@ -1,9 +1,12 @@
 #!/bin/sh
 
-cd "$(dirname $0)"
-MYDIR="$(pwd)"
+# 
+# Invokes multiple instances (ie, JVMs) of the command annotate.sh, using an LSF-based cluster (tested at the EBI),
+# against all the properties in the BioSD database. This first computes the number of experimental proeprties
+# in the BioSD database and then it split them in chunks to be passed to multiple processes.
+# 
 
-# Random sample?
+# Random samples, if this is < 100, will randomly pick this quota of properties 
 if [ "$RANDOM_QUOTA" == '' ]; then RANDOM_QUOTA=100; fi
 
 # The LSF group used for loading jobs
@@ -18,6 +21,9 @@ if [ "$PROPERTIES_PER_JOB" == '' ]; then PROPERTIES_PER_JOB=5000; fi
 
 # --- end of invoker-passed properties. 
 
+cd "$(dirname $0)"
+MYDIR="$(pwd)"
+
 
 # If it doesn't already exist, create an LSF group to manage a limited running pool
 if [ "$(bjgroup -s /$LSF_GROUP 2>&1)" == 'No job group found' ]; then
@@ -31,6 +37,9 @@ fi
 #
 export OPTS="$OPTS -Duk.ac.ebi.fg.biosd.annotator.maxThreads=60" 
 
+
+# How many properties do we have?
+# 
 pval_size=$(./annotate.sh --property-count 2>/dev/null)
 
 if [[ ! ( $pval_size -gt 0 ) ]]
@@ -42,6 +51,8 @@ then
   exit 1
 fi
 
+# Split the whole job into chunks
+# 
 echo "Processing ${RANDOM_QUOTA}% of $pval_size property values with $LSF_NODES nodes, $PROPERTIES_PER_JOB records per job"
 
 chunkct=1
@@ -53,6 +64,7 @@ do
 done
 
 # Now poll the LSF and wait until all the jobs terminate.
+#
 echo 'All the exporting jobs submitted, now waiting for their termination, please be patient.'
 while [ "$(bjobs -g /$LSF_GROUP 2>&1)" != 'No unfinished job found' ]
 do

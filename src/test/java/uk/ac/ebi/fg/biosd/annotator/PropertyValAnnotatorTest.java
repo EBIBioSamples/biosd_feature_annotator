@@ -29,7 +29,7 @@ import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 
 /**
- * TODO: Comment me!
+ * Tests the {@link PropertyValAnnotator}.
  *
  * <dl><dt>date</dt><dd>2 Sep 2014</dd></dl>
  * @author Marco Brandizi
@@ -39,10 +39,15 @@ public class PropertyValAnnotatorTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
+	/**
+	 * Basic test, with a single created {@link ExperimentalPropertyValue}.
+	 */
 	@Test
 	@SuppressWarnings ( "rawtypes" )
 	public void testAnnotator ()
 	{
+		// Create the property
+		//
 		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( "specie" );
 		ExperimentalPropertyValue<ExperimentalPropertyType> pval = new ExperimentalPropertyValue<> ( "homo sapiens", ptype );
 		
@@ -55,12 +60,14 @@ public class PropertyValAnnotatorTest
 		em.persist ( pval );
 		tx.commit ();
 
-		
+		// Annotate
+		//
 		PropertyValAnnotator annotator = new PropertyValAnnotator ( 50f );
 		assertTrue ( "The annotator returns false!", annotator.annotate ( pval.getId () ) );
 		em = emf.createEntityManager ();
 
-		
+		// Verify
+		//
 		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
 		ExperimentalPropertyValue<?> pvaldb = pvdao.find ( pval.getId () );
 

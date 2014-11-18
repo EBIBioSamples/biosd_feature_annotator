@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This is the entry point that invokes the MyEquivalents's line commands.
+# This is the entry point to invoke the annotator line command.
 # 
 
 # Do you use a proxy?

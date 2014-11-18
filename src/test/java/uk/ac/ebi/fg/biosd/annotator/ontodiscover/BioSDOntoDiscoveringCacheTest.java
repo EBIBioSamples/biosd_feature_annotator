@@ -31,7 +31,7 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.utils.time.XStopWatch;
 
 /**
- * TODO: Comment me!
+ * Test the {@link BioSDOntoDiscoveringCache}.
  *
  * <dl><dt>date</dt><dd>29 Aug 2014</dd></dl>
  * @author Marco Brandizi
@@ -62,6 +62,8 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		timer.start ();
 		
+		// Annotate this property
+		//
 		String value = "homo sapiens", type = "specie";
 		
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
@@ -74,6 +76,7 @@ public class BioSDOntoDiscoveringCacheTest
 		int nterms = terms.size ();
 		
 		// verify it went to the DB
+		//
 		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( value, type );
 
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
@@ -98,7 +101,8 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		assertTrue ( "Original Entry not found in the DB cache!", hasEntry );
 		
-		
+		// Lookup again, now search times must be much faster, thanks to the cache
+		//
 		timer.reset ();
 		timer.start ();
 		for ( int i = 0; i < 100; i++ )
@@ -114,7 +118,11 @@ public class BioSDOntoDiscoveringCacheTest
 		assertTrue ( "WTH?! Second call time bigger than first!", time2 < time1 );
 	}
 	
-	
+	/**
+	 * Tests that string values not related to ontologies are actually associated to the 
+	 * {@link BioSDOntoDiscoveringCache#NULL_TERM_URI} and corresponding objects are created in the BioSD db.
+	 * 
+	 */
 	@Test
 	public void testNullMapping ()
 	{
@@ -122,13 +130,16 @@ public class BioSDOntoDiscoveringCacheTest
 		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ();
 		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
 
+		// Create and annotate the property
+		//
 		String value = "bla bla foo value 1234", type = "foo type 2233";
 
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
 		
-		assertTrue ( "Wron mapping returned!", terms.isEmpty () );
+		assertTrue ( "Wrong mapping returned!", terms.isEmpty () );
 		
-
+		// Verify there is the OE and the annotation
+		//
 		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( value, type );
 
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
@@ -150,9 +161,15 @@ public class BioSDOntoDiscoveringCacheTest
 	}
 	
 	
+	/**
+	 * Tests that {@link BioSDOntoDiscoveringCache} and {@link OntologyTermDiscoverer} are used correctly when 
+	 * combined together.
+	 */
 	@Test
 	public void testBothCacheLevels ()
 	{
+		// The chain is: caller -> cached ( mem cache ) -> cached ( BioSD cache ) -> ZOOMA
+		// 
 		OntoTermDiscoveryMemCache memCache = new OntoTermDiscoveryMemCache ();
 		BioSDOntoDiscoveringCache dbCache = new BioSDOntoDiscoveringCache ();
 		
@@ -163,16 +180,17 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( level2Client, memCache );
 	
-
+		// Test this property
+		//
 		String value = "homo sapiens", type = "specie";
 
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
 		log.info ( "Discovered entries:\n{}", terms.toString () );
 
-		
+		// Test both caches are used. More advanced tests of this are in the ZOOMA client module
+		//
 		assertNotNull ( "Entry not saved in memory cache!", memCache.getOntologyTermUris ( value, type ) );
 		assertNotNull ( "Entry not saved in DB cache!", dbCache.getOntologyTermUris ( value, type ) );
-		
 	}
 	
 }

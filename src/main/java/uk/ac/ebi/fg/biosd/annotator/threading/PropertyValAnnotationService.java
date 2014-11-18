@@ -21,10 +21,13 @@ import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
+import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
 import uk.ac.ebi.utils.threading.BatchService;;
 
 /**
- * TODO: Comment me!
+ * This is the {@link BatchService multi-thread service} to which {@link PropertyValAnnotationTask}s are submitted. It
+ * manages a near-fixed size thread pool, which of size is periodically evaluated for performance and dynamically
+ * adjusted.
  *
  * <dl><dt>date</dt><dd>3 Sep 2014</dd></dl>
  * @author Marco Brandizi
@@ -32,6 +35,13 @@ import uk.ac.ebi.utils.threading.BatchService;;
  */
 public class PropertyValAnnotationService extends BatchService<PropertyValAnnotationTask>
 {
+	/** 
+	 * This is a system property that allows you to define a limit for the number of threads the annotator can use.
+	 * This is very important when running the annotator against the cluster, since the default value of 100
+	 * leads us to running out of Oracle connections.
+	 */
+	public static final String MAX_THREAD_PROP = "uk.ac.ebi.fg.biosd.annotator.maxThreads";
+	
 	private double randomSelectionQuota = 100.0;
 	private Random rndGenerator = new Random ( System.currentTimeMillis () );
 
@@ -48,7 +58,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			this.poolSizeTuner.setPeriodMSecs ( (int) 5*60*1000 );
 			// TODO: document this
 			this.poolSizeTuner.setMaxThreads ( Integer.parseInt ( System.getProperty ( 
-				"uk.ac.ebi.fg.biosd.annotator.maxThreads", "100" ) ) 
+				MAX_THREAD_PROP, "100" ) ) 
 			);
 			this.poolSizeTuner.setMinThreads ( 5 );
 			this.poolSizeTuner.setMaxThreadIncr ( this.poolSizeTuner.getMaxThreads () / 4 );
@@ -58,12 +68,22 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		
 	}
 	
+	/**
+	 * This is to submit an {@link PropertyValAnnotationTask annotation task} about an {@link ExperimentalPropertyValue} 
+	 * with this {@link Identifiable#getId() id}. If {@link #getRandomSelectionQuota()} is &lt; 100, only the 
+	 * corresponding random percentage of calls to this method will actually produce a submission.
+	 * 
+	 */
 	public void submit ( long pvalId )
 	{
 		if ( randomSelectionQuota < 100.0 && rndGenerator.nextDouble () >= randomSelectionQuota ) return;
 		super.submit ( new PropertyValAnnotationTask ( pvalId, this.propertyValAnnotator ) );
 	}
 
+	/**
+	 * Invokes {@link #submit(long)} for the properties listed in this offset and position.
+	 * This is mainly used to split the property value set in chunks and pass them to LSF-based invocations. 
+	 */
 	@SuppressWarnings ( { "unchecked" } )
 	public void submit ( Integer offset, Integer limit )
 	{
@@ -92,6 +112,11 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		submit ( null, null );
 	}
 	
+	/**
+	 * Submits an {@link PropertyValAnnotationTask annotation task} for every property linked to a {@link BioSample sample}
+	 * or {@link BioSampleGroup sample group} linked to this submission.
+	 * 
+	 */
 	public void submitMSI ( MSI msi )
 	{
 		Set<Long> pvIds = new HashSet<> ();
@@ -111,7 +136,10 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		for ( long pvid: pvIds ) submit ( pvid );
 	}
 	
-	
+	/**
+	 * Invokes {@link #submitMSI(MSI)}, after accession-based lookup. Exception is thrown if the accession doesn't
+	 * exist.
+	 */
 	public void submitMSI ( String msiAcc )
 	{
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
@@ -131,6 +159,10 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		}
 	}
 
+	/**
+	 * Invokes {@link #submitMSI(String)}, after having extracted the accession from text content expressed in SampleTab
+	 * format. Exceptions are thrown if such content is wrong.
+	 */
 	public void submitMSI ( InputStream sampleTabIn )
 	{
 		try
@@ -153,7 +185,9 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 
 	
 	
-	
+	/**
+	 * Gets the number of properties in the BioSD database. To be used prior to {@link #submit(Integer, Integer)}.
+	 */
 	public int getPropValCount ()
 	{
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
@@ -172,6 +206,12 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		}
 	}
 
+
+	/**
+	 * Allows you to do a bit of testing by anntoating only a random quota of the target set of 
+	 * {@link ExperimentalPropertyValue}s for which you invoke the annotation service.
+	 * 
+	 */
 	public double getRandomSelectionQuota ()
 	{
 		return randomSelectionQuota;
