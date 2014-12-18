@@ -35,7 +35,8 @@ fi
 # This is absolutely necessary when you run the exporter through the cluster, since every instance of it sucks up to 
 # 100 DB connections and parallel instances will soon overcome the server limit.
 #
-export OPTS="$OPTS -Duk.ac.ebi.fg.biosd.annotator.maxThreads=60" 
+nthreads=$(( 105 / $LSF_NODES ))
+export OPTS="$OPTS -Duk.ac.ebi.fg.biosd.annotator.maxThreads=$nthreads" 
 
 
 # How many properties do we have?
