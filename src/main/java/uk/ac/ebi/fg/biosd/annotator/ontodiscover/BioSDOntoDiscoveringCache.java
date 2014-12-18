@@ -44,8 +44,20 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyDiscoveryException;
  */
 public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 {
+	/**
+	 * <p>An {@link OntologyEntry} with this URI is a special case used to mark property-related texts as being mapped
+	 * to nothing (we save this fact for caching purposes).</p>
+	 * 
+	 * <p>More precisely, every time this happens an {@link OntologyEntry} having this URI is created (or refreshed) and
+	 * a new {@link TextAnnotation} attached to it, containing the strings that lead to a null mapping.</p> 
+	 */
 	public final static String NULL_TERM_URI = "http://rdf.ebi.ac.uk/terms/biosd/NullOntologyTerm";
-			
+	
+	/**
+	 * Used in {@link #createZOOMAMarker(String, String, Double, Date)}.
+	 */
+	public final static String PROVENANCE_MARKER = "BioSD Feature Annotation Tool";
+		
 	/**
 	 * Works as explained in the class comment.
 	 * 
@@ -53,9 +65,8 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	 * too much.
 	 */
 	@Override
-	public synchronized List<DiscoveredTerm> save ( 
-		String valueLabel, String typeLabel, List<DiscoveredTerm> discoveredTerms 
-	) throws OntologyDiscoveryException
+	public synchronized List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> discoveredTerms ) 
+		throws OntologyDiscoveryException
 	{
 		if ( discoveredTerms.isEmpty () )
 		{
@@ -65,7 +76,6 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			ExtendedDiscoveredTerm nullDt = new ExtendedDiscoveredTerm ( null, -1f, null );
 			discoveredTerms.add ( nullDt );
 		}
-
 		
 		// Now you have ontology term URIs to associate to this string pair, let's turn it all to BioSD model objects
 		//
@@ -75,14 +85,14 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		EntityTransaction tx = em.getTransaction ();
 		tx.begin ();
 
+		OntologyEntryDAO<OntologyEntry> ontoDao = new OntologyEntryDAO<> ( OntologyEntry.class, em );
+		OntologyEntryNormalizer oeNormalizer = new OntologyEntryNormalizer ( new DBStore ( em ) );
+		AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
+
 		try
 		{
 			for ( int i = 0; i < discoveredTerms.size (); i++ )
 			{
-				OntologyEntryDAO<OntologyEntry> ontoDao = new OntologyEntryDAO<> ( OntologyEntry.class, em );
-				OntologyEntryNormalizer oeNormalizer = new OntologyEntryNormalizer ( new DBStore ( em ) );
-				AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
-	
 				DiscoveredTerm dterm = discoveredTerms.get ( i );
 	
 				// When it's already an extended discovered term, that's because the previous block here above has set the 
@@ -224,11 +234,11 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	public static TextAnnotation createZOOMAMarker ( String propValue, String propType, Double score, Date timestamp )
 	{
 		TextAnnotation result = new TextAnnotation ( 
-			new AnnotationType ( "Mapped from Text Values" ),
+			new AnnotationType ( "Mapped from Text Values via ZOOMA" ),
 			String.format ( "value: '%s', type: '%s'", propValue, propType ) 
 		);
 		
-		result.setProvenance ( new AnnotationProvenance ( "BioSD Feature Annotation Tool, based on ZOOMA" ) );
+		result.setProvenance ( new AnnotationProvenance ( PROVENANCE_MARKER ) );
 		result.setScore ( score );
 		result.setTimestamp ( timestamp );
 		
@@ -237,13 +247,11 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	
 	/**
 	 * Invokes {@link #createZOOMAMarker(String, String, Double, Date)} and creates an annotation with null score and
-	 * the current time.
+	 * null timestamp.
 	 */
 	public static TextAnnotation createZOOMAMarker ( String propValue, String propType )
 	{
 		return createZOOMAMarker ( propValue, propType, null, null );
 	}
 
-	
-	
 }

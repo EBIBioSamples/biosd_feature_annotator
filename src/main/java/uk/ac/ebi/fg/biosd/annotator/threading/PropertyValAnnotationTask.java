@@ -6,12 +6,12 @@ import org.apache.commons.lang3.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotator;
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.utils.threading.BatchServiceTask;
 
 /**
- * This wraps the invocation of {@link PropertyValAnnotator} into a proper {@link PropertyValAnnotationTask task}
+ * This wraps the invocation of {@link PropertyValAnnotationManager} into a proper {@link PropertyValAnnotationTask task}
  * for the {@link PropertyValAnnotationService annotator service}. Essentially, a task annotates a single
  * {@link ExperimentalPropertyValue} into a single thread. 
  *
@@ -22,18 +22,18 @@ import uk.ac.ebi.utils.threading.BatchServiceTask;
 public class PropertyValAnnotationTask extends BatchServiceTask
 {
 	private final long propertyValueId; 
-	private final PropertyValAnnotator pvalAnnotator;
+	private final PropertyValAnnotationManager pvAnnMgr;
 	
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
 	/**
 	 * We share a single instance of the annotator, which keeps links to caches and the like.
 	 */
-	public PropertyValAnnotationTask ( long pvalId, PropertyValAnnotator pvalAnnotator )
+	public PropertyValAnnotationTask ( long pvalId, PropertyValAnnotationManager pvAnnMgr )
 	{
 		super ( "ANN:" + pvalId );
 		this.propertyValueId = pvalId;
-		this.pvalAnnotator = pvalAnnotator;
+		this.pvAnnMgr = pvAnnMgr;
 	}
 
 	/**
@@ -51,7 +51,7 @@ public class PropertyValAnnotationTask extends BatchServiceTask
 			{
 				try 
 				{
-					pvalAnnotator.annotate ( this.propertyValueId );
+					pvAnnMgr.annotate ( this.propertyValueId );
 					return;
 				}
 				catch ( PersistenceException ex )

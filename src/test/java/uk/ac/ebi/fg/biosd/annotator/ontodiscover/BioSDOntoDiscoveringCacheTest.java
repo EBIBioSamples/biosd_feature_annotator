@@ -9,7 +9,6 @@ import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
 import org.junit.After;
@@ -17,12 +16,11 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
+import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryMemCache;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
@@ -55,7 +53,7 @@ public class BioSDOntoDiscoveringCacheTest
 		XStopWatch timer = new XStopWatch ();
 		
 		BioSDOntoDiscoveringCache baseCache = new BioSDOntoDiscoveringCache ();
-		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ();
+		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
 		zoomaDiscoverer.setZoomaThreesholdScore ( 54.0f );
 		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
 
@@ -127,7 +125,7 @@ public class BioSDOntoDiscoveringCacheTest
 	public void testNullMapping ()
 	{
 		BioSDOntoDiscoveringCache baseCache = new BioSDOntoDiscoveringCache ();
-		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ();
+		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
 		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
 
 		// Create and annotate the property
@@ -173,7 +171,7 @@ public class BioSDOntoDiscoveringCacheTest
 		OntoTermDiscoveryMemCache memCache = new OntoTermDiscoveryMemCache ();
 		BioSDOntoDiscoveringCache dbCache = new BioSDOntoDiscoveringCache ();
 		
-		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ();
+		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
 		zoomaDiscoverer.setZoomaThreesholdScore ( 50.0f );
 		
 		OntologyTermDiscoverer level2Client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, dbCache );

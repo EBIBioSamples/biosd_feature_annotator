@@ -13,7 +13,7 @@ import javax.persistence.Query;
 import org.apache.commons.lang3.StringUtils;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
-import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotator;
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.BioSampleGroup;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
@@ -45,7 +45,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	private double randomSelectionQuota = 100.0;
 	private Random rndGenerator = new Random ( System.currentTimeMillis () );
 
-	private PropertyValAnnotator propertyValAnnotator = new PropertyValAnnotator ();
+	private PropertyValAnnotationManager pvAnnMgr = new PropertyValAnnotationManager ();
 	
 	
 	public PropertyValAnnotationService ()
@@ -77,7 +77,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	public void submit ( long pvalId )
 	{
 		if ( randomSelectionQuota < 100.0 && rndGenerator.nextDouble () >= randomSelectionQuota ) return;
-		super.submit ( new PropertyValAnnotationTask ( pvalId, this.propertyValAnnotator ) );
+		super.submit ( new PropertyValAnnotationTask ( pvalId, this.pvAnnMgr ) );
 	}
 
 	/**

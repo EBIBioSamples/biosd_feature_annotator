@@ -48,6 +48,7 @@ public class ZoomaAnnotationsPurger
 		
 		Annotation tplAnn = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
 		
+		// Find all relevant annotations
 		String hqlAnn = "SELECT ann FROM TextAnnotation ann JOIN ann.type AS atype JOIN ann.provenance AS prov\n"
 			+ "WHERE atype.name = '" + tplAnn.getType ().getName () + "'" 
 			+ "  AND prov.name = '" + tplAnn.getProvenance ().getName () + "'"
@@ -78,6 +79,8 @@ public class ZoomaAnnotationsPurger
 			Long annId = ann.getId ();
 			
 			// Check all the ontology terms that have old annotations-only attached
+			// These were created automatically and needs to be removed
+			//
 			javax.persistence.Query qOe = em.createNamedQuery ( "findOe2BePurged" )
 				.setParameter ( "annId", annId )
 				.setParameter ( "atype", tplAnn.getType ().getName () )
@@ -89,7 +92,10 @@ public class ZoomaAnnotationsPurger
 			{
 				// Now check all the properties linking to this oe
 				String sqlDelPvOe = "DELETE FROM exp_prop_val_onto_entry WHERE oe_id = :oeId";
-				javax.persistence.Query sDelOe = em.createNativeQuery ( sqlDelPvOe ).setParameter ( "oeId", oe.getId () );
+				result += em.createNativeQuery ( sqlDelPvOe ).setParameter ( "oeId", oe.getId () ).executeUpdate ();
+
+				String sqlDelUnitOe = "DELETE FROM unit_onto_entry WHERE oe_id = :oeId";
+				javax.persistence.Query sDelOe = em.createNativeQuery ( sqlDelUnitOe ).setParameter ( "oeId", oe.getId () );
 				result += sDelOe.executeUpdate ();
 				
 				// Great, now we can get rid of the OE
@@ -97,7 +103,8 @@ public class ZoomaAnnotationsPurger
 				result++;
 			}
 			
-			// Current old annotation going to be removed, but first the links with OEs which were kept on by other annotations
+			// The current old annotation is going to be removed too, but first the links with OEs which were kept on 
+			// by other annotations
 			String sqlDelOeAnn = "DELETE FROM onto_entry_annotation WHERE annotation_id = :annId";
 			javax.persistence.Query sDelOe = em.createNativeQuery ( sqlDelOeAnn ).setParameter ( "annId", ann.getId () );
 			result += sDelOe.executeUpdate ();
