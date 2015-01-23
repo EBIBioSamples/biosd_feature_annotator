@@ -84,7 +84,7 @@ public class AnnotateCmd
 			// Clean-up older annotations
 		  if ( cli.hasOption ( "purge" ) )
 		  {
-		  	int age = Integer.valueOf ( cli.getOptionValue ( "purge", "90" ) );
+		  	int age = Integer.parseInt ( cli.getOptionValue ( "purge", "90" ) );
 		  	Purger purger = new Purger ();
 		  	
 		  	log.info ( "--------- removing annotator entities older than {} day(s), please wait... ---------\n", age );

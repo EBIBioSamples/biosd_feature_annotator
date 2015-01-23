@@ -129,7 +129,7 @@ public class AnnotateCmdTest
 			".*older annotator entries purged, ([0-9]+) item\\(s\\) removed.*",
 			Pattern.MULTILINE | Pattern.DOTALL 
 		);
-		int nelems = Integer.valueOf ( nelemRe.groups ( purgeOut ) [ 1 ] );
+		int nelems = Integer.parseInt ( nelemRe.groups ( purgeOut ) [ 1 ] );
 		assertTrue ( "--purge command didn't work!", nelems > 0 );
 
 		// Remove the submission too.
