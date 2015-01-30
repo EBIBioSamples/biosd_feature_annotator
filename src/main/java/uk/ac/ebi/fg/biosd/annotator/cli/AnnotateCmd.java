@@ -81,11 +81,16 @@ public class AnnotateCmd
 		  	return;
 		  }
 			
+			Double rndQuota = Double.valueOf ( cli.getOptionValue ( "random-quota", "100.0" ) );
+			rndQuota = rndQuota < 100.0 && rndQuota >= 0.0 ? rndQuota / 100d : null;
+		  
+			
 			// Clean-up older annotations
 		  if ( cli.hasOption ( "purge" ) )
 		  {
 		  	int age = Integer.parseInt ( cli.getOptionValue ( "purge", "90" ) );
 		  	Purger purger = new Purger ();
+		  	if ( rndQuota != null ) purger.setDeletionRate ( rndQuota );
 		  	
 		  	log.info ( "--------- removing annotator entities older than {} day(s), please wait... ---------\n", age );
 		  	int nitems = purger.purgeOlderThan ( age );
@@ -116,8 +121,7 @@ public class AnnotateCmd
 			// Invocation over all properties, considering a given window. This is used by the LSF-based script.
 			if ( cli.hasOption ( "offset" ) || cli.hasOption ( "limit" ) || sampleTabs == null && msiAccs == null )
 			{
-				Double rndQuota = Double.valueOf ( cli.getOptionValue ( "random-quota", "100.0" ) );
-				if ( rndQuota < 100.0 && rndQuota >= 0.0 ) annService.setRandomSelectionQuota ( rndQuota / 100.0 );
+				if ( rndQuota != null ) annService.setRandomSelectionQuota ( rndQuota );
 				
 				String offsetStr = cli.getOptionValue ( "offset" );
 				String limitStr = cli.getOptionValue ( "limit" );
@@ -192,7 +196,9 @@ public class AnnotateCmd
 
 
 		opts.addOption ( OptionBuilder
-			.withDescription ( "picks up a random subset of property values, expressed in percentage of the total" )
+			.withDescription ( 
+				"picks up a random subset of property values, expressed in percentage of the total"
+				+ " (removes a random subset when passed to --purge)" )
 			.withLongOpt ( "random-quota" )
 			.withArgName ( "0-100" )
 			.hasArg ()
@@ -201,7 +207,7 @@ public class AnnotateCmd
 
 		opts.addOption ( OptionBuilder
 			.withDescription ( "remove entries created by the annotator, which are older than <age-days> (default is 90),"
-				+ " so that annotations can be updated (incompatible with other options)" )
+				+ " so that annotations can be updated (incompatible with other options, except --random-quota)" )
 			.withLongOpt ( "purge" )
 			.withArgName ( "age-days" )
 			.hasOptionalArg ()

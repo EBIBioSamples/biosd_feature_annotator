@@ -7,6 +7,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.hibernate.CacheMode;
 import org.hibernate.Query;
 import org.hibernate.ScrollMode;
@@ -32,6 +33,8 @@ import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
  */
 public class ZoomaAnnotationsPurger
 {
+	private double deletionRate = 1.0;
+	
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
 	public int purgeOlderThan ( Date endTime )
@@ -39,6 +42,9 @@ public class ZoomaAnnotationsPurger
 		return purge ( new Date ( 0 ), endTime );
 	}
 	
+	/**
+	 * @see #getDeletionRate();
+	 */
 	public int purge ( Date startTime, Date endTime )
 	{
 		int result = 0;
@@ -75,6 +81,9 @@ public class ZoomaAnnotationsPurger
 		// Start from the old annotations
 		for ( ScrollableResults annRs = qAnn.scroll ( ScrollMode.FORWARD_ONLY ); annRs.next (); )
 		{
+			// Randomly skip a number of them
+			if ( RandomUtils.nextDouble ( 0, 1.0 ) >= deletionRate ) continue;
+				
 			TextAnnotation ann = (TextAnnotation) annRs.get ( 0 );
 			Long annId = ann.getId ();
 			
@@ -129,5 +138,21 @@ public class ZoomaAnnotationsPurger
 		return result;
 		
 	}
+
+	/**
+	 * If &lt; 1, only a fraction of the total annotations selected by the criteria in {@link #purge(Date, Date)}
+	 * will be deleted. Ranges from 0 to 1.
+	 *   
+	 */
+	public double getDeletionRate ()
+	{
+		return deletionRate;
+	}
+
+	public void setDeletionRate ( double deletionRate )
+	{
+		this.deletionRate = deletionRate;
+	}
+	
 	
 }

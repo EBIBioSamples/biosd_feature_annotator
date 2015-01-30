@@ -17,6 +17,8 @@ import uk.ac.ebi.fg.biosd.annotator.cli.AnnotateCmd;
  */
 public class Purger
 {
+	private double deletionRate = 1.0;
+
 	public int purgeOlderThan ( Date endTime )
 	{
 		return new ZoomaAnnotationsPurger ().purgeOlderThan ( endTime ); 
@@ -32,4 +34,18 @@ public class Purger
 		return new ZoomaAnnotationsPurger ().purge ( startTime, endTime );
 	}
 	
+	/**
+	 * If &lt; 1, only a fraction of the total annotations selected by the criteria in {@link #purge(Date, Date)}
+	 * will be deleted. Ranges from 0 to 1.
+	 *   
+	 */
+	public double getDeletionRate ()
+	{
+		return deletionRate;
+	}
+
+	public void setDeletionRate ( double deletionRate )
+	{
+		this.deletionRate = deletionRate;
+	}
 }
