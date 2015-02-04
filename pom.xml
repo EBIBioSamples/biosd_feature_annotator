@@ -89,9 +89,15 @@
 		</dependency>
 
 		<dependency>
-				<groupId>joda-time</groupId>
-				<artifactId>joda-time</artifactId>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-queryparser</artifactId>
+			<version>4.10.2</version>
+		</dependency>		
 				
 	</dependencies>
 

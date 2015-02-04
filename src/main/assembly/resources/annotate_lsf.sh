@@ -13,11 +13,11 @@ if [ "$RANDOM_QUOTA" == '' ]; then RANDOM_QUOTA=100; fi
 if [ "$LSF_GROUP" == '' ]; then LSF_GROUP='biosd_annotator'; fi
 
 # The number of running nodes at any time (i.e., the LSF -L option for LSF_GROUP)
-if [ "$LSF_NODES" == '' ]; then LSF_NODES=5; fi
+if [ "$LSF_NODES" == '' ]; then LSF_NODES=3; fi
 
 # How many sample property values are annotated by each LSF job (i.e., instance of annotate.sh)?
 # We will create as many jobs as necessary, depending on annotate.sh --property-count
-if [ "$PROPERTIES_PER_JOB" == '' ]; then PROPERTIES_PER_JOB=5000; fi
+if [ "$PROPERTIES_PER_JOB" == '' ]; then PROPERTIES_PER_JOB=1000000; fi
 
 # --- end of invoker-passed properties. 
 

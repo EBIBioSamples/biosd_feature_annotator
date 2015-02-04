@@ -2,6 +2,7 @@ package uk.ac.ebi.fg.biosd.annotator.datadiscover;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Date;
 import java.util.Set;
@@ -11,10 +12,12 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
@@ -26,6 +29,8 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DataItem;
+import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberItem;
+import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.ValueItem;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AnnotatableDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
@@ -44,6 +49,19 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
  */
 public class NumericalDataAnnotatorTest
 {
+	private NumericalDataAnnotator numAnn = 
+		new NumericalDataAnnotator (
+			new BioSDCachedOntoTermDiscoverer ( 
+				new CachedOntoTermDiscoverer ( 
+					new ZoomaOntoTermDiscoverer ( 
+						new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 
+						50f 
+					)
+				),
+				new BioSDOntoDiscoveringCache ()
+			)
+		);
+
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
 	@Test
@@ -58,7 +76,6 @@ public class NumericalDataAnnotatorTest
 		pval.setUnit ( unit );
 		
 		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
-		
 		EntityManager em = emf.createEntityManager ();
 		
 		EntityTransaction tx = em.getTransaction ();
@@ -68,17 +85,6 @@ public class NumericalDataAnnotatorTest
 
 		// Annotate
 		//
-		NumericalDataAnnotator numAnn = new NumericalDataAnnotator (
-			new CachedOntoTermDiscoverer ( 
-				new CachedOntoTermDiscoverer ( 
-					new ZoomaOntoTermDiscoverer ( 
-						new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 
-						50f 
-					)
-				),
-				new BioSDOntoDiscoveringCache ()
-			)
-		);
 		
 		assertTrue ( "Not recognised as number!", numAnn.annotate ( pval, em ) );
 		em.close ();
@@ -145,4 +151,59 @@ public class NumericalDataAnnotatorTest
 		
 		em.close ();
 	}	
+	
+	@SuppressWarnings ( "rawtypes" )
+	@Test
+	public void testDataItemReuse ()
+	{
+		ExperimentalPropertyType ptype1 = new ExperimentalPropertyType ( "Weight" );
+		ExperimentalPropertyValue<ExperimentalPropertyType> pval1 = new ExperimentalPropertyValue<> ( "70", ptype1 );
+		
+		ExperimentalPropertyType ptype2 = new ExperimentalPropertyType ( "Age" );
+		ExperimentalPropertyValue<ExperimentalPropertyType> pval2 = new ExperimentalPropertyValue<> ( "70", ptype2 );
+		
+		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+		EntityManager em = emf.createEntityManager ();
+		
+		EntityTransaction tx = em.getTransaction ();
+		tx.begin ();
+		em.persist ( pval1 );
+		em.persist ( pval2 );
+		tx.commit ();
+
+		// Annotate
+		//
+		
+		assertTrue ( "pv1 not recognised as number!", numAnn.annotate ( pval1, em ) );
+		assertTrue ( "pv1 not recognised as number!", numAnn.annotate ( pval2, em ) );
+		em.close ();
+
+		// Verify
+		em = emf.createEntityManager ();
+		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
+		ExperimentalPropertyValue<?> pval1db = pvdao.find ( pval1.getId () );
+		ExperimentalPropertyValue<?> pval2db = pvdao.find ( pval2.getId () );
+
+		NumberItem ni1 = (NumberItem) pval1db.getDataItems ().iterator ().next ();
+		NumberItem ni2 = (NumberItem) pval2db.getDataItems ().iterator ().next ();
+		
+		assertEquals ( "Data Item wasn't reused!", ni1.getId (), ni2.getId () );
+		
+		
+		// Clean-up
+		//
+		tx = em.getTransaction ();
+		tx.begin ();
+		em.remove ( pval1db );
+		em.remove ( pval2db );
+		tx.commit ();
+		
+		tx.begin ();
+		assertTrue ( "DataItems not deleted!", new DataItemUnloadingUnlistener ( em ).postRemoveGlobally () > 0);
+		assertTrue ( "Annotations not deleted!", new AnnotationUnloaderListener ( em ).postRemoveGlobally () > 0);
+		tx.commit ();
+		
+		em.close ();
+		
+	}
 }

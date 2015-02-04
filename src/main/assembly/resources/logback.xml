@@ -27,6 +27,11 @@
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
       <level>ALL</level>
     </filter>
+		<!-- 
+			See http://logback.qos.ch/manual/appenders.html, we need this flag when working with the cluster, to ensure
+			correct handling of the same log file by multiple JVMs 
+		-->
+		<prudent>true</prudent>
   </appender>
 
   

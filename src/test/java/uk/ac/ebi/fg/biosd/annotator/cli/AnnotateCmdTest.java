@@ -124,7 +124,7 @@ public class AnnotateCmdTest
 		
 		// Check results
 		String purgeOut = sw.toString ();
-		// DEBUG System.out.println ( "\n\n-------- OUT -------\n" + purgeOut + "----- -------- -----\n\n\n" );
+		//System.out.println ( "\n\n-------- OUT -------\n" + purgeOut + "----- -------- -----\n\n\n" );
 		RegEx nelemRe = new RegEx ( 
 			".*older annotator entries purged, ([0-9]+) item\\(s\\) removed.*",
 			Pattern.MULTILINE | Pattern.DOTALL 

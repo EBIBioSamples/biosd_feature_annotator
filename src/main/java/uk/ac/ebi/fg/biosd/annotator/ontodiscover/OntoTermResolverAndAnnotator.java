@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.bioportal.webservice.exceptions.OntologyServiceException;
 import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.DBStore;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
@@ -185,7 +186,7 @@ public class OntoTermResolverAndAnnotator
 			String.format ( "initial accession: '%s', initial source: '%s', initial label: '%s'", initialAcc, initialSrc, initialLabel ) 
 		);
 		
-		result.setProvenance ( new AnnotationProvenance ( BioSDOntoDiscoveringCache.PROVENANCE_MARKER ) );
+		result.setProvenance ( new AnnotationProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER ) );
 		result.setTimestamp ( timestamp );
 		
 		return result;

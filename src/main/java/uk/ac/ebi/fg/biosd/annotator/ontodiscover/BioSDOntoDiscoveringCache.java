@@ -9,6 +9,7 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.DBStore;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.terms.OntologyEntryNormalizer;
@@ -53,11 +54,6 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	 */
 	public final static String NULL_TERM_URI = "http://rdf.ebi.ac.uk/terms/biosd/NullOntologyTerm";
 	
-	/**
-	 * Used in {@link #createZOOMAMarker(String, String, Double, Date)}.
-	 */
-	public final static String PROVENANCE_MARKER = "BioSD Feature Annotation Tool";
-		
 	/**
 	 * Works as explained in the class comment.
 	 * 
@@ -238,7 +234,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			String.format ( "value: '%s', type: '%s'", propValue, propType ) 
 		);
 		
-		result.setProvenance ( new AnnotationProvenance ( PROVENANCE_MARKER ) );
+		result.setProvenance ( new AnnotationProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER ) );
 		result.setScore ( score );
 		result.setTimestamp ( timestamp );
 		

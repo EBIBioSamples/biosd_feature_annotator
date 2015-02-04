@@ -16,6 +16,7 @@ import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
@@ -45,6 +46,7 @@ public class ZoomaAnnotationsPurger
 	/**
 	 * @see #getDeletionRate();
 	 */
+	@SuppressWarnings ( "unchecked" )
 	public int purge ( Date startTime, Date endTime )
 	{
 		int result = 0;
@@ -99,10 +101,10 @@ public class ZoomaAnnotationsPurger
 			
 			for ( OntologyEntry oe: (List<OntologyEntry>) qOe.getResultList () )
 			{
-				// Now check all the properties linking to this oe
 				String sqlDelPvOe = "DELETE FROM exp_prop_val_onto_entry WHERE oe_id = :oeId";
 				result += em.createNativeQuery ( sqlDelPvOe ).setParameter ( "oeId", oe.getId () ).executeUpdate ();
 
+				// And all the units
 				String sqlDelUnitOe = "DELETE FROM unit_onto_entry WHERE oe_id = :oeId";
 				javax.persistence.Query sDelOe = em.createNativeQuery ( sqlDelUnitOe ).setParameter ( "oeId", oe.getId () );
 				result += sDelOe.executeUpdate ();
@@ -136,9 +138,9 @@ public class ZoomaAnnotationsPurger
 		em.close ();
 		
 		return result;
-		
 	}
-
+	
+	
 	/**
 	 * If &lt; 1, only a fraction of the total annotations selected by the criteria in {@link #purge(Date, Date)}
 	 * will be deleted. Ranges from 0 to 1.
@@ -153,6 +155,5 @@ public class ZoomaAnnotationsPurger
 	{
 		this.deletionRate = deletionRate;
 	}
-	
 	
 }

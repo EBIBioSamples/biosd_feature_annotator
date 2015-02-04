@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.DBStore;
@@ -22,6 +22,7 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DataItem;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DateItem;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberItem;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberRangeItem;
+import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.expgraph.properties.dataitems.DataItemDAO;
 import uk.ac.ebi.fg.core_model.terms.AnnotationType;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
@@ -104,7 +105,7 @@ public class NumericalDataAnnotator
 		DataItem dataItem = null;
 		
 		// Start checking a middle separator, to see if it is a range
-		String chunks[] = pvalStr.substring ( 0, Math.min ( pvalStr.length (), 300 ) ).split ( "(\\-|\\.\\.|\\, )" );
+		String chunks[] = pvalStr.substring ( 0, Math.min ( pvalStr.length (), 300 ) ).split ( "(\\-|\\.\\.|\\,)" );
 		
 		if ( chunks != null && chunks.length == 2 )
 		{
@@ -155,15 +156,29 @@ public class NumericalDataAnnotator
 		}
 		
 		if ( dataItem == null ) return false; 
-		
-		TextAnnotation marker = createDataAnnotatorMarker ();
-		AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
-		
+
 		EntityTransaction tx = em.getTransaction ();
 		tx.begin ();
-		annNormalizer.normalize ( marker );
-		em.persist ( marker );
-		dataItem.addAnnotation ( marker );
+
+		DataItemDAO diDao = new DataItemDAO ( DataItem.class, em );
+		DataItem dbDataItem = diDao.find ( dataItem );
+		
+		if ( dbDataItem != null )
+			// If this value is already in the DB, just reuse it
+			dataItem = dbDataItem;
+		else
+		{
+			// else, annotate it and save it all
+			TextAnnotation marker = createDataAnnotatorMarker ();
+			AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
+		
+			annNormalizer.normalize ( marker );
+			em.persist ( marker );
+			
+			dataItem.addAnnotation ( marker );
+		}
+		
+		// Attach the (old or new) data item to the current pv
 		pval.addDataItem ( dataItem );
 		tx.commit ();
 
@@ -179,7 +194,7 @@ public class NumericalDataAnnotator
 			"" 
 		);
 		
-		result.setProvenance ( new AnnotationProvenance ( BioSDOntoDiscoveringCache.PROVENANCE_MARKER ) );
+		result.setProvenance ( new AnnotationProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER ) );
 		result.setTimestamp ( new Date () );
 		
 		return result;

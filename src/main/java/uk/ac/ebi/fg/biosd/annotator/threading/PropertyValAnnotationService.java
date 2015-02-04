@@ -22,7 +22,8 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
-import uk.ac.ebi.utils.threading.BatchService;;
+import uk.ac.ebi.utils.threading.BatchService;
+import uk.org.lidalia.slf4jext.Level;
 
 /**
  * This is the {@link BatchService multi-thread service} to which {@link PropertyValAnnotationTask}s are submitted. It
@@ -65,7 +66,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			this.poolSizeTuner.setMinThreadIncr ( 5 );
 		}
 		
-		
+		this.setSubmissionMsgLogLevel ( Level.DEBUG );
 	}
 	
 	/**
