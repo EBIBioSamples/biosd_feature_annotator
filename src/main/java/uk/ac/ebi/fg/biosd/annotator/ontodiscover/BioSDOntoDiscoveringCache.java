@@ -136,7 +136,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 				else
 				{
 					// Return the empty result, the annotator will need to deal with such a case
-					// We can stop the for loop here, because we're sure there is only this null element in discoveredTerms
+					// The for() stops with this iteration (there is only this null element in discoveredTerms) 
 					tx.commit (); // close the current transaction before
 					return CachedOntoTermDiscoverer.NULL_RESULT;
 				}

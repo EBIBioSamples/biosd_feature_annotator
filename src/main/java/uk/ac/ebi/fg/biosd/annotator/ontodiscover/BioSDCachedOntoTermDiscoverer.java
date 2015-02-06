@@ -78,6 +78,8 @@ public class BioSDCachedOntoTermDiscoverer extends CachedOntoTermDiscoverer
 	 * Moreover, the value and type parameters are massaged with {@link QueryParserUtil#escape(String)}, so that
 	 * ZOOMA requests are less error-prone (they're sent to Lucene).
 	 * 
+	 * TODO: JUnit test
+	 * 
 	 */
 	@Override
 	public List<DiscoveredTerm> getOntologyTermUris ( String valueLabel, String typeLabel ) throws OntologyDiscoveryException

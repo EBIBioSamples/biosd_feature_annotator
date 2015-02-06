@@ -16,18 +16,16 @@ import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
-import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 
 /**
- * Removes old {@link OntologyEntry}es that ZOOMA has attached to {@link ExperimentalPropertyValue}s, including 
- * the {@link TextAnnotation}s that track their ZOOMA provenance.  
- *
+ * Removes old annotations created by this tool and related to ZOOMA.
+ * 
  * <dl><dt>date</dt><dd>11 Nov 2014</dd></dl>
  * @author Marco Brandizi
  *
@@ -43,11 +41,21 @@ public class ZoomaAnnotationsPurger
 		return purge ( new Date ( 0 ), endTime );
 	}
 	
+	
 	/**
 	 * @see #getDeletionRate();
 	 */
-	@SuppressWarnings ( "unchecked" )
 	public int purge ( Date startTime, Date endTime )
+	{
+		return purgeOeAnns ( startTime, endTime ) + purgePvAnns ( startTime, endTime );
+	}
+
+
+	/**
+	 * Removes ontology terms created via ZOOMA and their {@link TextAnnotation}.
+	 */
+	@SuppressWarnings ( "unchecked" )
+	private int purgeOeAnns ( Date startTime, Date endTime )
 	{
 		int result = 0;
 		
@@ -139,6 +147,69 @@ public class ZoomaAnnotationsPurger
 		
 		return result;
 	}
+	
+	/**
+	 * Removes {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no ontology' markers} from property
+	 * values. This are created by the {@link OntoDiscoveryAndAnnotator ZOOMA-based ontology discoverer}, when it 
+	 * finds that a property value isn't associated to ano ontology term. Removing these annotations cause the PV
+	 * to be reconsidered in future, when the annotator is run again. The {@link #getDeletionRate()} affects this
+	 * method. 
+	 */
+	private int purgePvAnns ( Date startTime, Date endTime )
+	{
+		int result = 0;
+		
+		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+		EntityManager em = emf.createEntityManager ();
+
+		TextAnnotation emptyZoomaMapMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
+		
+		String hqlAnn = "SELECT ann FROM Annotation ann WHERE\n"
+			+ "  ann.type.name = :type"
+			+ "  AND ann.timestamp >= :startTime"
+			+ "  AND ann.timestamp <= :endTime";
+		
+		Session session = (Session) em.getDelegate ();
+		Query qAnn = session.createQuery ( hqlAnn );
+		
+		qAnn
+			.setParameter ( "type", emptyZoomaMapMarker.getType ().getName () )
+			.setParameter ( "startTime", startTime )
+			.setParameter ( "endTime", endTime )
+			.setReadOnly ( true )
+			.setFetchSize ( 1000 )
+			.setCacheMode ( CacheMode.IGNORE );
+		
+		int annCt = 0;
+		EntityTransaction tx = em.getTransaction ();
+		tx.begin ();
+
+		for ( ScrollableResults annRs = qAnn.scroll ( ScrollMode.FORWARD_ONLY ); annRs.next (); )
+		{
+			if ( RandomUtils.nextDouble ( 0, 1.0 ) >= deletionRate ) continue;
+
+			TextAnnotation ann = (TextAnnotation) annRs.get ( 0 );
+			result += em.createNativeQuery ( 
+				"DELETE FROM exp_prop_val_annotation WHERE annotation_id = " + ann.getId () ).executeUpdate ();
+			em.remove ( ann );
+			result++;
+			
+			// Flush changes from time to time
+			if ( ++annCt % 100 == 0 )
+			{
+				em.flush ();
+				em.clear ();
+			}
+			
+			if ( annCt % 1000 == 0 ) log.info ( "{} property value annotations processed", annCt );
+		}
+		
+		tx.commit ();
+		em.close ();
+		
+		return result;
+	}
+
 	
 	
 	/**

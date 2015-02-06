@@ -56,24 +56,24 @@ public class PropertyValAnnotationManager
 		ontoResolver = new OntoTermResolverAndAnnotator ();
 		
 		numAnnotator = new NumericalDataAnnotator (
-			new BioSDCachedOntoTermDiscoverer ( // 1st level, BioSD cache
-				new CachedOntoTermDiscoverer ( // 2nd level, memory cache
+			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
+				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
 					new ZoomaOntoTermDiscoverer ( 
 						new ZOOMAUnitSearch ( new StatsZOOMASearchFilter ( new ZOOMASearchClient () ) ), 
 						zoomaThreesholdScore 
 					),
-					new OntoTermDiscoveryMemCache ( new SimpleCache<String, List<DiscoveredTerm>> ( 10000 ) )
+					new BioSDOntoDiscoveringCache ()
 				),
-				new BioSDOntoDiscoveringCache ()
+				new OntoTermDiscoveryMemCache ( new SimpleCache<String, List<DiscoveredTerm>> ( 10000 ) )
 			)
 		);
 		
 		ontoDiscoverer = new OntoDiscoveryAndAnnotator (
-			new BioSDCachedOntoTermDiscoverer ( // 1st level, BioSD cache
-				new CachedOntoTermDiscoverer ( // 2nd level, memory cache
-					new ZoomaOntoTermDiscoverer ( new StatsZOOMASearchFilter ( new ZOOMASearchClient () ), zoomaThreesholdScore )
-				),
-				new BioSDOntoDiscoveringCache ()
+			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
+				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
+					new ZoomaOntoTermDiscoverer ( new StatsZOOMASearchFilter ( new ZOOMASearchClient () ), zoomaThreesholdScore ),
+					new BioSDOntoDiscoveringCache ()
+				)
 			)
 		);
 	}
@@ -107,7 +107,7 @@ public class PropertyValAnnotationManager
 			
 			ontoResolver.annotate ( pval, em );
 			boolean isNumberOrDate = numAnnotator.annotate ( pval, em );
-			ontoDiscoverer.annotate ( pval, isNumberOrDate, em );			
+			ontoDiscoverer.annotate ( pval, isNumberOrDate, em );
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();
@@ -115,5 +115,5 @@ public class PropertyValAnnotationManager
 
 		return true;
 	}	
-
+	
 }

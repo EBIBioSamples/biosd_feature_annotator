@@ -14,6 +14,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.BioSampleGroup;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
@@ -22,6 +24,7 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
+import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.utils.threading.BatchService;
 import uk.org.lidalia.slf4jext.Level;
 
@@ -48,6 +51,19 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 
 	private PropertyValAnnotationManager pvAnnMgr = new PropertyValAnnotationManager ();
 	
+	/**
+	 * Used in queries that picks up those properties not associated neither to ZOOMA-computed terms, nor marked
+	 * with {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology marker'}.
+	 *  
+	 */
+	private static final String PV_CRITERIA = 
+		  "pv NOT IN (\n"
+		+ "	  SELECT pv1.id FROM ExperimentalPropertyValue pv1 JOIN pv1.ontologyTerms oe JOIN oe.annotations oa WHERE\n"
+		+ "     oa.type.name = :oeAnnType )\n"
+		+ "AND pv NOT IN (\n"
+		+ "   SELECT pv2.id FROM ExperimentalPropertyValue pv2 JOIN pv2.annotations pa WHERE\n"
+		+ "     pa.type.name = :pvAnnType )\n";
+
 	
 	public PropertyValAnnotationService ()
 	{
@@ -83,7 +99,10 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 
 	/**
 	 * Invokes {@link #submit(long)} for the properties listed in this offset and position.
-	 * This is mainly used to split the property value set in chunks and pass them to LSF-based invocations. 
+	 * This is mainly used to split the property value set in chunks and pass them to LSF-based invocations.
+	 * 
+	 * This considers only those properties that haven't neither any ZOOMA-computed term associated, nor a 
+	 * {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology term found marker'}.
 	 */
 	@SuppressWarnings ( { "unchecked" } )
 	public void submit ( Integer offset, Integer limit )
@@ -94,7 +113,13 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		{
 			EntityTransaction tx = em.getTransaction ();
 			tx.begin ();
-			Query q = em.createQuery ( "SELECT id FROM ExperimentalPropertyValue pv" );
+
+			Query q = em.createQuery ( "SELECT id FROM ExperimentalPropertyValue pv WHERE\n" + PV_CRITERIA );
+			TextAnnotation oeMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
+			TextAnnotation pvMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
+			q.setParameter ( "oeAnnType", oeMarker.getType ().getName () );
+			q.setParameter ( "pvAnnType", pvMarker.getType ().getName () );
+			
 			if ( offset != null ) q.setFirstResult ( offset );
 			if ( limit != null ) q.setMaxResults ( limit );
 				
@@ -188,6 +213,10 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	
 	/**
 	 * Gets the number of properties in the BioSD database. To be used prior to {@link #submit(Integer, Integer)}.
+	 * 
+	 * This considers only those properties that haven't neither any ZOOMA-computed term associated, nor a 
+	 * {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology term found marker'}.
+	 *
 	 */
 	public int getPropValCount ()
 	{
@@ -196,9 +225,15 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		{
 			EntityTransaction tx = em.getTransaction ();
 			tx.begin ();
+
+			TextAnnotation oeMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
+			TextAnnotation pvMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
+			
 			Number count = (Number) em.createQuery (
-				"SELECT COUNT (DISTINCT pv.id) FROM ExperimentalPropertyValue pv"
-			).getSingleResult ();
+				"SELECT COUNT (DISTINCT pv.id) FROM ExperimentalPropertyValue pv WHERE\n" + PV_CRITERIA
+			).setParameter ( "oeAnnType", oeMarker.getType ().getName () )
+			.setParameter ( "pvAnnType", pvMarker.getType ().getName () )
+			.getSingleResult ();
 			tx.commit ();
 			return count.intValue ();
 		}

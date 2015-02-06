@@ -56,9 +56,9 @@ public class NumericalDataAnnotatorTest
 					new ZoomaOntoTermDiscoverer ( 
 						new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 
 						50f 
-					)
-				),
-				new BioSDOntoDiscoveringCache ()
+					),
+					new BioSDOntoDiscoveringCache ()
+				)
 			)
 		);
 

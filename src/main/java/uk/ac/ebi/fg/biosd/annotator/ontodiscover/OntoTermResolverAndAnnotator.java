@@ -49,7 +49,9 @@ public class OntoTermResolverAndAnnotator
 		super ();
 	}
 	
-	
+	/**
+	 * Annotates the {@link OntologyEntry} attached to the property value, as explained above.
+	 */
 	public boolean annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pv, EntityManager em )
 	{
 		Set<OntologyEntry> oes = pv.getOntologyTerms ();
@@ -63,7 +65,12 @@ public class OntoTermResolverAndAnnotator
 	} // resolveOntoTerms ( pv )
 	
 	
-	
+	/**
+	 * Resolves the current ontology entry against {@link BioportalClient Bioportal}, by replacing the term's current
+	 * data (ie, acc and label), with what is found in Bioportal (ie, URI and preferredLabel). As said above, adds an 
+	 * annotation to term, to trace that the term was changed by the annotator.
+	 * 
+	 */
 	public boolean resolveOntoTerm ( OntologyEntry oe, EntityManager em )
 	{
 		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
@@ -102,7 +109,7 @@ public class OntoTermResolverAndAnnotator
 		final OntologyClass bpOntoTerm = getOntoTermUri ( srcAcc, acc );
 		
 		if ( bpOntoTerm == null ) return false;
-		
+				
 		final String oldLabel = oe.getLabel ();
 		
 		// Get a new OE with the same ID, so that we may send updates.
