@@ -124,7 +124,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			if ( limit != null ) q.setMaxResults ( limit );
 				
 			for ( Number id: (List<Number>) q.getResultList () )
-				submit ( id.intValue () );
+				submit ( id.longValue () );
 			
 			tx.commit ();
 		}
