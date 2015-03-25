@@ -11,6 +11,7 @@ import javax.persistence.EntityTransaction;
 import org.junit.Assert;
 import org.junit.Test;
 
+import uk.ac.ebi.fg.biosd.annotator.persistence.BatchTransactionManager;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.terms.OntologyEntryDAO;
@@ -55,7 +56,11 @@ public class OntoTermResolverTest
 		// Annotate
 		//
 		OntoTermResolverAndAnnotator ontoAnnotator = new OntoTermResolverAndAnnotator ();
-		ontoAnnotator.annotate ( pval, emf.createEntityManager () );
+
+		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
+		btm.begin ();
+		ontoAnnotator.annotate ( pval );
+		btm.commit ( true );
 		
 		
 		// Check

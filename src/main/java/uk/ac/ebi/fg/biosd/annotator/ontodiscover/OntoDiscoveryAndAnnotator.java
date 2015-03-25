@@ -5,15 +5,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
-
 import org.apache.commons.lang.StringUtils;
 
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
-import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.terms.CVTermDAO;
 import uk.ac.ebi.fg.core_model.terms.AnnotationType;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
@@ -52,11 +49,11 @@ public class OntoDiscoveryAndAnnotator
 	/**
 	 * Does what explained in the constructor. 
 	 */
-	public void annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pval, boolean isNumberOrDate, EntityManager em )
+	public void annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pval, boolean isNumberOrDate )
 	{
 		TextAnnotation zoomaEmptyMappingMarker = createEmptyZoomaMappingMarker ();
 		
-		// Do we already know that this doesn't map to anything? This is a bit redundant, but allow us to safely deal
+		// Do we already know that this doesn't map to anything? This is a bit redundant, but allows us to safely deal
 		// with properties picked from samples/groups/submissions
 		if ( !AnnotationUtils.find ( 
 			pval.getAnnotations (), null, zoomaEmptyMappingMarker.getType ().getName (), false, true 
@@ -69,32 +66,17 @@ public class OntoDiscoveryAndAnnotator
 		if ( zterms.isEmpty () )
 		{
 			// Doh! There isn't anything for this PV, let's trace this results too, so that we won't repeat it next time
-			
-			CVTermDAO<AnnotationType> annTypeDao = new CVTermDAO<AnnotationType> ( AnnotationType.class, em );
-			CVTermDAO<AnnotationProvenance> annProvDao = new CVTermDAO<AnnotationProvenance> ( AnnotationProvenance.class, em );
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
-			zoomaEmptyMappingMarker.setType ( annTypeDao.getOrCreate ( zoomaEmptyMappingMarker.getType () ) );
-			zoomaEmptyMappingMarker.setProvenance ( annProvDao.getOrCreate ( zoomaEmptyMappingMarker.getProvenance () ) );
-			tx.commit ();
-			
-			tx.begin ();
-      pval.addAnnotation ( zoomaEmptyMappingMarker );			
-			em.merge ( zoomaEmptyMappingMarker );
-			tx.commit ();
+			AnnotatorResources.getInstance ().getAnnNormalizer ().normalize ( zoomaEmptyMappingMarker );
+      pval.addAnnotation ( zoomaEmptyMappingMarker );
 			return;
 		}
-		
+
+		// Attach the terms found for this properties
 		for ( DiscoveredTerm dterm: getOntoClassUris ( pval, isNumberOrDate ) )
 		{
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
 			OntologyEntry oe = ((ExtendedDiscoveredTerm) dterm).getOntologyTerm ();
 			// This will save the term, if it's new.
-			oe = em.merge ( oe );
-			pval = em.merge ( pval );
 			pval.addOntologyTerm ( oe );
-			tx.commit ();
 		}
 	}
 

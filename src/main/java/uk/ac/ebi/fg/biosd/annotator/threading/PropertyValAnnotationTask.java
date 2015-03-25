@@ -22,18 +22,24 @@ import uk.ac.ebi.utils.threading.BatchServiceTask;
 public class PropertyValAnnotationTask extends BatchServiceTask
 {
 	private final long propertyValueId; 
-	private final PropertyValAnnotationManager pvAnnMgr;
+	private static ThreadLocal<PropertyValAnnotationManager> threadLocalPvAnnMgr = 
+		new ThreadLocal<PropertyValAnnotationManager> () 
+		{
+			@Override
+			protected PropertyValAnnotationManager initialValue () {
+				return new PropertyValAnnotationManager ();
+			}
+		};
 	
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
 	/**
 	 * We share a single instance of the annotator, which keeps links to caches and the like.
 	 */
-	public PropertyValAnnotationTask ( long pvalId, PropertyValAnnotationManager pvAnnMgr )
+	public PropertyValAnnotationTask ( long pvalId )
 	{
 		super ( "ANN:" + pvalId );
 		this.propertyValueId = pvalId;
-		this.pvAnnMgr = pvAnnMgr;
 	}
 
 	/**
@@ -44,6 +50,7 @@ public class PropertyValAnnotationTask extends BatchServiceTask
 	{
 		try 
 		{
+			PropertyValAnnotationManager pvAnnMgr = threadLocalPvAnnMgr.get ();
 			PersistenceException theEx = null;
 			
 			// Try more times, in the attempt to face concurrency issues we have in cluster mode.

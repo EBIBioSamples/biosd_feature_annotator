@@ -18,7 +18,7 @@ fi;
 
 echo
 echo 
-echo _______________ Deploying the Command Line Binary to $target _________________
+echo "_______________ Deploying the Command Line Binary ($version) to $target _________________"
 
 # We need to remove old versions and unused libs
 rm -Rf "$target/biosd_feature_annotator_${version}/lib"

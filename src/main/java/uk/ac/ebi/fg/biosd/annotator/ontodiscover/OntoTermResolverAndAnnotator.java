@@ -3,9 +3,6 @@ package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 import java.util.Date;
 import java.util.Set;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,8 +11,7 @@ import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.bioportal.webservice.exceptions.OntologyServiceException;
 import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.DBStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.terms.AnnotationType;
@@ -43,23 +39,19 @@ public class OntoTermResolverAndAnnotator
 
 	private final Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
-	
-	public OntoTermResolverAndAnnotator ()
-	{
-		super ();
-	}
+	public OntoTermResolverAndAnnotator () {}
 	
 	/**
 	 * Annotates the {@link OntologyEntry} attached to the property value, as explained above.
 	 */
-	public boolean annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pv, EntityManager em )
+	public boolean annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
 	{
 		Set<OntologyEntry> oes = pv.getOntologyTerms ();
 		if ( oes == null ) return false;
 		
 		boolean result = false;
 		for ( OntologyEntry oe: oes )
-			result |= resolveOntoTerm ( oe, em );
+			result |= resolveOntoTerm ( oe );
 		
 		return result;
 	} // resolveOntoTerms ( pv )
@@ -71,14 +63,12 @@ public class OntoTermResolverAndAnnotator
 	 * annotation to term, to trace that the term was changed by the annotator.
 	 * 
 	 */
-	public boolean resolveOntoTerm ( OntologyEntry oe, EntityManager em )
+	public boolean resolveOntoTerm ( OntologyEntry oe )
 	{
 		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
 		TextAnnotation resolverMarker = createOntoResolverMarker ( "foo", "foo", "foo" );
 
 		Date now = new Date ();
-				
-		AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
 
 		boolean annFound = false;
 
@@ -118,25 +108,10 @@ public class OntoTermResolverAndAnnotator
 		// Protected method
 		ReflectionUtils.invoke ( newOe, Identifiable.class, "setId", new Class<?>[] { Long.class }, oe.getId () );
 		
-		TextAnnotation marker = createOntoResolverMarker ( acc, srcAcc, oldLabel, now ) ;
-		
-		EntityTransaction tx = em.getTransaction ();
-		tx.begin ();
-
-		// Add up marking annotation, which will also store initial values.
-		// Normally the annotation normaliser is triggered by the ontology normaliser, however this doesn't happen here,
-		// cause the ontology entry might already exist (ie, a new annotation about a new string pair is being added) 
-		//
-		annNormalizer.normalize ( marker );
-		
-		// Save the changes
-		em.persist ( marker );
-		//em.merge ( newOe );
+		TextAnnotation marker = createOntoResolverMarker ( acc, srcAcc, oldLabel, now );
 		newOe.addAnnotation ( marker );
-		em.merge ( newOe );
 
-		tx.commit ();		
-
+		AnnotatorResources.getInstance ().getStore ().find ( newOe, newOe.getId ().toString () );
 		return true;
 		
 	} // resolveOntoTerms ( oe )
@@ -196,6 +171,7 @@ public class OntoTermResolverAndAnnotator
 		result.setProvenance ( new AnnotationProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER ) );
 		result.setTimestamp ( timestamp );
 		
+		AnnotatorResources.getInstance ().getAnnNormalizer ().normalize ( result );
 		return result;
 	}
 

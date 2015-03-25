@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadFactory;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
@@ -13,9 +14,9 @@ import javax.persistence.Query;
 import org.apache.commons.lang3.StringUtils;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
-import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
+import uk.ac.ebi.fg.biosd.annotator.persistence.BatchTransactionManager;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.BioSampleGroup;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
@@ -49,7 +50,6 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	private double randomSelectionQuota = 100.0;
 	private Random rndGenerator = new Random ( System.currentTimeMillis () );
 
-	private PropertyValAnnotationManager pvAnnMgr = new PropertyValAnnotationManager ();
 	
 	/**
 	 * Used in queries that picks up those properties not associated neither to ZOOMA-computed terms, nor marked
@@ -67,7 +67,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	
 	public PropertyValAnnotationService ()
 	{
-		super ();
+		super ( 2 );
 		// super ( 1, null ); //DEBUG
 		// Sometimes I set it to null for debugging purposes
 		if ( this.poolSizeTuner != null ) 
@@ -83,6 +83,29 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		}
 		
 		this.setSubmissionMsgLogLevel ( Level.DEBUG );
+
+		
+		// Let's equip ourselves with threads that are able to dispose their BatchTransactionManager
+		// instance, by commiting everything and closing the provider, upon thread finalisation.
+		//
+		this.setThreadFactory ( new ThreadFactory() 
+		{
+			@Override
+			public Thread newThread ( Runnable r )
+			{
+				return new Thread ( r ) 
+				{
+					@Override
+					protected void finalize () throws Throwable
+					{
+						BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
+						btm.commit ( true );
+						btm.close ();
+						super.finalize ();
+					}
+				};
+			}
+		});
 	}
 	
 	/**
@@ -94,7 +117,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	public void submit ( long pvalId )
 	{
 		if ( randomSelectionQuota < 100.0 && rndGenerator.nextDouble () >= randomSelectionQuota ) return;
-		super.submit ( new PropertyValAnnotationTask ( pvalId, this.pvAnnMgr ) );
+		super.submit ( new PropertyValAnnotationTask ( pvalId ) );
 	}
 
 	/**
@@ -122,11 +145,12 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			
 			if ( offset != null ) q.setFirstResult ( offset );
 			if ( limit != null ) q.setMaxResults ( limit );
-				
-			for ( Number id: (List<Number>) q.getResultList () )
-				submit ( id.longValue () );
-			
+
+			List<Number> ids = (List<Number>) q.getResultList ();
 			tx.commit ();
+
+			for ( Number id: ids )
+				submit ( id.longValue () );
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();
@@ -256,6 +280,18 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	public void setRandomSelectionQuota ( double randomSelectionQuota )
 	{
 		this.randomSelectionQuota = randomSelectionQuota;
+	}
+
+	/**
+	 * First waits that all the tasks are finished, then invokes {@link BatchTransactionManager#commitAll()},
+	 * to finalise any pending transaction.
+	 * 
+	 */
+	@Override
+	public void waitAllFinished ()
+	{
+		super.waitAllFinished ();
+		BatchTransactionManager.commitAll ();
 	}
 
 }

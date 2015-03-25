@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.biosd.annotator.persistence.BatchTransactionManager;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.purge.ZoomaAnnotationsPurger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
@@ -78,7 +79,12 @@ public class OntoDiscoveryTest
 			)
 		);
 
-		ontoDiscoverer.annotate ( pval, false, em );
+		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
+		btm.begin ();
+		ontoDiscoverer.annotate ( pval, false );
+		btm.commit ( true );
+		
+		
 		em = emf.createEntityManager ();
 
 		// Verify
@@ -161,7 +167,11 @@ public class OntoDiscoveryTest
 			)
 		);
 
-		ontoDiscoverer.annotate ( pval, true, em );
+		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
+		btm.begin ();
+		ontoDiscoverer.annotate ( pval, true );
+		BatchTransactionManager.commitAll ();
+		
 		em = emf.createEntityManager ();
 
 		// Verify
@@ -233,6 +243,7 @@ public class OntoDiscoveryTest
 		tx.begin ();
 		em.persist ( pval );
 		tx.commit ();
+		em.close ();
 		
 		// Annotate
 		//
@@ -245,9 +256,12 @@ public class OntoDiscoveryTest
 			)
 		);
 		
-		ontoDiscoverer.annotate ( pval, false, em );
+		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
+		btm.begin ();
+		ontoDiscoverer.annotate ( pval, false );
+		btm.commit ( true );
+		btm.close ();
 		
-		em.close ();
 		em = emf.createEntityManager ();
 
 		// Verify
@@ -258,7 +272,7 @@ public class OntoDiscoveryTest
 		TextAnnotation zoomaEmptyMappingMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
 		
 		List<Annotation> anns = AnnotationUtils.find ( 
-			pval.getAnnotations (), null, zoomaEmptyMappingMarker.getType ().getName (), false, true 
+			pvaldb.getAnnotations (), null, zoomaEmptyMappingMarker.getType ().getName (), false, true 
 		);
 
 		assertEquals ( "No-ontology marker not created!", 1, anns.size () );

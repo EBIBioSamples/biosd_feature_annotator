@@ -12,7 +12,6 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.sampletab.persistence.entity_listeners.expgraph.properties.UnitUnloadingListener;
 import uk.ac.ebi.fg.biosd.sampletab.persistence.entity_listeners.expgraph.properties.dataitems.DataItemUnloadingUnlistener;
@@ -30,7 +31,6 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DataItem;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberItem;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.ValueItem;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AnnotatableDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
@@ -38,6 +38,7 @@ import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
+import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryMemCache;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 
 /**
@@ -53,14 +54,13 @@ public class NumericalDataAnnotatorTest
 		new NumericalDataAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( 
 				new CachedOntoTermDiscoverer ( 
-					new ZoomaOntoTermDiscoverer ( 
-						new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 
-						50f 
-					),
+					new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 50f ),
 					new BioSDOntoDiscoveringCache ()
-				)
+				),
+				new OntoTermDiscoveryMemCache ( AnnotatorResources.getInstance ().getOntoTerms () )	
 			)
 		);
+	
 
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
@@ -82,13 +82,16 @@ public class NumericalDataAnnotatorTest
 		tx.begin ();
 		em.persist ( pval );
 		tx.commit ();
+		em.clear ();
 
 		// Annotate
-		//
-		
-		assertTrue ( "Not recognised as number!", numAnn.annotate ( pval, em ) );
-		em.close ();
+		assertTrue ( "Not recognised as number!", numAnn.annotate ( pval ) );
 
+		// Persist
+		AnnotatorResources.getInstance ().getStore ().find ( pval, pval.getId ().toString () );
+		AnnotatorPersister persister = new AnnotatorPersister ();
+		persister.persist ();
+		
 		// Verify
 		//
 		em = emf.createEntityManager ();
@@ -135,7 +138,7 @@ public class NumericalDataAnnotatorTest
 		//
 		
 		// Annotations about units 
-		int deleted = new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date () );
+		int deleted = new Purger ().purge ( new DateTime ().minusMinutes ( 5 ).toDate (), new Date () );
 		assertTrue ( "Annotations not deleted!", deleted > 0 );
 
 		tx = em.getTransaction ();
@@ -144,23 +147,26 @@ public class NumericalDataAnnotatorTest
 		tx.commit ();
 		
 		tx.begin ();
-		assertTrue ( "Unit not deleted!", new UnitUnloadingListener ( em ).postRemoveGlobally () > 0);
-		assertTrue ( "DataItems not deleted!", new DataItemUnloadingUnlistener ( em ).postRemoveGlobally () > 0);
-		assertTrue ( "Annotations not deleted!", new AnnotationUnloaderListener ( em ).postRemoveGlobally () > 0);
+		assertTrue ( "Unit not deleted!", new UnitUnloadingListener ( em ).postRemoveGlobally () > 0 );
+		assertTrue ( "DataItems not deleted!", new DataItemUnloadingUnlistener ( em ).postRemoveGlobally () > 0 );
+		assertTrue ( "Annotations not deleted!", new AnnotationUnloaderListener ( em ).postRemoveGlobally () > 0 );
 		tx.commit ();
 		
 		em.close ();
 	}	
 	
-	@SuppressWarnings ( "rawtypes" )
+	
 	@Test
+	@SuppressWarnings ( "rawtypes" )
 	public void testDataItemReuse ()
 	{
+		AnnotatorResources.reset ();
+		
 		ExperimentalPropertyType ptype1 = new ExperimentalPropertyType ( "Weight" );
-		ExperimentalPropertyValue<ExperimentalPropertyType> pval1 = new ExperimentalPropertyValue<> ( "70", ptype1 );
+		ExperimentalPropertyValue<ExperimentalPropertyType> pval1 = new ExperimentalPropertyValue<> ( "50", ptype1 );
 		
 		ExperimentalPropertyType ptype2 = new ExperimentalPropertyType ( "Age" );
-		ExperimentalPropertyValue<ExperimentalPropertyType> pval2 = new ExperimentalPropertyValue<> ( "70", ptype2 );
+		ExperimentalPropertyValue<ExperimentalPropertyType> pval2 = new ExperimentalPropertyValue<> ( "50", ptype2 );
 		
 		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
 		EntityManager em = emf.createEntityManager ();
@@ -170,14 +176,19 @@ public class NumericalDataAnnotatorTest
 		em.persist ( pval1 );
 		em.persist ( pval2 );
 		tx.commit ();
-
-		// Annotate
-		//
-		
-		assertTrue ( "pv1 not recognised as number!", numAnn.annotate ( pval1, em ) );
-		assertTrue ( "pv1 not recognised as number!", numAnn.annotate ( pval2, em ) );
 		em.close ();
 
+		// Annotate
+		assertTrue ( "pv1 not recognised as number!", numAnn.annotate ( pval1 ) );
+		assertTrue ( "pv1 not recognised as number!", numAnn.annotate ( pval2 ) );
+		
+		// Persist
+		AnnotatorResources.getInstance ().getStore ().find ( pval1, pval1.getId ().toString () );
+		AnnotatorResources.getInstance ().getStore ().find ( pval2, pval2.getId ().toString () );
+		AnnotatorPersister persister = new AnnotatorPersister ();
+		persister.persist ();
+
+		
 		// Verify
 		em = emf.createEntityManager ();
 		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );

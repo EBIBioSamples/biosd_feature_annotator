@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.persistence.BatchTransactionManager;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
@@ -64,7 +65,10 @@ public class BioSDOntoDiscoveringCacheTest
 		//
 		String value = "homo sapiens", type = "specie";
 		
+		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
+		btm.begin ();
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
+		btm.commit ( true );
 		long time1 = timer.getTime ();
 		
 		log.info ( "Discovered entries:\n{}", terms.toString () );
@@ -103,11 +107,13 @@ public class BioSDOntoDiscoveringCacheTest
 		//
 		timer.reset ();
 		timer.start ();
+		btm.begin ();
 		for ( int i = 0; i < 100; i++ )
 		{
 			terms = client.getOntologyTermUris ( value, type );
 			log.trace ( "Call {}, time {}", i, timer.getTime () );
 		}
+		btm.commit ( true );
 		timer.stop ();
 		
 		double time2 = timer.getTime () / 100.0;
@@ -132,7 +138,10 @@ public class BioSDOntoDiscoveringCacheTest
 		//
 		String value = "bla bla foo value 1234", type = "foo type 2233";
 
+		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
+		btm.begin ();
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
+		btm.commit ( true );
 		
 		assertTrue ( "Wrong mapping returned!", terms.isEmpty () );
 		
@@ -182,13 +191,19 @@ public class BioSDOntoDiscoveringCacheTest
 		//
 		String value = "homo sapiens", type = "specie";
 
+		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
+		btm.begin ();
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
+		btm.commit ( true );
+		
 		log.info ( "Discovered entries:\n{}", terms.toString () );
 
 		// Test both caches are used. More advanced tests of this are in the ZOOMA client module
 		//
+		btm.begin ();
 		assertNotNull ( "Entry not saved in memory cache!", memCache.getOntologyTermUris ( value, type ) );
 		assertNotNull ( "Entry not saved in DB cache!", dbCache.getOntologyTermUris ( value, type ) );
+		btm.commit ( true ); // will be committed during finalization;
 	}
 	
 }

@@ -3,9 +3,6 @@ package uk.ac.ebi.fg.biosd.annotator.datadiscover;
 import java.text.ParseException;
 import java.util.Date;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -13,8 +10,7 @@ import org.apache.commons.lang3.time.DateUtils;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermResolverAndAnnotator;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.DBStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
@@ -22,10 +18,8 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DataItem;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DateItem;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberItem;
 import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberRangeItem;
-import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.expgraph.properties.dataitems.DataItemDAO;
 import uk.ac.ebi.fg.core_model.terms.AnnotationType;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
@@ -55,37 +49,32 @@ public class NumericalDataAnnotator
 	 * @param pv
 	 * @return true if it has actually found a number or date in the pval value. 
 	 */
-	public boolean annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pval, EntityManager em )
+	public boolean annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pval )
 	{
-		boolean result = annotateData ( pval, em );
-		annotateUnit ( pval, em );
+		boolean result = annotateData ( pval );
+		annotateUnit ( pval );
 		return result;
 	}
 	
 	
-	private void annotateUnit ( ExperimentalPropertyValue<?> pval, EntityManager em )
+	private void annotateUnit ( ExperimentalPropertyValue<?> pval )
 	{
 		Unit u = pval.getUnit ();
 		if ( u == null ) return;
 		
 		OntologyEntry uoe = u.getOntologyTerms ().size () == 1 ? u.getSingleOntologyTerm () : null;
 					
-		if ( uoe == null || !ontoTermResolver.resolveOntoTerm ( uoe, em ) )
+		if ( uoe == null || !ontoTermResolver.resolveOntoTerm ( uoe ) )
 		{
 			// No explicit and valid OE associated to the Unit, so use ZOOMA
 			String unitLabel =  StringUtils.trimToNull ( u.getTermText () );
-		
+			
 			// This are the ontology terms associated to the property value by ZOOMA
 			// Only UO terms will be returned here
 			for ( DiscoveredTerm dterm: ontoTermDiscoverer.getOntologyTermUris ( unitLabel, null ) )
 			{
-					EntityTransaction tx = em.getTransaction ();
-					tx.begin ();
 					OntologyEntry oe = ((ExtendedDiscoveredTerm) dterm).getOntologyTerm ();
-					// This will save the term, if it's new.
-					oe = em.merge ( oe );
 					u.addOntologyTerm ( oe );
-					tx.commit ();
 			}
 		}
 	} // annotateUnit ()
@@ -97,7 +86,7 @@ public class NumericalDataAnnotator
 	 * @param pval
 	 * @return true if it has actually found a number or date in the pval value. 
 	 */
-	private boolean annotateData ( ExperimentalPropertyValue<?> pval, EntityManager em )
+	private boolean annotateData ( ExperimentalPropertyValue<?> pval )
 	{
 		String pvalStr = StringUtils.trimToNull ( pval.getTermText () );
 		if ( pvalStr == null ) return false;
@@ -157,30 +146,22 @@ public class NumericalDataAnnotator
 		
 		if ( dataItem == null ) return false; 
 
-		EntityTransaction tx = em.getTransaction ();
-		tx.begin ();
-
-		DataItemDAO diDao = new DataItemDAO ( DataItem.class, em );
-		DataItem dbDataItem = diDao.find ( dataItem );
+		AnnotatorResources annResources = AnnotatorResources.getInstance ();
+		DataItem diS = annResources.getStore ().find ( dataItem );
 		
-		if ( dbDataItem != null )
-			// If this value is already in the DB, just reuse it
-			dataItem = dbDataItem;
-		else
+		if ( diS == null )
 		{
-			// else, annotate it and save it all
+			// annotate the new DI
 			TextAnnotation marker = createDataAnnotatorMarker ();
-			AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( new DBStore ( em ) );
-		
-			annNormalizer.normalize ( marker );
-			em.persist ( marker );
-			
+			annResources.getAnnNormalizer ().normalize ( marker );
 			dataItem.addAnnotation ( marker );
 		}
+		else
+			// Reuse the existing one
+			dataItem = diS;
 		
 		// Attach the (old or new) data item to the current pv
 		pval.addDataItem ( dataItem );
-		tx.commit ();
 
 		return true;
 		

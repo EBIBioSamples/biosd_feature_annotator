@@ -1,9 +1,9 @@
 package uk.ac.ebi.fg.biosd.annotator;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 
 import uk.ac.ebi.fg.biosd.annotator.datadiscover.NumericalDataAnnotator;
@@ -13,19 +13,23 @@ import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
+import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.Store;
+import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.expgraph.properties.PropertyValueNormalizer;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AnnotatableDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
+import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
 import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryMemCache;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
-import uk.ac.ebi.utils.memory.SimpleCache;
+import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 
 /**
  * This annotates a {@link ExperimentalPropertyValue} with ontology entries returned by {@link OntologyTermDiscoverer},
@@ -45,6 +49,8 @@ public class PropertyValAnnotationManager
 	private final NumericalDataAnnotator numAnnotator;
 	private final OntoTermResolverAndAnnotator ontoResolver;
 	private final OntoDiscoveryAndAnnotator ontoDiscoverer;
+	private final PropertyValueNormalizer propValNormalizer 
+		= new PropertyValueNormalizer ( AnnotatorResources.getInstance ().getStore () );
 	
 	/**
 	 * Used for {@link AnnotationProvenance}, to mark that an annotation comes from this annotation tool.
@@ -64,7 +70,7 @@ public class PropertyValAnnotationManager
 					),
 					new BioSDOntoDiscoveringCache ()
 				),
-				new OntoTermDiscoveryMemCache ( new SimpleCache<String, List<DiscoveredTerm>> ( 10000 ) )
+				new OntoTermDiscoveryMemCache ( AnnotatorResources.getInstance ().getOntoTerms () )
 			)
 		);
 		
@@ -73,7 +79,8 @@ public class PropertyValAnnotationManager
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
 					new ZoomaOntoTermDiscoverer ( new StatsZOOMASearchFilter ( new ZOOMASearchClient () ), zoomaThreesholdScore ),
 					new BioSDOntoDiscoveringCache ()
-				)
+				),
+				new OntoTermDiscoveryMemCache ( AnnotatorResources.getInstance ().getOntoTerms () )
 			)
 		);
 	}
@@ -94,26 +101,18 @@ public class PropertyValAnnotationManager
 	@SuppressWarnings ( { "rawtypes", "unchecked" } )
 	public boolean annotate ( long pvalId )
 	{
-		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
-		EntityManager em = emf.createEntityManager ();
+		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 		
-		try
-		{
-			AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
-			ExperimentalPropertyValue<ExperimentalPropertyType> pval = pvdao.find ( pvalId );
-			tx.commit ();
-			
-			ontoResolver.annotate ( pval, em );
-			boolean isNumberOrDate = numAnnotator.annotate ( pval, em );
-			ontoDiscoverer.annotate ( pval, isNumberOrDate, em );
-		}
-		finally {
-			if ( em.isOpen () ) em.close ();
-		}
+		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
+		ExperimentalPropertyValue<ExperimentalPropertyType> pval = pvdao.find ( pvalId );
+		
+		ontoResolver.annotate ( pval  );
+		boolean isNumberOrDate = numAnnotator.annotate ( pval );
+		ontoDiscoverer.annotate ( pval, isNumberOrDate );
 
+		propValNormalizer.normalize ( pval );
+		propValNormalizer.getStore ().find ( pval, pval.getId ().toString () );
+		
 		return true;
 	}	
-	
 }
