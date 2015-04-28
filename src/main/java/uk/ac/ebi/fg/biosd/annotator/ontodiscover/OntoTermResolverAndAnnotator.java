@@ -1,6 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -10,18 +11,16 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.bioportal.webservice.exceptions.OntologyServiceException;
 import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
-import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
-import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.terms.AnnotationType;
+import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
-import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
-import uk.ac.ebi.utils.reflection.ReflectionUtils;
 
 /**
  * This uses the {@link BioportalClient} to verify the explicit (i.e., not discovered via ZOOMA) {@link OntologyEntry} 
@@ -44,26 +43,36 @@ public class OntoTermResolverAndAnnotator
 	/**
 	 * Annotates the {@link OntologyEntry} attached to the property value, as explained above.
 	 */
-	public boolean annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
+	public boolean annotate ( FreeTextTerm term )
 	{
-		Set<OntologyEntry> oes = pv.getOntologyTerms ();
+		Set<OntologyEntry> oes = term.getOntologyTerms ();
 		if ( oes == null ) return false;
 		
-		boolean result = false;
-		for ( OntologyEntry oe: oes )
-			result |= resolveOntoTerm ( oe );
+		Set<OntologyEntry> delOes = new HashSet<> (), addOes = new HashSet<> ();
+		for ( OntologyEntry oe: oes ) 
+		{
+			OntologyEntry oeNew = resolveOntoTerm ( oe );
+			if ( oeNew == oe ) continue;
+			delOes.add ( oe );
+			addOes.add ( oeNew );
+		}
 		
-		return result;
+		if ( !delOes.isEmpty () ) 
+		{
+			oes.removeAll ( delOes );
+			oes.addAll ( addOes );
+			return true;
+		}
+		
+		return false;
+		
 	} // resolveOntoTerms ( pv )
 	
 	
 	/**
-	 * Resolves the current ontology entry against {@link BioportalClient Bioportal}, by replacing the term's current
-	 * data (ie, acc and label), with what is found in Bioportal (ie, URI and preferredLabel). As said above, adds an 
-	 * annotation to term, to trace that the term was changed by the annotator.
-	 * 
+	 * TODO: comment me again!
 	 */
-	public boolean resolveOntoTerm ( OntologyEntry oe )
+	private OntologyEntry resolveOntoTerm ( OntologyEntry oe )
 	{
 		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
 		TextAnnotation resolverMarker = createOntoResolverMarker ( "foo", "foo", "foo" );
@@ -89,30 +98,29 @@ public class OntoTermResolverAndAnnotator
 		}
 		
 		// Already annotated, let's go ahead.
-		if ( annFound ) return false;
+		if ( annFound ) return oe;
 		
 		// So, it needs a check with the ontology service
 		String acc = StringUtils.trimToNull ( oe.getAcc () );
 		ReferenceSource src = oe.getSource ();
 		String srcAcc = src == null ? null : StringUtils.trimToNull ( src.getAcc () );
 		
-		final OntologyClass bpOntoTerm = getOntoTermUri ( srcAcc, acc );
+		OntologyClass bpOntoTerm = getOntoTermUri ( srcAcc, acc );
+		// DEBUG OntologyClass bpOntoTerm = getMockupClass ( srcAcc, acc );
 		
-		if ( bpOntoTerm == null ) return false;
+		if ( bpOntoTerm == null ) return oe;
 				
 		final String oldLabel = oe.getLabel ();
 		
-		// Get a new OE with the same ID, so that we may send updates.
-		OntologyEntry newOe = new OntologyEntry ( bpOntoTerm.getIri (), null );
-		newOe.setLabel ( bpOntoTerm.getPreferredLabel () );
-		// Protected method
-		ReflectionUtils.invoke ( newOe, Identifiable.class, "setId", new Class<?>[] { Long.class }, oe.getId () );
-		
+		OntologyEntry oeNew = new OntologyEntry ( bpOntoTerm.getIri (), null );
+		oeNew.setLabel ( bpOntoTerm.getPreferredLabel () );
+				
 		TextAnnotation marker = createOntoResolverMarker ( acc, srcAcc, oldLabel, now );
-		newOe.addAnnotation ( marker );
+		oeNew.addAnnotation ( marker );
 
-		AnnotatorResources.getInstance ().getStore ().find ( newOe, newOe.getId ().toString () );
-		return true;
+		AnnotatorResources.getInstance ().getStore ().find ( oeNew, oe.getId ().toString () );
+		
+		return oeNew;
 		
 	} // resolveOntoTerms ( oe )
 	
@@ -178,5 +186,16 @@ public class OntoTermResolverAndAnnotator
 	public static TextAnnotation createOntoResolverMarker ( String initialAcc, String initialSrc, String initialLabel )
 	{
 		return createOntoResolverMarker ( initialAcc, initialSrc, initialLabel, null );
+	}
+	
+	/** 
+	 * Used for debugging 
+	 */
+	private OntologyClass getMockupClass ( String srcAcc, String acc )
+	{
+		if ( "EFO".equalsIgnoreCase (  srcAcc ) && "0000270".equals ( acc ) )
+			return new OntologyClass ( "http://www.ebi.ac.uk/efo/EFO_0000270" );
+		
+		return null;
 	}
 }

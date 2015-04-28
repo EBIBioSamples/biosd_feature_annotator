@@ -7,10 +7,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermResolverAndAnnotator;
-import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
@@ -64,7 +64,7 @@ public class NumericalDataAnnotator
 		
 		OntologyEntry uoe = u.getOntologyTerms ().size () == 1 ? u.getSingleOntologyTerm () : null;
 					
-		if ( uoe == null || !ontoTermResolver.resolveOntoTerm ( uoe ) )
+		if ( uoe == null || !ontoTermResolver.annotate ( u ) )
 		{
 			// No explicit and valid OE associated to the Unit, so use ZOOMA
 			String unitLabel =  StringUtils.trimToNull ( u.getTermText () );
@@ -153,7 +153,6 @@ public class NumericalDataAnnotator
 		{
 			// annotate the new DI
 			TextAnnotation marker = createDataAnnotatorMarker ();
-			annResources.getAnnNormalizer ().normalize ( marker );
 			dataItem.addAnnotation ( marker );
 		}
 		else
@@ -178,6 +177,8 @@ public class NumericalDataAnnotator
 		result.setProvenance ( new AnnotationProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER ) );
 		result.setTimestamp ( new Date () );
 		
+		AnnotatorResources.getInstance ().getAnnNormalizer ().normalize ( result );
+
 		return result;
 	}
 

@@ -3,6 +3,8 @@ package uk.ac.ebi.fg.biosd.annotator.threading;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
@@ -16,14 +18,21 @@ import javax.persistence.EntityTransaction;
 
 import junit.framework.Assert;
 
+import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
+import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
 import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
@@ -37,6 +46,7 @@ import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AnnotatableDAO
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
+import uk.org.lidalia.slf4jext.Level;
 
 /**
  * Tests the {@link PropertyValAnnotationService} and how things work in multi-thread mode.
@@ -48,6 +58,9 @@ import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 public class PropertyValAnnotationServiceTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
+
+	@Rule
+	public TestRule resResetRule = new AnnotatorResourcesResetRule ();
 
 	/**
 	 * Uses the {@link Purger} to remove the ZOOMA-related objects created in these tests.
@@ -61,7 +74,7 @@ public class PropertyValAnnotationServiceTest
 	/**
 	 * Basic test against a couple of properties.
 	 */
-	@Test
+	//@Test
 	@SuppressWarnings ( "rawtypes" )
 	public void testService ()
 	{
@@ -90,10 +103,12 @@ public class PropertyValAnnotationServiceTest
 		tx.begin ();
 		for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: pvs ) em.persist ( pv );
 		tx.commit ();
-
+		em.close ();
+		
 		// Annotate them with the multi-thread service
 		//
 		PropertyValAnnotationService service = new PropertyValAnnotationService ();
+		service.setSubmissionMsgLogLevel ( Level.INFO );
 		service.submitAll ();
 		service.waitAllFinished ();
 
@@ -137,6 +152,7 @@ public class PropertyValAnnotationServiceTest
 		em.remove ( nullOe );
 		
 		tx.commit ();
+		em.close ();
 		
 	}
 	
@@ -158,9 +174,10 @@ public class PropertyValAnnotationServiceTest
 		// Use the multi-thread service
 		//
 		PropertyValAnnotationService service = new PropertyValAnnotationService ();
+		service.setSubmissionMsgLogLevel ( Level.INFO );
 		service.submitMSI ( sampleTabUrl.openStream () );
 		service.waitAllFinished ();
-		
+
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 		AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
 		
@@ -182,6 +199,8 @@ public class PropertyValAnnotationServiceTest
 						
 						hasFoundAnn = true;
 		}
+		
+		em.close ();
 		
 		// Remove the submission
 		//

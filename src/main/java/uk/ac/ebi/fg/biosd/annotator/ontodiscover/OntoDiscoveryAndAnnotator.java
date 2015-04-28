@@ -7,8 +7,8 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
-import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.terms.AnnotationType;
@@ -66,7 +66,6 @@ public class OntoDiscoveryAndAnnotator
 		if ( zterms.isEmpty () )
 		{
 			// Doh! There isn't anything for this PV, let's trace this results too, so that we won't repeat it next time
-			AnnotatorResources.getInstance ().getAnnNormalizer ().normalize ( zoomaEmptyMappingMarker );
       pval.addAnnotation ( zoomaEmptyMappingMarker );
 			return;
 		}
@@ -132,6 +131,8 @@ public class OntoDiscoveryAndAnnotator
 		result.setProvenance ( new AnnotationProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER ) );
 		result.setTimestamp ( new Date () );
 		
+		AnnotatorResources.getInstance ().getAnnNormalizer ().normalize ( result );
+
 		return result;
 	}
 

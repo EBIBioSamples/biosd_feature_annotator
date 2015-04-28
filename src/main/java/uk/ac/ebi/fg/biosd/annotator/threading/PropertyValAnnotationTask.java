@@ -6,6 +6,7 @@ import org.apache.commons.lang3.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.utils.threading.BatchServiceTask;
@@ -22,14 +23,6 @@ import uk.ac.ebi.utils.threading.BatchServiceTask;
 public class PropertyValAnnotationTask extends BatchServiceTask
 {
 	private final long propertyValueId; 
-	private static ThreadLocal<PropertyValAnnotationManager> threadLocalPvAnnMgr = 
-		new ThreadLocal<PropertyValAnnotationManager> () 
-		{
-			@Override
-			protected PropertyValAnnotationManager initialValue () {
-				return new PropertyValAnnotationManager ();
-			}
-		};
 	
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
@@ -50,9 +43,9 @@ public class PropertyValAnnotationTask extends BatchServiceTask
 	{
 		try 
 		{
-			PropertyValAnnotationManager pvAnnMgr = threadLocalPvAnnMgr.get ();
 			PersistenceException theEx = null;
-			
+			PropertyValAnnotationManager pvAnnMgr = AnnotatorResources.getInstance ().getPvAnnMgr ();
+					
 			// Try more times, in the attempt to face concurrency issues we have in cluster mode.
 			for ( int attempts = 5; attempts > 0; attempts-- )
 			{
@@ -72,7 +65,7 @@ public class PropertyValAnnotationTask extends BatchServiceTask
 				}
 			}
 			throw new PersistenceException ( 
-				"Couldn't save annotations into the database, giving up after 5 attempts, likely due to: " + theEx.getMessage (),
+				"Couldn't fetch data from the BioSD database, giving up after 5 attempts, likely due to: " + theEx.getMessage (),
 				theEx 
 			);
 		}

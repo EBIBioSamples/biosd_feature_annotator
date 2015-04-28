@@ -5,18 +5,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ThreadFactory;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
-import uk.ac.ebi.fg.biosd.annotator.persistence.BatchTransactionManager;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.BioSampleGroup;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
@@ -26,7 +27,9 @@ import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
+import uk.ac.ebi.utils.memory.MemoryUtils;
 import uk.ac.ebi.utils.threading.BatchService;
+import uk.ac.ebi.utils.time.XStopWatch;
 import uk.org.lidalia.slf4jext.Level;
 
 /**
@@ -50,24 +53,55 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	private double randomSelectionQuota = 100.0;
 	private Random rndGenerator = new Random ( System.currentTimeMillis () );
 
+	private XStopWatch timer = new XStopWatch (); 
+	
+	private Runnable memFlushAction = new Runnable() 
+	{
+		@Override
+		public void run () {
+			PropertyValAnnotationService.this.waitAllFinished ();
+		}
+	};
+
 	
 	/**
 	 * Used in queries that picks up those properties not associated neither to ZOOMA-computed terms, nor marked
 	 * with {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology marker'}.
 	 *  
 	 */
-	private static final String PV_CRITERIA = 
-		  "pv NOT IN (\n"
-		+ "	  SELECT pv1.id FROM ExperimentalPropertyValue pv1 JOIN pv1.ontologyTerms oe JOIN oe.annotations oa WHERE\n"
-		+ "     oa.type.name = :oeAnnType )\n"
-		+ "AND pv NOT IN (\n"
-		+ "   SELECT pv2.id FROM ExperimentalPropertyValue pv2 JOIN pv2.annotations pa WHERE\n"
-		+ "     pa.type.name = :pvAnnType )\n";
+	private static final String PV_CRITERIA =
+		   "pv.id NOT IN \n"
+		 + "(    \n"
+		 + "	SELECT\n"
+		 + "	    pv1.id\n"
+		 + "	FROM\n"
+		 + "	    exp_prop_val pv1 INNER JOIN exp_prop_val_annotation pv2ann1\n"
+		 + "	        ON pv1.id = pv2ann1.owner_id INNER JOIN annotation ann1\n"
+		 + "	        ON pv2ann1.annotation_id = ann1.id ,\n"
+		 + "	    annotation_type atype1\n"
+		 + "	WHERE\n"
+		 + "	    ann1.type_id = atype1.id\n"
+		 + "	    AND atype1.name = :pvAnnType\n"
+		 + "	UNION    \n"
+		 + "	SELECT\n"
+		 + "	    pv2.id\n"
+		 + "	FROM\n"
+		 + "	    exp_prop_val pv2 INNER JOIN exp_prop_val_onto_entry pv2oe2\n"
+		 + "	        ON pv2.id = pv2oe2.owner_id INNER JOIN onto_entry oe2\n"
+		 + "	        ON pv2oe2.oe_id = oe2.id INNER JOIN onto_entry_annotation oe2ann2\n"
+		 + "	        ON oe2.id = oe2ann2.owner_id INNER JOIN annotation ann2\n"
+		 + "	        ON oe2ann2.annotation_id = ann2.id ,\n"
+		 + "	    annotation_type atype2\n"
+		 + "	WHERE\n"
+		 + "	    ann2.type_id = atype2.id\n"
+		 + "	    AND atype2.name = :oeAnnType\n"
+		 + ")\n";			
+		 
 
 	
 	public PropertyValAnnotationService ()
 	{
-		super ( 2 );
+		super ();
 		// super ( 1, null ); //DEBUG
 		// Sometimes I set it to null for debugging purposes
 		if ( this.poolSizeTuner != null ) 
@@ -75,7 +109,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			this.poolSizeTuner.setPeriodMSecs ( (int) 5*60*1000 );
 			// TODO: document this
 			this.poolSizeTuner.setMaxThreads ( Integer.parseInt ( System.getProperty ( 
-				MAX_THREAD_PROP, "100" ) ) 
+				MAX_THREAD_PROP, "250" ) ) 
 			);
 			this.poolSizeTuner.setMinThreads ( 5 );
 			this.poolSizeTuner.setMaxThreadIncr ( this.poolSizeTuner.getMaxThreads () / 4 );
@@ -83,29 +117,6 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		}
 		
 		this.setSubmissionMsgLogLevel ( Level.DEBUG );
-
-		
-		// Let's equip ourselves with threads that are able to dispose their BatchTransactionManager
-		// instance, by commiting everything and closing the provider, upon thread finalisation.
-		//
-		this.setThreadFactory ( new ThreadFactory() 
-		{
-			@Override
-			public Thread newThread ( Runnable r )
-			{
-				return new Thread ( r ) 
-				{
-					@Override
-					protected void finalize () throws Throwable
-					{
-						BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
-						btm.commit ( true );
-						btm.close ();
-						super.finalize ();
-					}
-				};
-			}
-		});
 	}
 	
 	/**
@@ -117,6 +128,15 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	public void submit ( long pvalId )
 	{
 		if ( randomSelectionQuota < 100.0 && rndGenerator.nextDouble () >= randomSelectionQuota ) return;
+		
+		if ( timer.isStopped () ) timer.start ();
+				
+		// This will flush the collected annotations to the DB when the memory is too full, or when enough time 
+		// has passed We add the time criterion, cause we don't want to waste too much if the storage operation fails.
+		//
+		if ( !MemoryUtils.checkMemory ( this.memFlushAction, 0.25 ) && timer.getTime () > 1000 * 3600 * 3 )
+			this.memFlushAction.run ();
+		
 		super.submit ( new PropertyValAnnotationTask ( pvalId ) );
 	}
 
@@ -134,10 +154,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		
 		try 
 		{
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
-
-			Query q = em.createQuery ( "SELECT id FROM ExperimentalPropertyValue pv WHERE\n" + PV_CRITERIA );
+			Query q = em.createNativeQuery ( "SELECT id FROM exp_prop_val pv WHERE\n" + PV_CRITERIA );
 			TextAnnotation oeMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
 			TextAnnotation pvMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
 			q.setParameter ( "oeAnnType", oeMarker.getType ().getName () );
@@ -145,12 +162,19 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			
 			if ( offset != null ) q.setFirstResult ( offset );
 			if ( limit != null ) q.setMaxResults ( limit );
-
-			List<Number> ids = (List<Number>) q.getResultList ();
-			tx.commit ();
-
-			for ( Number id: ids )
-				submit ( id.longValue () );
+			
+			// In the case of bloody Oracle, the damn Hibernate adds ROWID to the projection, which doesn't happen with
+			// H2 (i.e., decent SQL syntax that supports LIMIT/OFFSET)
+			// We have to workaround the bastard the way below
+			//
+			List<Object> ids = q.getResultList ();
+			for ( Object ido: ids ) 
+			{
+				long id = ido instanceof Number 
+					? ((Number) ido).longValue ()
+					: ( (Number) ( (Object[]) ido )[ 0 ] ).longValue (); // see above why
+				submit ( id );
+			}
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();
@@ -193,16 +217,12 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	public void submitMSI ( String msiAcc )
 	{
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		
 		try
 		{
 			AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
 			MSI msi = dao.find ( msiAcc );
 			if ( msi == null ) throw new RuntimeException ( "Cannot find submission '" + msiAcc + "'" );
 			submitMSI ( msi );
-			tx.commit ();
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();
@@ -245,20 +265,17 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	public int getPropValCount ()
 	{
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		
 		try
 		{
-			EntityTransaction tx = em.getTransaction ();
-			tx.begin ();
-
 			TextAnnotation oeMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
 			TextAnnotation pvMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
 			
-			Number count = (Number) em.createQuery (
-				"SELECT COUNT (DISTINCT pv.id) FROM ExperimentalPropertyValue pv WHERE\n" + PV_CRITERIA
+			Number count = (Number) em.createNativeQuery (
+				"SELECT COUNT ( pv.id ) FROM exp_prop_val pv WHERE\n" + PV_CRITERIA
 			).setParameter ( "oeAnnType", oeMarker.getType ().getName () )
 			.setParameter ( "pvAnnType", pvMarker.getType ().getName () )
 			.getSingleResult ();
-			tx.commit ();
 			return count.intValue ();
 		}
 		finally {
@@ -283,15 +300,45 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	}
 
 	/**
-	 * First waits that all the tasks are finished, then invokes {@link BatchTransactionManager#commitAll()},
-	 * to finalise any pending transaction.
+	 * First waits that all the tasks are finished, then flushes all in-memory changes to the database. Finally
+	 * cleans up the memory and resets {@link #timer}.
 	 * 
 	 */
 	@Override
 	public void waitAllFinished ()
 	{
+		this.timer.reset ();
 		super.waitAllFinished ();
-		BatchTransactionManager.commitAll ();
+		
+		// Try more times, in the attempt to face concurrency issues.
+		RuntimeException theEx = null;
+		for ( int attempts = 5; attempts > 0; attempts-- )
+		{
+			theEx = null;
+			try {
+				new AnnotatorPersister ().persist ();
+				break;
+			}
+			catch ( PersistenceException ex )
+			{
+				log.trace ( String.format ( 
+					"Database error: '%s', probably due to concurrency issues, retrying %d more time(s)", ex.getMessage (), attempts ), 
+					ex
+				);
+				theEx = ex;
+				try {
+					Thread.sleep ( RandomUtils.nextLong ( 50, 1000 ) );
+				}
+				catch ( InterruptedException ex1 ) {
+					throw new RuntimeException ( "Internal error: " + ex1.getMessage (), ex1 );
+				}
+			}
+		}
+		if ( theEx != null ) throw new PersistenceException ( 
+			"Couldn't fetch data from the BioSD database, giving up after 5 attempts, likely due to: " + theEx.getMessage (),
+			theEx 
+		);
+		
+		AnnotatorResources.reset ();
 	}
-
 }

@@ -12,15 +12,16 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
-import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.sampletab.persistence.entity_listeners.expgraph.properties.UnitUnloadingListener;
 import uk.ac.ebi.fg.biosd.sampletab.persistence.entity_listeners.expgraph.properties.dataitems.DataItemUnloadingUnlistener;
@@ -64,6 +65,12 @@ public class NumericalDataAnnotatorTest
 
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
+	@Before
+	public void initResources () {
+		AnnotatorResources.reset ();
+	}
+	
+	
 	@Test
 	@SuppressWarnings ( "rawtypes" )
 	public void testNumberExtraction ()
@@ -82,7 +89,7 @@ public class NumericalDataAnnotatorTest
 		tx.begin ();
 		em.persist ( pval );
 		tx.commit ();
-		em.clear ();
+		em.close ();
 
 		// Annotate
 		assertTrue ( "Not recognised as number!", numAnn.annotate ( pval ) );
@@ -160,8 +167,6 @@ public class NumericalDataAnnotatorTest
 	@SuppressWarnings ( "rawtypes" )
 	public void testDataItemReuse ()
 	{
-		AnnotatorResources.reset ();
-		
 		ExperimentalPropertyType ptype1 = new ExperimentalPropertyType ( "Weight" );
 		ExperimentalPropertyValue<ExperimentalPropertyType> pval1 = new ExperimentalPropertyValue<> ( "50", ptype1 );
 		

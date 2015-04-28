@@ -15,13 +15,15 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
-import uk.ac.ebi.fg.biosd.annotator.persistence.BatchTransactionManager;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.purge.ZoomaAnnotationsPurger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
@@ -34,6 +36,7 @@ import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fg.core_model.utils.toplevel.AnnotationUtils;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
+import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryMemCache;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 
 /**
@@ -47,12 +50,18 @@ public class OntoDiscoveryTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
+	@Before
+	public void initResources () {
+		AnnotatorResources.reset ();
+	}
+
+	
 	/**
 	 * Basic test, with a single created {@link ExperimentalPropertyValue}.
 	 */
 	@Test
 	@SuppressWarnings ( "rawtypes" )
-	public void testAnnotator ()
+	public void testDiscoverer ()
 	{
 		// Create the property
 		//
@@ -67,6 +76,7 @@ public class OntoDiscoveryTest
 		tx.begin ();
 		em.persist ( pval );
 		tx.commit ();
+		em.close ();
 
 		// Annotate
 		//
@@ -75,20 +85,21 @@ public class OntoDiscoveryTest
 				new CachedOntoTermDiscoverer ( 
 					new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient (), 50f ),
 					new BioSDOntoDiscoveringCache ()
-				)
+				),
+				new OntoTermDiscoveryMemCache ( AnnotatorResources.getInstance ().getOntoTerms () )	
 			)
 		);
-
-		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
-		btm.begin ();
+		
 		ontoDiscoverer.annotate ( pval, false );
-		btm.commit ( true );
 		
-		
-		em = emf.createEntityManager ();
+		// Save
+		//
+		AnnotatorResources.getInstance ().getStore ().find ( pval, pval.getId ().toString () );
+		new AnnotatorPersister ().persist ();
 
 		// Verify
 		//
+		em = emf.createEntityManager ();
 		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
 		ExperimentalPropertyValue<?> pvaldb = pvdao.find ( pval.getId () );
 
@@ -155,6 +166,8 @@ public class OntoDiscoveryTest
 		tx.begin ();
 		em.persist ( pval );
 		tx.commit ();
+		em.close ();
+		
 
 		// Annotate
 		//
@@ -167,15 +180,17 @@ public class OntoDiscoveryTest
 			)
 		);
 
-		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
-		btm.begin ();
 		ontoDiscoverer.annotate ( pval, true );
-		BatchTransactionManager.commitAll ();
 		
-		em = emf.createEntityManager ();
+		// Save
+		//
+		AnnotatorResources.getInstance ().getStore ().find ( pval, pval.getId ().toString () );
+		new AnnotatorPersister ().persist ();
+
 
 		// Verify
 		//
+		em = emf.createEntityManager ();
 		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
 		ExperimentalPropertyValue<?> pvaldb = pvdao.find ( pval.getId () );
 
@@ -256,16 +271,17 @@ public class OntoDiscoveryTest
 			)
 		);
 		
-		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
-		btm.begin ();
 		ontoDiscoverer.annotate ( pval, false );
-		btm.commit ( true );
-		btm.close ();
+
+		// Save
+		//
+		AnnotatorResources.getInstance ().getStore ().find ( pval, pval.getId ().toString () );
+		new AnnotatorPersister ().persist ();
 		
-		em = emf.createEntityManager ();
 
 		// Verify
 		//
+		em = emf.createEntityManager ();
 		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
 		ExperimentalPropertyValue<?> pvaldb = pvdao.find ( pval.getId () );
 		

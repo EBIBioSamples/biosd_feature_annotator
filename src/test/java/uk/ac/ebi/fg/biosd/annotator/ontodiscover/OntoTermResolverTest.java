@@ -9,12 +9,14 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-import uk.ac.ebi.fg.biosd.annotator.persistence.BatchTransactionManager;
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
+import uk.ac.ebi.fg.biosd.model.persistence.hibernate.application_mgmt.ExpPropValDAO;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
-import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.terms.OntologyEntryDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Annotation;
@@ -30,6 +32,11 @@ import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
  */
 public class OntoTermResolverTest
 {
+	@Before
+	public void initResources () {
+		AnnotatorResources.reset ();
+	}
+
 	@Test
 	public void testBasics ()
 	{
@@ -41,10 +48,8 @@ public class OntoTermResolverTest
 		oe.setLabel ( "Asthma Disease" );
 		pval.addOntologyTerm ( oe );
 		
-		
-		
+			
 		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
-
 		EntityManager em = emf.createEntityManager ();
 		EntityTransaction tx = em.getTransaction ();
 		tx.begin ();
@@ -56,17 +61,19 @@ public class OntoTermResolverTest
 		// Annotate
 		//
 		OntoTermResolverAndAnnotator ontoAnnotator = new OntoTermResolverAndAnnotator ();
-
-		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
-		btm.begin ();
 		ontoAnnotator.annotate ( pval );
-		btm.commit ( true );
+		
+		// Save
+		//
+		AnnotatorResources.getInstance ().getStore ().find ( pval, pval.getId ().toString () );
+		new AnnotatorPersister().persist ();
 		
 		
 		// Check
 		//
-		OntologyEntryDAO<OntologyEntry> oedao = new OntologyEntryDAO<> ( OntologyEntry.class, em = emf.createEntityManager () );
-		OntologyEntry oedb = oedao.find ( oe.getId () );
+		ExpPropValDAO pvdao = new ExpPropValDAO ( em = emf.createEntityManager () );
+		ExperimentalPropertyValue<?> pvdb = pvdao.find ( pval.getId () );
+		OntologyEntry oedb = pvdb.getSingleOntologyTerm ();
 		
 		assertEquals ( "Accession wasn't set with the right URI!", "http://www.ebi.ac.uk/efo/EFO_0000270", oedb.getAcc () );
 		assertFalse ( "No annotations saved!", oedb.getAnnotations () == null || oedb.getAnnotations ().isEmpty () );
@@ -107,6 +114,8 @@ public class OntoTermResolverTest
 		
 		em.remove ( foundAnn );
 		em.remove ( oedb );
+		oe = em.merge ( oe );
+		em.remove ( oe );
 		tx.commit ();
 		em.close ();
 

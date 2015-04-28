@@ -2,6 +2,8 @@ package uk.ac.ebi.fg.biosd.annotator.cli;
 
 import static junit.framework.Assert.assertTrue;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.regex.Pattern;
@@ -9,12 +11,21 @@ import java.util.regex.Pattern;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.joda.time.DateTime;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
 import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
@@ -48,9 +59,12 @@ public class AnnotateCmdTest
 		System.setProperty ( AnnotateCmd.NO_EXIT_PROP, "true" );
 	}
 	
+	@Rule
+	public TestRule resResetRule = new AnnotatorResourcesResetRule ();
+
 	
 	@Test
-	public void testSubmitMsi () throws Exception
+	public void testSubmitMsiCmd () throws Exception
 	{
     URL sampleTabUrl = getClass().getClassLoader().getResource( "GAE-MTAB-27_truncated.sampletab.csv" );
 
@@ -93,6 +107,7 @@ public class AnnotateCmdTest
 			.setParameter ( "tsNew", new DateTime ().minusYears ( 6 ).toDate () )
 			.executeUpdate ();
 		tx.commit ();
+		em.close ();
 		
 		// Catch the logger output, to verify results
 		//
@@ -122,9 +137,14 @@ public class AnnotateCmdTest
     // catching logger set, now go with the call
 		AnnotateCmd.main ( "--purge", "" + 365 * 5 );
 		
+		// Remove the submission
+		Unloader unloader = new Unloader ();
+		unloader.setDoPurge ( true );
+		unloader.unload ( msi );
+		
 		// Check results
 		String purgeOut = sw.toString ();
-		//System.out.println ( "\n\n-------- OUT -------\n" + purgeOut + "----- -------- -----\n\n\n" );
+		System.out.println ( "\n\n-------- OUT -------\n" + purgeOut + "----- -------- -----\n\n\n" );
 		RegEx nelemRe = new RegEx ( 
 			".*older annotator entries purged, ([0-9]+) item\\(s\\) removed.*",
 			Pattern.MULTILINE | Pattern.DOTALL 
@@ -132,12 +152,9 @@ public class AnnotateCmdTest
 		int nelems = Integer.parseInt ( nelemRe.groups ( purgeOut ) [ 1 ] );
 		assertTrue ( "--purge command didn't work!", nelems > 0 );
 
-		// Remove the submission too.
-		Unloader unloader = new Unloader ();
-		unloader.setDoPurge ( true );
-		unloader.unload ( msi );
 
 		// Report about initial check.
 		assertTrue ( "No annotation found!", hasFoundAnn );
+		
 	}
 }

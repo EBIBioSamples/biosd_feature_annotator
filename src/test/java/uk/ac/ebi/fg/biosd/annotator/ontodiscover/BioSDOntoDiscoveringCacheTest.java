@@ -9,15 +9,21 @@ import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.persistence.BatchTransactionManager;
+import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
@@ -40,7 +46,12 @@ import uk.ac.ebi.utils.time.XStopWatch;
 public class BioSDOntoDiscoveringCacheTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
-
+	
+	@Before
+	public void initResources () {
+		AnnotatorResources.reset ();
+	}
+	
 	@After
 	public void cleanUp ()
 	{
@@ -51,38 +62,60 @@ public class BioSDOntoDiscoveringCacheTest
 	@Test
 	public void testDbCache()
 	{
+		// Create the property
+		//
+		String value = "homo sapiens", type = "specie";
+
+		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( type );
+		ExperimentalPropertyValue<ExperimentalPropertyType> pval 
+			= new ExperimentalPropertyValue<> ( value, ptype );
+		
+		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+		EntityManager em = emf.createEntityManager ();
+		
+		EntityTransaction tx = em.getTransaction ();
+		tx.begin ();
+		em.persist ( pval );
+		tx.commit ();
+		em.close ();
+		
 		XStopWatch timer = new XStopWatch ();
 		
 		BioSDOntoDiscoveringCache baseCache = new BioSDOntoDiscoveringCache ();
 		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
 		zoomaDiscoverer.setZoomaThreesholdScore ( 54.0f );
 		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
-
 		
 		timer.start ();
 		
 		// Annotate this property
 		//
-		String value = "homo sapiens", type = "specie";
-		
-		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
-		btm.begin ();
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
-		btm.commit ( true );
 		long time1 = timer.getTime ();
 		
 		log.info ( "Discovered entries:\n{}", terms.toString () );
 			
-		String termUri = terms.iterator ().next ().getUri ().toASCIIString ();
-		float termScore = terms.iterator ().next ().getScore ();
+		ExtendedDiscoveredTerm dterm = (ExtendedDiscoveredTerm) terms.iterator ().next ();
+		String termUri = dterm.getUri ().toASCIIString ();
+		float termScore = dterm.getScore ();
 		int nterms = terms.size ();
+		
+		// Now save it to the DB
+		for ( DiscoveredTerm dtermi: terms )
+			pval.addOntologyTerm ( ( (ExtendedDiscoveredTerm) dtermi).getOntologyTerm () );
+		
+		// we have to do it this indirect way, due to the way the persister is designed to work
+		//
+		AnnotatorResources.getInstance ().getStore ().find ( pval, pval.getId ().toString () ); 
+		AnnotatorPersister persister = new AnnotatorPersister (); // it fetches the prop back from the store
+		persister.persist ();
+		
 		
 		// verify it went to the DB
 		//
 		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( value, type );
 
-		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		
+		em = emf.createEntityManager ();
 		List<Object[]> dbentries = em.createNamedQuery ( "findOntoAnnotations" )
 	  .setParameter ( "provenance", zoomaMarker.getProvenance ().getName () )
 	  .setParameter ( "annotation", zoomaMarker.getText () )
@@ -105,21 +138,19 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		// Lookup again, now search times must be much faster, thanks to the cache
 		//
-		timer.reset ();
-		timer.start ();
-		btm.begin ();
 		for ( int i = 0; i < 100; i++ )
 		{
 			terms = client.getOntologyTermUris ( value, type );
 			log.trace ( "Call {}, time {}", i, timer.getTime () );
 		}
-		btm.commit ( true );
 		timer.stop ();
 		
 		double time2 = timer.getTime () / 100.0;
 		
 		log.info ( "Second-call versus first-call time: {}, {}", time2, time1 );
 		assertTrue ( "WTH?! Second call time bigger than first!", time2 < time1 );
+		
+		em.close ();
 	}
 	
 	/**
@@ -138,12 +169,15 @@ public class BioSDOntoDiscoveringCacheTest
 		//
 		String value = "bla bla foo value 1234", type = "foo type 2233";
 
-		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
-		btm.begin ();
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
-		btm.commit ( true );
 		
 		assertTrue ( "Wrong mapping returned!", terms.isEmpty () );
+
+		
+		// Now persist results in memory
+		AnnotatorPersister persister = new AnnotatorPersister ();
+		persister.persist ();
+
 		
 		// Verify there is the OE and the annotation
 		//
@@ -164,6 +198,8 @@ public class BioSDOntoDiscoveringCacheTest
 			NULL_TERM_URI, 
 			dbOe.getAcc ()
 		);
+
+		em.close ();
 		
 	}
 	
@@ -187,23 +223,24 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( level2Client, memCache );
 	
+		
 		// Test this property
 		//
 		String value = "homo sapiens", type = "specie";
 
-		BatchTransactionManager btm = BatchTransactionManager.getThreadLocalInstance ();
-		btm.begin ();
 		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
-		btm.commit ( true );
-		
 		log.info ( "Discovered entries:\n{}", terms.toString () );
 
+		// Save
+		//
+		AnnotatorPersister persister = new AnnotatorPersister ();
+		persister.persist ();
+		
+		
 		// Test both caches are used. More advanced tests of this are in the ZOOMA client module
 		//
-		btm.begin ();
 		assertNotNull ( "Entry not saved in memory cache!", memCache.getOntologyTermUris ( value, type ) );
 		assertNotNull ( "Entry not saved in DB cache!", dbCache.getOntologyTermUris ( value, type ) );
-		btm.commit ( true ); // will be committed during finalization;
 	}
 	
 }
