@@ -30,7 +30,7 @@ import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
  * @author Marco Brandizi
  *
  */
-public class OntoTermResolverTest
+public class OntoResolverTest
 {
 	@Before
 	public void initResources () {
@@ -60,7 +60,7 @@ public class OntoTermResolverTest
 		
 		// Annotate
 		//
-		OntoTermResolverAndAnnotator ontoAnnotator = new OntoTermResolverAndAnnotator ();
+		OntoResolverAndAnnotator ontoAnnotator = new OntoResolverAndAnnotator ();
 		ontoAnnotator.annotate ( pval );
 		
 		// Save
@@ -78,7 +78,7 @@ public class OntoTermResolverTest
 		assertEquals ( "Accession wasn't set with the right URI!", "http://www.ebi.ac.uk/efo/EFO_0000270", oedb.getAcc () );
 		assertFalse ( "No annotations saved!", oedb.getAnnotations () == null || oedb.getAnnotations ().isEmpty () );
 		TextAnnotation foundAnn = null;
-		TextAnnotation marker = OntoTermResolverAndAnnotator.createOntoResolverMarker ( oe.getAcc (), src.getAcc (), oe.getLabel () );
+		TextAnnotation marker = OntoResolverAndAnnotator.createOntoResolverMarker ( oe.getAcc (), src.getAcc (), oe.getLabel () );
 		for ( Annotation ann: oedb.getAnnotations () )
 		{
 			if ( ! ( ann instanceof TextAnnotation ) ) continue;

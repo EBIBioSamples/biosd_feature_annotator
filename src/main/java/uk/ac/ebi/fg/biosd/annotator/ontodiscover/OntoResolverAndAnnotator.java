@@ -32,13 +32,13 @@ import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
  * @author Marco Brandizi
  *
  */
-public class OntoTermResolverAndAnnotator
+public class OntoResolverAndAnnotator
 {
 	private final BioportalClient bioportalClient = new BioportalClient ( "07732278-7854-4c4f-8af1-7a80a1ffc1bb" );
 
 	private final Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
-	public OntoTermResolverAndAnnotator () {}
+	public OntoResolverAndAnnotator () {}
 	
 	/**
 	 * Annotates the {@link OntologyEntry} attached to the property value, as explained above.
@@ -97,7 +97,7 @@ public class OntoTermResolverAndAnnotator
 			annFound = true; break;
 		}
 		
-		// Already annotated, let's go ahead.
+		// Already annotated, we're done.
 		if ( annFound ) return oe;
 		
 		// So, it needs a check with the ontology service

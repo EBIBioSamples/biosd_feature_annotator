@@ -9,7 +9,7 @@ import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermResolverAndAnnotator;
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
 import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
@@ -50,7 +50,7 @@ import uk.ac.ebi.utils.reflection.ReflectionUtils;
 public class PropertyValAnnotationManager
 {	
 	private final NumericalDataAnnotator numAnnotator;
-	private final OntoTermResolverAndAnnotator ontoResolver;
+	private final OntoResolverAndAnnotator ontoResolver;
 	private final OntoDiscoveryAndAnnotator ontoDiscoverer;
 	private final PropertyValueNormalizer propValNormalizer; 
 	
@@ -63,7 +63,7 @@ public class PropertyValAnnotationManager
 	{
 		propValNormalizer = new PropertyValueNormalizer ( annRes.getStore () );
 
-		ontoResolver = new OntoTermResolverAndAnnotator ();
+		ontoResolver = new OntoResolverAndAnnotator ();
 		
 		numAnnotator = new NumericalDataAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache

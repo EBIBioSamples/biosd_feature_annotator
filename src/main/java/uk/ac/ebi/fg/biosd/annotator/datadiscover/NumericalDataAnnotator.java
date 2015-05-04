@@ -10,7 +10,7 @@ import org.apache.commons.lang3.time.DateUtils;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermResolverAndAnnotator;
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
@@ -35,11 +35,11 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.Discovere
 public class NumericalDataAnnotator
 {
 	private final OntologyTermDiscoverer ontoTermDiscoverer;
-	private final OntoTermResolverAndAnnotator ontoTermResolver;
+	private final OntoResolverAndAnnotator ontoTermResolver;
 	
 	public NumericalDataAnnotator ( OntologyTermDiscoverer ontoTermDiscoverer )
 	{
-		this.ontoTermResolver = new OntoTermResolverAndAnnotator ();
+		this.ontoTermResolver = new OntoResolverAndAnnotator ();
 		this.ontoTermDiscoverer = ontoTermDiscoverer;
 	}
 
