@@ -23,6 +23,11 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.Discovere
  */
 public class AnnotatorResources
 {
+	/**
+	 * Property values or types longer than this lenght shouldn't be analysed
+	 */
+	public static final int MAX_STRING_LEN = 150;
+	
 	private final Store store = new SynchronizedStore ( new MemoryStore () );
 	private final Map<String, List<DiscoveredTerm>> ontoTerms = new HashMap<String, List<DiscoveredTerm>> ();
 	private final AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( this.store );

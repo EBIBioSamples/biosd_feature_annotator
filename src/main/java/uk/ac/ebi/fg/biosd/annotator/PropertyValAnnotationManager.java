@@ -18,7 +18,6 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DataItem;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AnnotatableDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
@@ -61,7 +60,8 @@ public class PropertyValAnnotationManager
 	
 	PropertyValAnnotationManager ( float zoomaThreesholdScore, AnnotatorResources annRes )
 	{
-		propValNormalizer = new PropertyValueNormalizer ( annRes.getStore () );
+		// TODO: propValNormalizer = new PropertyValueNormalizer ( annRes.getStore () );
+		propValNormalizer = null;
 
 		ontoResolver = new OntoResolverAndAnnotator ();
 		
@@ -157,10 +157,7 @@ public class PropertyValAnnotationManager
 			UnitDimension dim = u.getDimension ();
 			if ( dim != null ) initializeLazy ( (FreeTextTerm) dim );
 		}
-		
-		for ( DataItem di: pval.getDataItems () )
-			initializeLazy ( (Annotatable) di );
-		
+				
 	}
 	
 	/**

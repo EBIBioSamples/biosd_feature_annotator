@@ -9,19 +9,18 @@ import org.apache.commons.lang3.time.DateUtils;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
+import uk.ac.ebi.fg.biosd.annotator.model.DateItem;
+import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
+import uk.ac.ebi.fg.biosd.annotator.model.NumberRangeItem;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
+import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
+import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DataItem;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DateItem;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberItem;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberRangeItem;
-import uk.ac.ebi.fg.core_model.terms.AnnotationType;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
-import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 
@@ -34,6 +33,8 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.Discovere
  */
 public class NumericalDataAnnotator
 {
+	public static final String ANNOTATION_TYPE_MARKER = "Automatic Extracted Numerical Data";
+	
 	private final OntologyTermDiscoverer ontoTermDiscoverer;
 	private final OntoResolverAndAnnotator ontoTermResolver;
 	
@@ -90,11 +91,15 @@ public class NumericalDataAnnotator
 	{
 		String pvalStr = StringUtils.trimToNull ( pval.getTermText () );
 		if ( pvalStr == null ) return false;
+		if ( pvalStr.length () > AnnotatorResources.MAX_STRING_LEN ) return false;
 				
-		DataItem dataItem = null;
-		
+		// Do we already have it?
+		MemoryStore store = ((SynchronizedStore) AnnotatorResources.getInstance ().getStore ()).getBase ();
+		DataItem dataItem = (DataItem) store.get ( DataItem.class, pvalStr );
+		if ( dataItem != null ) return true;
+
 		// Start checking a middle separator, to see if it is a range
-		String chunks[] = pvalStr.substring ( 0, Math.min ( pvalStr.length (), 300 ) ).split ( "(\\-|\\.\\.|\\,)" );
+		String chunks[] = pvalStr.split ( "(\\-|\\.\\.|\\,)" );
 		
 		if ( chunks != null && chunks.length == 2 )
 		{
@@ -146,40 +151,17 @@ public class NumericalDataAnnotator
 		
 		if ( dataItem == null ) return false; 
 
-		AnnotatorResources annResources = AnnotatorResources.getInstance ();
-		DataItem diS = annResources.getStore ().find ( dataItem );
-		
-		if ( diS == null )
-		{
-			// annotate the new DI
-			TextAnnotation marker = createDataAnnotatorMarker ();
-			dataItem.addAnnotation ( marker );
-		}
-		else
-			// Reuse the existing one
-			dataItem = diS;
-		
-		// Attach the (old or new) data item to the current pv
-		pval.addDataItem ( dataItem );
+		// annotate the new DI with origin and provenance
+		dataItem.setSourceText ( pvalStr );
+		dataItem.setType ( ANNOTATION_TYPE_MARKER );
+		dataItem.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
+		dataItem.setTimestamp ( new Date () );
 
+		// Save in the memory store, for later persistence
+		store.put ( DataItem.class, pvalStr, dataItem );
+		
 		return true;
 		
 	} // annotateData ()
-
-
-	public static TextAnnotation createDataAnnotatorMarker ()
-	{
-		TextAnnotation result = new TextAnnotation ( 
-			new AnnotationType ( "Automatic Extracted Numerical Data" ),
-			"" 
-		);
-		
-		result.setProvenance ( new AnnotationProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER ) );
-		result.setTimestamp ( new Date () );
-		
-		AnnotatorResources.getInstance ().getAnnNormalizer ().normalize ( result );
-
-		return result;
-	}
 
 }

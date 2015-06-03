@@ -2,8 +2,6 @@ package uk.ac.ebi.fg.biosd.annotator.cli;
 
 import static junit.framework.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.regex.Pattern;
@@ -11,20 +9,14 @@ import java.util.regex.Pattern;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.joda.time.DateTime;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
