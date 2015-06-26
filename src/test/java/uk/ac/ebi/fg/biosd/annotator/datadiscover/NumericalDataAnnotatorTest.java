@@ -1,7 +1,10 @@
 package uk.ac.ebi.fg.biosd.annotator.datadiscover;
 
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -10,19 +13,19 @@ import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermDiscoveryStoreCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
-import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryMemCache;
+import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
+
+import com.google.common.collect.Table;
 
 /**
  * TODO: comment me!
@@ -33,14 +36,23 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
  */
 public class NumericalDataAnnotatorTest
 {
+	// TODO: re-enable BioSD Cache
+//	private NumericalDataAnnotator numAnn = 
+//		new NumericalDataAnnotator (
+//			new BioSDCachedOntoTermDiscoverer ( 
+//				new CachedOntoTermDiscoverer ( 
+//					new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 50f ),
+//					new BioSDOntoDiscoveringCache ()
+//				),
+//				new OntoTermDiscoveryMemCache ( AnnotatorResources.getInstance ().getOntoTerms () )	
+//			)
+//		);
+	
 	private NumericalDataAnnotator numAnn = 
 		new NumericalDataAnnotator (
-			new BioSDCachedOntoTermDiscoverer ( 
-				new CachedOntoTermDiscoverer ( 
-					new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 50f ),
-					new BioSDOntoDiscoveringCache ()
-				),
-				new OntoTermDiscoveryMemCache ( AnnotatorResources.getInstance ().getOntoTerms () )	
+			new CachedOntoTermDiscoverer ( 
+				new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 50f ),
+				new OntoTermDiscoveryStoreCache ()
 			)
 		);
 	
@@ -69,9 +81,18 @@ public class NumericalDataAnnotatorTest
 		
 		// Verify
 		//
-		MemoryStore store = ((SynchronizedStore) AnnotatorResources.getInstance ().getStore ()).getBase ();
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
 		DataItem dataItem = (DataItem) store.get ( DataItem.class, pval.getTermText () );
 		assertFalse ( "No data-item found in memory store!", dataItem == null );
+		
+		// Unit annotation
+		List<DiscoveredTerm> uterms = (List<DiscoveredTerm>) store.get ( DiscoveredTerm.class, ExpPropValAnnotation.getPvalText ( null, unit.getTermText () ) );
+		
+		assertNotNull ( "Unit not annotated!", uterms );
+		assertTrue ( "Unit not annotated!", uterms.size () > 0 );
+
+		log.info ( "Unit terms:\n{}", uterms );
+		
 		
 		// TODO:
 		// Persist

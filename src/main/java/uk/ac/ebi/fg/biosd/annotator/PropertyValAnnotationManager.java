@@ -7,9 +7,9 @@ import javax.persistence.EntityManager;
 import uk.ac.ebi.fg.biosd.annotator.datadiscover.NumericalDataAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermDiscoveryStoreCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
 import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
@@ -58,7 +58,7 @@ public class PropertyValAnnotationManager
 	 */
 	public final static String PROVENANCE_MARKER = "BioSD Feature Annotation Tool";
 	
-	PropertyValAnnotationManager ( float zoomaThreesholdScore, AnnotatorResources annRes )
+	PropertyValAnnotationManager ( float zoomaThresholdScore, AnnotatorResources annRes )
 	{
 		// TODO: propValNormalizer = new PropertyValueNormalizer ( annRes.getStore () );
 		propValNormalizer = null;
@@ -69,22 +69,21 @@ public class PropertyValAnnotationManager
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
 					new ZoomaOntoTermDiscoverer ( 
-						new ZOOMAUnitSearch ( annRes.getZoomaClient () ), 
-						zoomaThreesholdScore 
+						new ZOOMAUnitSearch ( annRes.getZoomaClient () ), zoomaThresholdScore 
 					),
 					new BioSDOntoDiscoveringCache ()
 				),
-				new OntoTermDiscoveryMemCache ( annRes.getOntoTerms () )
+				new OntoTermDiscoveryStoreCache ()
 			)
 		);
 		
 		ontoDiscoverer = new OntoDiscoveryAndAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-					new ZoomaOntoTermDiscoverer ( annRes.getZoomaClient (), zoomaThreesholdScore ),
+					new ZoomaOntoTermDiscoverer ( annRes.getZoomaClient (), zoomaThresholdScore ),
 					new BioSDOntoDiscoveringCache ()
 				),
-				new OntoTermDiscoveryMemCache ( annRes.getOntoTerms () )
+				new OntoTermDiscoveryStoreCache ()
 			)
 		);
 	}

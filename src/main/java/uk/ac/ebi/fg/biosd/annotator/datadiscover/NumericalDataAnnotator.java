@@ -7,22 +7,20 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
+import com.google.common.collect.Table;
+
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.DateItem;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberRangeItem;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
-import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 
 /**
  * TODO: Comment me!
@@ -72,11 +70,8 @@ public class NumericalDataAnnotator
 			
 			// This are the ontology terms associated to the property value by ZOOMA
 			// Only UO terms will be returned here
-			for ( DiscoveredTerm dterm: ontoTermDiscoverer.getOntologyTermUris ( unitLabel, null ) )
-			{
-					OntologyEntry oe = ((ExtendedDiscoveredTerm) dterm).getOntologyTerm ();
-					u.addOntologyTerm ( oe );
-			}
+			// The invocation saves the terms into memory, for later persistence, and that's all we need here.
+			ontoTermDiscoverer.getOntologyTermUris ( unitLabel, null );
 		}
 	} // annotateUnit ()
 		
@@ -94,74 +89,78 @@ public class NumericalDataAnnotator
 		if ( pvalStr.length () > AnnotatorResources.MAX_STRING_LEN ) return false;
 				
 		// Do we already have it?
-		MemoryStore store = ((SynchronizedStore) AnnotatorResources.getInstance ().getStore ()).getBase ();
-		DataItem dataItem = (DataItem) store.get ( DataItem.class, pvalStr );
-		if ( dataItem != null ) return true;
-
-		// Start checking a middle separator, to see if it is a range
-		String chunks[] = pvalStr.split ( "(\\-|\\.\\.|\\,)" );
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
 		
-		if ( chunks != null && chunks.length == 2 )
+		synchronized ( pvalStr.intern () )
 		{
-			chunks [ 0 ] = StringUtils.trimToNull ( chunks [ 0 ] );
-			chunks [ 1 ] = StringUtils.trimToNull ( chunks [ 1 ] );
+			DataItem dataItem = (DataItem) store.get ( DataItem.class, pvalStr );
+			if ( dataItem != null ) return true;
+	
+			// Start checking a middle separator, to see if it is a range
+			String chunks[] = pvalStr.split ( "(\\-|\\.\\.|\\,)" );
 			
-			// Valid chunks?
-			if ( chunks [ 0 ] != null && chunks [ 1 ] != null )
+			if ( chunks != null && chunks.length == 2 )
 			{
-				// Number chunks?
-				if ( NumberUtils.isNumber ( chunks [ 0 ] ) && NumberUtils.isNumber ( chunks [ 1 ] ) )
+				chunks [ 0 ] = StringUtils.trimToNull ( chunks [ 0 ] );
+				chunks [ 1 ] = StringUtils.trimToNull ( chunks [ 1 ] );
+				
+				// Valid chunks?
+				if ( chunks [ 0 ] != null && chunks [ 1 ] != null )
 				{
-					try {
-						double lo = Double.parseDouble ( chunks [ 0 ] );
-						double hi = Double.parseDouble ( chunks [ 1 ] );
-						dataItem = new NumberRangeItem ( lo, hi );
-					} 
-					catch ( NumberFormatException nex ) {
-						// Just ignore all in case of problems
+					// Number chunks?
+					if ( NumberUtils.isNumber ( chunks [ 0 ] ) && NumberUtils.isNumber ( chunks [ 1 ] ) )
+					{
+						try {
+							double lo = Double.parseDouble ( chunks [ 0 ] );
+							double hi = Double.parseDouble ( chunks [ 1 ] );
+							dataItem = new NumberRangeItem ( lo, hi );
+						} 
+						catch ( NumberFormatException nex ) {
+							// Just ignore all in case of problems
+						}
 					}
+				} // if valid chunks
+			} // if there are chunks
+			
+			// Is it a single number?
+			else if ( NumberUtils.isNumber ( pvalStr ) ) 
+				try {
+					dataItem = new NumberItem ( Double.parseDouble ( pvalStr ) );
 				}
-			} // if valid chunks
-		} // if there are chunks
-		
-		// Is it a single number?
-		else if ( NumberUtils.isNumber ( pvalStr ) ) 
-			try {
-				dataItem = new NumberItem ( Double.parseDouble ( pvalStr ) );
+				catch ( NumberFormatException nex ) {
+					// Just ignore all in case of problems
 			}
-			catch ( NumberFormatException nex ) {
-				// Just ignore all in case of problems
-		}
-
-		else if ( pval.getUnit () != null )
-		{
-			// Or maybe a single date?
-			// TODO: factorise these constants
-			try {
-				dataItem = new DateItem ( DateUtils.parseDate ( pvalStr, 
-					"dd'/'MM'/'yyyy", "dd'/'MM'/'yyyy HH:mm:ss", "dd'/'MM'/'yyyy HH:mm", 
-					"dd'-'MM'-'yyyy", "dd'-'MM'-'yyyy HH:mm:ss", "dd'-'MM'-'yyyy HH:mm",
-					"yyyyMMdd", "yyyyMMdd'-'HHmmss", "yyyyMMdd'-'HHmm"  
-				));
+	
+			else if ( pval.getUnit () != null )
+			{
+				// Or maybe a single date?
+				// TODO: factorise these constants
+				try {
+					dataItem = new DateItem ( DateUtils.parseDate ( pvalStr, 
+						"dd'/'MM'/'yyyy", "dd'/'MM'/'yyyy HH:mm:ss", "dd'/'MM'/'yyyy HH:mm", 
+						"dd'-'MM'-'yyyy", "dd'-'MM'-'yyyy HH:mm:ss", "dd'-'MM'-'yyyy HH:mm",
+						"yyyyMMdd", "yyyyMMdd'-'HHmmss", "yyyyMMdd'-'HHmm"  
+					));
+				}
+				catch ( ParseException dex ) {
+					// Just ignore all in case of problems
+				}
 			}
-			catch ( ParseException dex ) {
-				// Just ignore all in case of problems
-			}
-		}
+			
+			if ( dataItem == null ) return false; 
+	
+			// annotate the new DI with origin and provenance
+			dataItem.setSourceText ( pvalStr );
+			dataItem.setType ( ANNOTATION_TYPE_MARKER );
+			dataItem.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
+			dataItem.setTimestamp ( new Date () );
+	
+			// Save in the memory store, for later persistence
+			store.put ( DataItem.class, pvalStr, dataItem );
+			
+			return true;
 		
-		if ( dataItem == null ) return false; 
-
-		// annotate the new DI with origin and provenance
-		dataItem.setSourceText ( pvalStr );
-		dataItem.setType ( ANNOTATION_TYPE_MARKER );
-		dataItem.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
-		dataItem.setTimestamp ( new Date () );
-
-		// Save in the memory store, for later persistence
-		store.put ( DataItem.class, pvalStr, dataItem );
-		
-		return true;
-		
+		} // synchronized ( pvalStr )
 	} // annotateData ()
 
 }

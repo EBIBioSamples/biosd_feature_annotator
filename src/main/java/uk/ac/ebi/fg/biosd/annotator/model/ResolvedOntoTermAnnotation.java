@@ -10,6 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
 
+import javax.persistence.Index;
+
 /**
  * TODO: comment me!
  *
@@ -18,8 +20,11 @@ import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
  *
  */
 @Entity
-@Table ( name = "resolved_oe_feature_ann" )
-public class ResolvedOntoTermAnnotation extends FeatureAnnotation
+@Table ( 
+	name = "resolved_oe_feature_ann", 
+	indexes = @Index ( name = "resoeann_term_uri", columnList = "term_uri" ) 
+)
+public class ResolvedOntoTermAnnotation extends AbstractOntoTermAnnotation
 {
 	public ResolvedOntoTermAnnotation ( OntologyEntry oe ) {
 		super ( getOntoEntryText ( oe ) );
@@ -28,17 +33,13 @@ public class ResolvedOntoTermAnnotation extends FeatureAnnotation
 	public ResolvedOntoTermAnnotation ( String oetext ) {
 		super ( oetext );
 	}
-	
-	
-	
+
 	@Id
 	@Column( length = 4000 )
 	@Override
 	public String getSourceText () {
 		return super.getSourceText ();
 	}
-
-
 
 	public static String getOntoEntryText ( OntologyEntry oe )
 	{

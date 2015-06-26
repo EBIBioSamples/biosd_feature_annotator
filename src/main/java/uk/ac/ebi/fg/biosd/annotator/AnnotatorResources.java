@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+
 import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.Store;
@@ -28,6 +31,9 @@ public class AnnotatorResources
 	 */
 	public static final int MAX_STRING_LEN = 150;
 	
+	// TODO: needs to be moved to 'store'
+	private final Table<Class, String, Object> newStore = HashBasedTable.create ();	
+	
 	private final Store store = new SynchronizedStore ( new MemoryStore () );
 	private final Map<String, List<DiscoveredTerm>> ontoTerms = new HashMap<String, List<DiscoveredTerm>> ();
 	private final AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( this.store );
@@ -50,6 +56,11 @@ public class AnnotatorResources
 	public Store getStore ()
 	{
 		return store;
+	}
+	
+	public Table<Class, String, Object> getNewStore ()
+	{
+		return newStore;
 	}
 
 	public Map<String, List<DiscoveredTerm>> getOntoTerms ()
