@@ -1,6 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
 import javax.persistence.Entity;
+import javax.persistence.MappedSuperclass;
 import javax.persistence.NamedQuery;
 import javax.persistence.Transient;
 
@@ -13,7 +14,6 @@ import javax.persistence.Transient;
  *
  */
 @Entity
-//@DiscriminatorValue ( "value" ) // TODO: would never be used, not sure Hibernate is fine without any specification
 public abstract class ValueItem<T> extends DataItem
 {
 	private T value;

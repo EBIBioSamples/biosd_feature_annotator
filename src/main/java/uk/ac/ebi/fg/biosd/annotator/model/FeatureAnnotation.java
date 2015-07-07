@@ -39,9 +39,8 @@ public abstract class FeatureAnnotation
 		this.sourceText = sourceText;
 	}
 
-	
 	@Id
-	@Column( length = AnnotatorResources.MAX_STRING_LEN * 2 + 1 )
+	@Column( name = "source_text", length = AnnotatorResources.MAX_STRING_LEN * 2 + 1 )
 	public String getSourceText ()
 	{
 		return sourceText;

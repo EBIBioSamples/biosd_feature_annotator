@@ -9,6 +9,7 @@ import javax.persistence.NamedQuery;
 
 import org.hibernate.annotations.Index;
 
+
 /**
  * TODO: Comment me!
  *

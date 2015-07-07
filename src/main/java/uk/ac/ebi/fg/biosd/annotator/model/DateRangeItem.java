@@ -8,6 +8,7 @@ import javax.persistence.Entity;
 import javax.persistence.NamedQuery;
 
 import org.hibernate.annotations.Index;
+import org.hibernate.annotations.Type;
 
 /**
  * TODO: Comment me!

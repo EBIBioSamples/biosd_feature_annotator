@@ -3,6 +3,8 @@ package uk.ac.ebi.fg.biosd.annotator.model;
 import java.io.Serializable;
 import java.util.regex.Pattern;
 
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
@@ -28,7 +30,10 @@ import uk.ac.ebi.utils.regex.RegEx;
 @Entity
 @Table ( 
 	name = "exp_prop_val_feature_ann", 
-	indexes = @Index ( name = "pvann_term_uri", columnList = "term_uri" ) 
+	indexes = {
+		@Index ( name = "pvann_pvkey", columnList = "source_text" ),
+		@Index ( name = "pvann_uri", columnList = "term_uri" )
+	}
 )
 @IdClass ( ExpPropValAnnotation.Key.class )
 @NamedQuery(
@@ -39,11 +44,14 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 {
 	private final static RegEx COMMENT_RE = new RegEx ( "(Comment|Characteristic)\\s*\\[\\s*(.+)\\s*\\]", Pattern.CASE_INSENSITIVE );
 
+	@Embeddable
 	public static class Key implements Serializable
 	{
 		private static final long serialVersionUID = 7364817671320065409L;
 		
-		protected String sourceText, ontoTermUri;
+		protected String sourceText;
+		
+		protected String ontoTermUri;
 
 		public Key () {
 			super ();
@@ -54,6 +62,24 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 			this.sourceText = sourceText;
 			this.ontoTermUri = ontoTermUri;
 		}
+		
+		public String getSourceText () {
+			return sourceText;
+		}
+
+		public void setSourceText ( String sourceText ) {
+			this.sourceText = sourceText;
+		}
+
+		public String getOntoTermUri () {
+			return ontoTermUri;
+		}
+
+		public void setOntoTermUri ( String ontoTermUri ) {
+			this.ontoTermUri = ontoTermUri;
+		}
+
+		
 		
 		@Override
 		public boolean equals ( Object obj )
@@ -68,7 +94,7 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 
 			return true;
 		}
-		
+
 		@Override
 		public int hashCode () 
 		{
@@ -91,12 +117,14 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 	
 
 	@Id
+	@Column( name = "source_text", length = AnnotatorResources.MAX_STRING_LEN * 2 + 1 )
 	@Override
 	public String getSourceText () {
 		return super.getSourceText ();
 	}
 
 	@Id
+	@Column ( length = 2000, name = "term_uri" )
 	@Override
 	public String getOntoTermUri () {
 		return super.getOntoTermUri ();

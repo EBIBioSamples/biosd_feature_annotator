@@ -155,8 +155,8 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		try 
 		{
 			Query q = em.createNativeQuery ( "SELECT id FROM exp_prop_val pv WHERE\n" + PV_CRITERIA );
-			TextAnnotation oeMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
-			TextAnnotation pvMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
+			TextAnnotation oeMarker = null; // BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
+			TextAnnotation pvMarker = null; // OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
 			q.setParameter ( "oeAnnType", oeMarker.getType ().getName () );
 			q.setParameter ( "pvAnnType", pvMarker.getType ().getName () );
 			
@@ -268,8 +268,8 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		
 		try
 		{
-			TextAnnotation oeMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
-			TextAnnotation pvMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
+			TextAnnotation oeMarker = null; // BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
+			TextAnnotation pvMarker = null; // OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
 			
 			Number count = (Number) em.createNativeQuery (
 				"SELECT COUNT ( pv.id ) FROM exp_prop_val pv WHERE\n" + PV_CRITERIA

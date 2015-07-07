@@ -1,14 +1,11 @@
 package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Table;
 
 import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.bioportal.webservice.exceptions.OntologyServiceException;
@@ -16,16 +13,12 @@ import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
-import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
-import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
-import uk.ac.ebi.fg.core_model.terms.AnnotationType;
 import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
-import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
-import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
+
+import com.google.common.collect.Table;
 
 /**
  * TODO: comment me!
@@ -36,7 +29,7 @@ import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
  */
 public class OntoResolverAndAnnotator
 {
-	private final String ANNOTATION_TYPE_MARKER = "Computed from Bioportal";
+	public final String ANNOTATION_TYPE_MARKER = "Computed from original annotation, via Bioportal";
 	
 	private final BioportalClient bioportalClient = new BioportalClient ( "07732278-7854-4c4f-8af1-7a80a1ffc1bb" );
 	private final Logger log = LoggerFactory.getLogger ( this.getClass () );
@@ -84,7 +77,7 @@ public class OntoResolverAndAnnotator
 			if ( oeann != null ) return oeann.getOntoTermUri () != null;
 
 			// Annotation for origin and provenance
-			oeann = new ResolvedOntoTermAnnotation ( oe );
+			oeann = new ResolvedOntoTermAnnotation ( oekey );
 			oeann.setType ( ANNOTATION_TYPE_MARKER );
 			oeann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
 			oeann.setTimestamp ( new Date () );

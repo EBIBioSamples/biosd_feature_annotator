@@ -1,5 +1,6 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
+import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -22,8 +23,12 @@ import javax.persistence.Index;
 @Entity
 @Table ( 
 	name = "resolved_oe_feature_ann", 
-	indexes = @Index ( name = "resoeann_term_uri", columnList = "term_uri" ) 
+	indexes = {
+		@Index ( name = "resoeann_pvkey", columnList = "source_text" ),
+		@Index ( name = "resoeann_term_uri", columnList = "term_uri" )
+	}
 )
+@AttributeOverride ( name = "sourceText", column = @Column ( length = 4000, name = "source_text" ) )
 public class ResolvedOntoTermAnnotation extends AbstractOntoTermAnnotation
 {
 	public ResolvedOntoTermAnnotation ( OntologyEntry oe ) {
@@ -33,14 +38,7 @@ public class ResolvedOntoTermAnnotation extends AbstractOntoTermAnnotation
 	public ResolvedOntoTermAnnotation ( String oetext ) {
 		super ( oetext );
 	}
-
-	@Id
-	@Column( length = 4000 )
-	@Override
-	public String getSourceText () {
-		return super.getSourceText ();
-	}
-
+	
 	public static String getOntoEntryText ( OntologyEntry oe )
 	{
 		if ( oe == null ) return null;

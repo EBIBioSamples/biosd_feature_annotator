@@ -16,8 +16,7 @@ import javax.persistence.Table;
 @Entity
 @Table ( name = "data_item" )
 @Inheritance( strategy = InheritanceType.SINGLE_TABLE )
-@DiscriminatorColumn ( name = "data_item_class" )
-//@DiscriminatorValue ( "generic" ) // TODO: would never be used, not sure Hibernate is fine without any specification
+@DiscriminatorColumn ( name = "data_item_type" )
 public abstract class DataItem extends FeatureAnnotation
 {
 	protected DataItem () {}

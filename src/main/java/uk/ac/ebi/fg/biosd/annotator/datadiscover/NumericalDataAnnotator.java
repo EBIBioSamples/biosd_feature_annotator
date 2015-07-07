@@ -31,7 +31,7 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
  */
 public class NumericalDataAnnotator
 {
-	public static final String ANNOTATION_TYPE_MARKER = "Automatic Extracted Numerical Data";
+	public static final String ANNOTATION_TYPE_MARKER = "Computed Numerical Data";
 	
 	private final OntologyTermDiscoverer ontoTermDiscoverer;
 	private final OntoResolverAndAnnotator ontoTermResolver;

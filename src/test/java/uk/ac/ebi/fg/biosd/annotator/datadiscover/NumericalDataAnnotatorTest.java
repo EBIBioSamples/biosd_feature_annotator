@@ -1,11 +1,13 @@
 package uk.ac.ebi.fg.biosd.annotator.datadiscover;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import javax.persistence.EntityManager;
+
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -14,12 +16,16 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermDiscoveryStoreCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
+import uk.ac.ebi.fg.biosd.annotator.persistence.dao.DataItemDAO;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
+import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
@@ -83,7 +89,7 @@ public class NumericalDataAnnotatorTest
 		//
 		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
 		DataItem dataItem = (DataItem) store.get ( DataItem.class, pval.getTermText () );
-		assertFalse ( "No data-item found in memory store!", dataItem == null );
+		assertNotNull ( "No data-item found in memory store!", dataItem );
 		
 		// Unit annotation
 		List<DiscoveredTerm> uterms = (List<DiscoveredTerm>) store.get ( DiscoveredTerm.class, ExpPropValAnnotation.getPvalText ( null, unit.getTermText () ) );
@@ -94,9 +100,21 @@ public class NumericalDataAnnotatorTest
 		log.info ( "Unit terms:\n{}", uterms );
 		
 		
-		// TODO:
 		// Persist
+		AnnotatorPersister persister = new AnnotatorPersister ();
+		persister.persist ();
+		
 		// Verify persisted DI and its annotation
+		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		DataItemDAO didao = new DataItemDAO ( em );
+		DataItem didb = didao.find ( dataItem );
+		
+		assertNotNull ( "Data Item not annotated!", didb );
+		assertTrue ( "Saved Data Item is wrong!", didb instanceof NumberItem );
+		NumberItem numdb = (NumberItem) didb;
+		
+		Assert.assertEquals ( "Saved Data Item has a wrong value!", 70, (double) numdb.getValue (), 1E-9 );
+		
 		// Purge
 	}	
 	

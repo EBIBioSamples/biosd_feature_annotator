@@ -62,7 +62,7 @@ public class ZoomaAnnotationsPurger
 		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
 		EntityManager em = emf.createEntityManager ();
 		
-		Annotation tplAnn = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
+		Annotation tplAnn = null; // BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
 		
 		// Find all relevant annotations
 		String hqlAnn = "SELECT ann FROM TextAnnotation ann JOIN ann.type AS atype JOIN ann.provenance AS prov\n"
@@ -162,7 +162,7 @@ public class ZoomaAnnotationsPurger
 		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
 		EntityManager em = emf.createEntityManager ();
 
-		TextAnnotation emptyZoomaMapMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
+		TextAnnotation emptyZoomaMapMarker = null; // = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
 		
 		String hqlAnn = "SELECT ann FROM Annotation ann WHERE\n"
 			+ "  ann.type.name = :type"
