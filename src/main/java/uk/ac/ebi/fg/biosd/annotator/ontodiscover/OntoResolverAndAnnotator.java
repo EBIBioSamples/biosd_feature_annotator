@@ -29,7 +29,7 @@ import com.google.common.collect.Table;
  */
 public class OntoResolverAndAnnotator
 {
-	public final String ANNOTATION_TYPE_MARKER = "Computed from original annotation, via Bioportal";
+	public final static String ANNOTATION_TYPE_MARKER = "Computed from original annotation, via Bioportal";
 	
 	private final BioportalClient bioportalClient = new BioportalClient ( "07732278-7854-4c4f-8af1-7a80a1ffc1bb" );
 	private final Logger log = LoggerFactory.getLogger ( this.getClass () );

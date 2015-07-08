@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.biosd.annotator.model.AbstractOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
@@ -147,7 +147,7 @@ public class PropertyValAnnotationServiceTest
 		}
 		
 		OntologyEntryDAO<OntologyEntry> oedao = new OntologyEntryDAO<> ( OntologyEntry.class, em );
-		OntologyEntry nullOe = oedao.find ( BioSDOntoDiscoveringCache.NULL_TERM_URI, null, null, null );
+		OntologyEntry nullOe = oedao.find ( AbstractOntoTermAnnotation.NULL_TERM_URI, null, null, null );
 		for ( Annotation ann: nullOe.getAnnotations () ) em.remove ( ann );
 		em.remove ( nullOe );
 		

@@ -49,11 +49,9 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 	{
 		private static final long serialVersionUID = 7364817671320065409L;
 		
-		protected String sourceText;
-		
-		protected String ontoTermUri;
+		protected String sourceText, ontoTermUri;
 
-		public Key () {
+		protected Key () {
 			super ();
 		}
 
@@ -105,6 +103,10 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 		
 	} 
 	
+	protected ExpPropValAnnotation () {
+		super ();
+	}
+
 	public ExpPropValAnnotation ( ExperimentalPropertyValue<?> pv )
 	{
 		this ( getPvalText ( pv ) );

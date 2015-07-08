@@ -40,8 +40,6 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyDiscoveryException;
  */
 public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 {
-	public final static String NULL_TERM_URI = "http://rdf.ebi.ac.uk/terms/biosd/NullOntologyTerm";
-	
 	@Override
 	public List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> dterms )
 		throws OntologyDiscoveryException
@@ -69,7 +67,12 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 				.setParameter ( "pvkey", pvkey )
 				.list ();
 			
-			if ( pvanns == null || pvanns.isEmpty () ) return CachedOntoTermDiscoverer.NULL_RESULT;
+			if ( pvanns == null || pvanns.isEmpty () ) return null;
+			if ( pvanns.size () == 1 
+					&& ExpPropValAnnotation.NULL_TERM_URI.equals ( pvanns.iterator ().next ().getOntoTermUri () ) 
+			) 
+				// An annotation with null URI is the way to say I already know this pv was mapped to nothing
+				return CachedOntoTermDiscoverer.NULL_RESULT;
 			
 			List<DiscoveredTerm> result = new ArrayList<DiscoveredTerm> ();
 			for ( ExpPropValAnnotation ann: pvanns )

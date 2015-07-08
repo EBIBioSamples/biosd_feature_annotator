@@ -16,8 +16,13 @@ public abstract class AbstractOntoTermAnnotation extends FeatureAnnotation
 {
 
 	private String ontoTermUri;
+	
+	/**
+	 * Used to say that an entity hasn't any ontology term associated.
+	 */
+	public final static String NULL_TERM_URI = "http://rdf.ebi.ac.uk/terms/biosd/NullOntologyTerm";
 
-	public AbstractOntoTermAnnotation ()
+	protected AbstractOntoTermAnnotation ()
 	{
 		super ();
 	}

@@ -88,6 +88,5 @@ public class OntoTermDiscoveryStoreCacheTest
 		log.info ( "First call time: {} ms, average time subsequent calls: {} ms", firstCallTime, nextCallsTime );
 		
 		assertTrue ( "WTH?! Time after first call is longer!", nextCallsTime < firstCallTime / 100.0 );
-		
 	}
 }

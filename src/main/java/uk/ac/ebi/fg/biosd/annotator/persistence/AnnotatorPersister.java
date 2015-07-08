@@ -1,38 +1,19 @@
 package uk.ac.ebi.fg.biosd.annotator.persistence;
 
-import java.util.Collection;
-import java.util.Set;
-
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Table;
-
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
-import uk.ac.ebi.fg.biosd.annotator.model.AbstractOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
-import uk.ac.ebi.fg.biosd.annotator.model.FeatureAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.DBStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.expgraph.properties.PropertyValueNormalizer;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
-import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
-import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
-import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.terms.OntologyEntryDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
-import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
-import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotatable;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
-import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
-import uk.ac.ebi.utils.reflection.ReflectionUtils;
+
+import com.google.common.collect.Table;
 
 /**
  * TODO: comment me!
@@ -71,7 +52,7 @@ public class AnnotatorPersister
 	
 	private <T> long persistEntities ( Class<T> type )
 	{
-		log.info ( "Saving instance of {}" + type.getName () );
+		log.info ( "Saving instances of {}", type.getName () );
 		
 		EntityTransaction tx = entityManager.getTransaction ();
 		tx.begin ();

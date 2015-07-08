@@ -39,6 +39,7 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 		{
 			// Store an annotation that traces the fact there's nothing for this key
 			ExpPropValAnnotation pvann = new ExpPropValAnnotation ( pvkey );
+			pvann.setOntoTermUri ( ExpPropValAnnotation.NULL_TERM_URI );
 			pvann.setType ( ANNOTATION_TYPE_MARKER );
 			pvann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
 			pvann.setTimestamp ( new Date () );

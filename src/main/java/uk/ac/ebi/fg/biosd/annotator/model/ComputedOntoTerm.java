@@ -23,6 +23,8 @@ public class ComputedOntoTerm
 	private String uri;
 	private String label;
 	
+	protected ComputedOntoTerm () {}
+
 	public ComputedOntoTerm ( String uri, String label )
 	{
 		this.uri = uri;

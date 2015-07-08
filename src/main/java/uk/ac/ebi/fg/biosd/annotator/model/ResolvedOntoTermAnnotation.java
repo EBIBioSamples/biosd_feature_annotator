@@ -31,6 +31,10 @@ import javax.persistence.Index;
 @AttributeOverride ( name = "sourceText", column = @Column ( length = 4000, name = "source_text" ) )
 public class ResolvedOntoTermAnnotation extends AbstractOntoTermAnnotation
 {
+	protected ResolvedOntoTermAnnotation () {
+		super ();
+	}
+	
 	public ResolvedOntoTermAnnotation ( OntologyEntry oe ) {
 		super ( getOntoEntryText ( oe ) );
 	}

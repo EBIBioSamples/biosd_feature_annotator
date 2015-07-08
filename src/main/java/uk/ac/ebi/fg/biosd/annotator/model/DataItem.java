@@ -19,7 +19,9 @@ import javax.persistence.Table;
 @DiscriminatorColumn ( name = "data_item_type" )
 public abstract class DataItem extends FeatureAnnotation
 {
-	protected DataItem () {}
+	protected DataItem () {
+		super ();
+	}
 	
 	protected DataItem ( String sourceText ) {
 		super ( sourceText );
