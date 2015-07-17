@@ -46,4 +46,40 @@ public abstract class AbstractOntoTermAnnotation extends FeatureAnnotation
 		this.ontoTermUri = ontoTermUri;
 	}
 
+	
+  @Override
+  public boolean equals ( Object o ) 
+  {
+  	if ( o == null ) return false;
+  	if ( this == o ) return true;
+  	if ( this.getClass () != o.getClass () ) return false;
+  	
+  	AbstractOntoTermAnnotation that = (AbstractOntoTermAnnotation) o;
+    
+  	String sourceText = this.getSourceText ();
+    if ( sourceText != null ? !sourceText.equals ( that.getSourceText () ) : that.getSourceText () != null )
+    	return false;
+    
+    return this.getOntoTermUri () != null 
+    	? this.ontoTermUri.equals ( that.getOntoTermUri () )
+    	: that.getOntoTermUri () == null;
+  }
+  
+  @Override
+  public int hashCode() 
+  {
+  	String sourceText = this.getSourceText ();
+  	int result = sourceText == null ? 0 : sourceText.hashCode ();
+  	return 31 * result + ( this.getOntoTermUri () == null ? 0 : this.getOntoTermUri ().hashCode () ); 
+  }
+
+	@Override
+	public String toString ()
+	{
+		return String.format ( 
+			"%s { sourceText: %s, sourceText: %s, ontoTermUri: %s }", 
+			this.getClass ().getSimpleName (), this.getSourceText (), this.getOntoTermUri ()
+		);
+	}  		
+		
 }

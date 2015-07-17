@@ -76,8 +76,6 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 		public void setOntoTermUri ( String ontoTermUri ) {
 			this.ontoTermUri = ontoTermUri;
 		}
-
-		
 		
 		@Override
 		public boolean equals ( Object obj )
@@ -87,8 +85,10 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 			if ( !( obj instanceof Key ) ) return false;
 			
 			Key other = (Key) obj;
-			if ( sourceText == null ? other.sourceText != null : !sourceText.equals ( other.sourceText ) ) return false;
-			if ( ontoTermUri == null ? other.ontoTermUri != null : !ontoTermUri.equals ( other.ontoTermUri ) ) return false;
+			if ( getSourceText () == null ? other.getSourceText () != null : !sourceText.equals ( other.getSourceText () ) ) 
+				return false;
+			if ( getOntoTermUri () == null ? other.getOntoTermUri () != null : !ontoTermUri.equals ( other.getOntoTermUri () ) ) 
+				return false;
 
 			return true;
 		}
@@ -96,8 +96,8 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 		@Override
 		public int hashCode () 
 		{
-			int result = this.sourceText == null ? 0 : this.sourceText.hashCode ();
-			result = 31 * result + this.ontoTermUri == null ? 0 : this.ontoTermUri.hashCode ();
+			int result = this.getSourceText () == null ? 0 : this.sourceText.hashCode ();
+			result = 31 * result + this.getOntoTermUri () == null ? 0 : this.ontoTermUri.hashCode ();
 			return result;
 		}
 		
