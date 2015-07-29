@@ -3,6 +3,8 @@ package uk.ac.ebi.fg.biosd.annotator.model;
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 
+import org.apache.commons.lang3.StringUtils;
+
 
 /**
  * TODO: comment me!
@@ -76,10 +78,12 @@ public abstract class AbstractOntoTermAnnotation extends FeatureAnnotation
 	@Override
 	public String toString ()
 	{
-		return String.format ( 
-			"%s { sourceText: %s, sourceText: %s, ontoTermUri: %s }", 
-			this.getClass ().getSimpleName (), this.getSourceText (), this.getOntoTermUri ()
-		);
+  	return String.format ( 
+  		" %s { sourceString: %s, ontoTermUri: %s, type: %s, timestamp: %tc, provenance: %s, score: %f, notes: '%s', internalNotes: '%s' }", 
+  		this.getClass ().getSimpleName (), this.getSourceText (), this.getOntoTermUri (), this.getType (),
+  		this.getTimestamp (), this.getProvenance (), this.getScore (), StringUtils.abbreviate ( this.getNotes (), 20 ), 
+  		StringUtils.abbreviate ( this.getInternalNotes (), 20 )
+  	);
 	}  		
 		
 }

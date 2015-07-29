@@ -22,6 +22,13 @@ import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
  */
 public class MockupZOOMASearch extends AbstractZOOMASearch
 {
+	Map<String, String> lookup = new HashMap<String, String> ()
+	{{
+		put ( "homo sapiens", "http://purl.obolibrary.org/obo/NCBITaxon_9606" );
+		put ( "kg", "http://purl.obolibrary.org/obo/UO_0000009" );
+		put ( "mus musculus", "http://purl.obolibrary.org/obo/NCBITaxon_10090" );
+	}};
+	
 	@Override
 	public Map<String, String> getPrefixMappings () throws IOException {
 		return null;
@@ -36,11 +43,7 @@ public class MockupZOOMASearch extends AbstractZOOMASearch
 		{
 			Map<AnnotationSummary, Float> result = new HashMap<AnnotationSummary, Float> ();
 			String pval = property.getPropertyValue ();
-			String uri = null;
-			if ( "homo sapiens".equalsIgnoreCase ( pval ) )
-				uri = "http://purl.obolibrary.org/obo/NCBITaxon_10090";
-			else if ( "kg".equalsIgnoreCase ( pval ) )
-				uri = "http://purl.obolibrary.org/obo/UO_0000009";
+			String uri = lookup.get ( pval.toLowerCase () );
 			
 			if ( uri != null )
 			{

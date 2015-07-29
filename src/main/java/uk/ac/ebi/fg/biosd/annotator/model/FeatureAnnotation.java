@@ -142,7 +142,7 @@ public abstract class FeatureAnnotation
   public String toString () 
   {
   	return String.format ( 
-  		" %s { sourceString: %d, type: %s, timestamp: %tc, provenance: %s, score: %f, notes: '%s', internalNotes: '%s' }", 
+  		" %s { sourceString: %s, type: %s, timestamp: %tc, provenance: %s, score: %f, notes: '%s', internalNotes: '%s' }", 
   		this.getClass ().getSimpleName (), this.getSourceText (), this.getType (),
   		this.getTimestamp (), this.getProvenance (), this.getScore (), StringUtils.abbreviate ( this.getNotes (), 20 ), 
   		StringUtils.abbreviate ( this.getInternalNotes (), 20 )

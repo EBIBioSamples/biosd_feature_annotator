@@ -3,7 +3,6 @@ package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -38,7 +37,6 @@ import uk.ac.ebi.utils.time.XStopWatch;
  * @author Marco Brandizi
  *
  */
-@SuppressWarnings ( "unchecked" )
 public class BioSDOntoDiscoveringCacheTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
@@ -47,7 +45,8 @@ public class BioSDOntoDiscoveringCacheTest
 	
 	
 	@Before
-	public void initResources () {
+	public void initResources () 
+	{
 		AnnotatorResources.reset ();
 
 		biosdCache = new BioSDOntoDiscoveringCache ();
@@ -59,7 +58,6 @@ public class BioSDOntoDiscoveringCacheTest
 			new CachedOntoTermDiscoverer ( zoomaDiscoverer, biosdCache ),
 			new OntoTermDiscoveryStoreCache ()
 		);
-		
 	}
 	
 	@After
@@ -104,10 +102,10 @@ public class BioSDOntoDiscoveringCacheTest
 
 		// TODO: we need to move this on some DAO or alike
 		Number savedAnnCt = (Number) em.createQuery ( 
-				"SELECT COUNT ( DISTINCT pvann ) FROM ExpPropValAnnotation pvann WHERE sourceText = :sourceText" 
-			)
-			.setParameter ( "sourceText", pvkey )
-			.getSingleResult ();
+			"SELECT COUNT ( DISTINCT pvann ) FROM ExpPropValAnnotation pvann WHERE sourceText = :sourceText" 
+		)
+		.setParameter ( "sourceText", pvkey )
+		.getSingleResult ();
 
 		assertEquals ( "Wrong size for saved terms!", terms.size (), savedAnnCt.intValue () );
 		
@@ -150,6 +148,7 @@ public class BioSDOntoDiscoveringCacheTest
 	/**
 	* Tests that string values not related to ontologies are actually associated to an empty result.
 	*/
+	@SuppressWarnings ( "unchecked" )
 	@Test
 	public void testNullMapping ()
 	{
@@ -174,10 +173,10 @@ public class BioSDOntoDiscoveringCacheTest
 
 		// TODO: we need to move this on some DAO or alike
 		List<ExpPropValAnnotation> dbanns = em.createQuery ( 
-				"FROM ExpPropValAnnotation pvann WHERE sourceText = :sourceText" 
-			)
-			.setParameter ( "sourceText", pvkey )
-			.getResultList ();
+			"FROM ExpPropValAnnotation pvann WHERE sourceText = :sourceText" 
+		)
+		.setParameter ( "sourceText", pvkey )
+		.getResultList ();
 
 		assertEquals ( "Wrong size for saved terms!", 1, dbanns.size () );
 		assertEquals ( "Saved annotation has a bad URI!",

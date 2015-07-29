@@ -3,29 +3,14 @@ package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 
 import org.hibernate.Session;
 
-import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
-import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
-import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
-import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
-import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
-import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
-import uk.ac.ebi.fg.core_model.terms.AnnotationType;
-import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotatable;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
-import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
-import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryCache;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyDiscoveryException;

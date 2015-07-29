@@ -135,16 +135,16 @@ public class Purger
 	private int purgeEntities ( Query qry, boolean doRandomDeletes )
 	{
 		int result = 0;
+				
+		EntityTransaction tx = this.entityManager.getTransaction ();
+		tx.begin ();
 		
 		// TODO: needs hibernate.jdbc.batch_size
 		qry
 			.setReadOnly ( true )
 			.setFetchSize ( 1000 )
 			.setCacheMode ( CacheMode.IGNORE );
-		
-		EntityTransaction tx = this.entityManager.getTransaction ();
-		tx.begin ();
-		
+
 		for ( ScrollableResults annRs = qry.scroll ( ScrollMode.FORWARD_ONLY ); annRs.next (); )
 		{
 			// Randomly skip a number of them
@@ -161,7 +161,7 @@ public class Purger
 				this.entityManager.clear ();
 			}
 			
-			if ( result % 1000 == 0 ) log.info ( "{} annotations processed", result );
+			if ( result % 1000 == 0 ) log.info ( "{} entities processed", result );
 		}
 		
 		tx.commit ();

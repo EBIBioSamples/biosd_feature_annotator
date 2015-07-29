@@ -8,6 +8,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
 import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
+import uk.ac.ebi.fg.biosd.annotator.test.MockupZOOMASearch;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.Store;
 import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
@@ -38,6 +39,8 @@ public class AnnotatorResources
 	private final Map<String, List<DiscoveredTerm>> ontoTerms = new HashMap<String, List<DiscoveredTerm>> ();
 	private final AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( this.store );
 	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
+	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
+
 	private final PropertyValAnnotationManager pvAnnMgr;
 	
 	private static AnnotatorResources instance = new AnnotatorResources ();

@@ -37,10 +37,6 @@ public class OntoTermDiscoveryStoreCacheTest
 		AnnotatorResources.reset ();
 	}
 	
-	@After
-	public void cleanUp ()
-	{
-	}
 
 	@Test
 	public void testBasics ()
