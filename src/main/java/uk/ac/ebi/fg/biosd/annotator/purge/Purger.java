@@ -152,7 +152,6 @@ public class Purger
 			
 			Object entity = annRs.get ( 0 );
 			this.entityManager.remove ( entity );
-			result++;
 			
 			// Flush changes from time to time
 			if ( ++result % 100 == 0 )
