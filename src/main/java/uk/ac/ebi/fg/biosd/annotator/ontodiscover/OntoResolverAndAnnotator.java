@@ -12,6 +12,7 @@ import uk.ac.ebi.bioportal.webservice.exceptions.OntologyServiceException;
 import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.biosd.annotator.model.AbstractOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
@@ -89,13 +90,15 @@ public class OntoResolverAndAnnotator
 			if ( bpOntoTerm != null )
 			{
 				uri = bpOntoTerm.getIri ();
+
+				// Save in the memory store, for later persistence
 				store.put ( ComputedOntoTerm.class, uri, new ComputedOntoTerm ( uri, bpOntoTerm.getPreferredLabel () ) );
-			
+
 				// else, it will stay null and the annotation will tell us it's null
 				oeann.setOntoTermUri ( uri );
 			}
 			
-			// Save in the memory store, for later persistence
+			// Save in memory store, for lookup and later persistence
 			store.put ( ResolvedOntoTermAnnotation.class, oekey, oeann );
 
 			return uri != null;

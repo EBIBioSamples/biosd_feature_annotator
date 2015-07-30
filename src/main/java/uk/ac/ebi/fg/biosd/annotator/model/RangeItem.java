@@ -4,6 +4,8 @@ import javax.persistence.Entity;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 
+import org.apache.commons.lang3.StringUtils;
+
 
 
 /**
@@ -85,10 +87,12 @@ public abstract class RangeItem<T> extends DataItem
 	@Override
 	public String toString ()
 	{
-		return String.format ( 
-			"%s { sourceText: %d, low: %s, hi: %s }", 
-			this.getClass ().getSimpleName (), this.getSourceText (), this.getLow (), this.getHi ()
-		);
+  	return String.format ( 
+  		" %s { values: %s - %s, sourceString: '%s', type: '%s', timestamp: %tc, provenance: '%s', score: %f, notes: '%s', internalNotes: '%s' }", 
+  		this.getClass ().getSimpleName (), this.getLow ().toString (), this.getHi ().toString (), 
+  		this.getSourceText (), this.getType (), this.getTimestamp (), this.getProvenance (), this.getScore (), 
+  		StringUtils.abbreviate ( this.getNotes (), 20 ), StringUtils.abbreviate ( this.getInternalNotes (), 20 )
+  	);
 	}  	
   
 }

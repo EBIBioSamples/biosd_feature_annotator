@@ -5,6 +5,7 @@ import static junit.framework.Assert.assertTrue;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -22,6 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.FeatureAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
+import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
@@ -102,12 +106,13 @@ public class PropertyValAnnotationServiceTest
 		service.waitAllFinished ();
 
 		// Verify
+		// TODO: replace with the interfaces to be developed.
 		//
 		em = emf.createEntityManager ();
 		for ( int i = 0; i <= 1; i++ )
 		{
 			ExperimentalPropertyValue<ExperimentalPropertyType> pv = pvs.get ( i );
-			Query q = em.createNamedQuery ( "findByPv" )
+			Query q = em.createNamedQuery ( "findByPv", ExpPropValAnnotation.class )
 				.setParameter ( "pvkey", ExpPropValAnnotation.getPvalText ( pv ) );
 		
 			List<ExpPropValAnnotation> pvanns = q.getResultList ();
@@ -119,14 +124,19 @@ public class PropertyValAnnotationServiceTest
 			}
 		}
 		
-		// TODO: numeric values
-		
+		Query q = em.createQuery ( "FROM NumberItem WHERE value = 123" );
+		List<NumberItem> nums = q.getResultList ();
+		assertTrue ( "Number annotation not saved!", nums.size () > 0 );
+		log.info ( "------------------------ Number annotation saved: {} ---------------------", nums.get ( 0 ) );
+
+		em.close ();
 	}
 	
 	/**
 	 * Tests against a real-world submission.
 	 */
-	@Test @Ignore
+	@Test
+	@SuppressWarnings ( "unchecked" )
 	public void testSubmitMsi () throws Exception
 	{
 		// The test case is stored in the Maven project, load it
@@ -150,21 +160,32 @@ public class PropertyValAnnotationServiceTest
 		
 		msi = dao.find ( msi.getAcc () );
 		
-		log.info ( "Showing Computed Annotations" );
+		log.info ( "----------- Showing Computed Annotations --------" );
 		boolean hasFoundAnn = false;
+		
 		for ( BioSample smp: msi.getSamples () )
 			for ( ExperimentalPropertyValue<?> pv: smp.getPropertyValues () )
+			{
+				List<FeatureAnnotation> anns = new LinkedList<> ();
+				anns.addAll ( em.createQuery ( "FROM ExpPropValAnnotation ann WHERE sourceText = :pvTxt" )
+				  .setParameter ( "pvTxt", ExpPropValAnnotation.getPvalText ( pv ) )
+				  .getResultList ()
+				);
+				anns.addAll ( em.createQuery ( "FROM DataItem ann WHERE sourceText = :pvTxt" )
+				 .setParameter ( "pvTxt", pv.getTermText () )
+				 .getResultList () 
+				);
 				for ( OntologyEntry oe: pv.getOntologyTerms () )
-					for ( Annotation ann: oe.getAnnotations () )
-					{
-						log.info ( String.format ( 
-							"Annotated Property: %s/%s[#%d], %s[#%d], %f", 
-							pv.getTermText (), pv.getType ().getTermText (), pv.getId (), 
-							oe.getAcc (), oe.getId (), 
-							ann.getScore ()
-						));
-						
-						hasFoundAnn = true;
+					anns.addAll ( em.createQuery ( "FROM ResolvedOntoTermAnnotation ann WHERE sourceText = :pvTxt" )
+					  .setParameter ( "pvTxt", ResolvedOntoTermAnnotation.getOntoEntryText ( oe ) )
+					  .getResultList () 
+				);
+				
+				for ( FeatureAnnotation fa: anns )
+				{
+					log.info ( "Value: {}, annotation: {}", pv.getTermText (), fa.toString () );
+					hasFoundAnn = true;
+				}
 		}
 		
 		em.close ();

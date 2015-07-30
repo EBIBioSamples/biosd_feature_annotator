@@ -70,11 +70,11 @@
 		  <version>0.0.1-SNAPSHOT</version>		
 		</dependency>
 
+
 		<dependency>
 			<groupId>uk.ac.ebi.fg</groupId>
 			<artifactId>biosd_loader</artifactId>
 		</dependency>
-
 
 		<dependency>
 			<groupId>junit</groupId>

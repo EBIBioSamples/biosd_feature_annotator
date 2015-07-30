@@ -5,6 +5,8 @@ import javax.persistence.MappedSuperclass;
 import javax.persistence.NamedQuery;
 import javax.persistence.Transient;
 
+import org.apache.commons.lang3.StringUtils;
+
 
 /**
  * TODO: Comment me!
@@ -65,8 +67,14 @@ public abstract class ValueItem<T> extends DataItem
   }
 
   @Override
-  public String toString() {
-    return this.getClass ().getSimpleName () + "{ sourceText: " + getSourceText () + ", value: '" + getValue () + "' }";
+  public String toString()
+  {
+  	return String.format ( 
+  		" %s { value: %s, sourceString: '%s', type: '%s', timestamp: %tc, provenance: '%s', score: %f, notes: '%s', internalNotes: '%s' }", 
+  		this.getClass ().getSimpleName (), this.getValue ().toString(), this.getSourceText (), this.getType (),
+  		this.getTimestamp (), this.getProvenance (), this.getScore (), StringUtils.abbreviate ( this.getNotes (), 20 ), 
+  		StringUtils.abbreviate ( this.getInternalNotes (), 20 )
+  	);
   }
 
 }

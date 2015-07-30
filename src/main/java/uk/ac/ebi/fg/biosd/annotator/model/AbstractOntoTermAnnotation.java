@@ -79,7 +79,7 @@ public abstract class AbstractOntoTermAnnotation extends FeatureAnnotation
 	public String toString ()
 	{
   	return String.format ( 
-  		" %s { sourceString: %s, ontoTermUri: %s, type: %s, timestamp: %tc, provenance: %s, score: %f, notes: '%s', internalNotes: '%s' }", 
+  		" %s { sourceString: '%s', ontoTermUri: '%s', type: '%s', timestamp: %tc, provenance: '%s', score: %f, notes: '%s', internalNotes: '%s' }", 
   		this.getClass ().getSimpleName (), this.getSourceText (), this.getOntoTermUri (), this.getType (),
   		this.getTimestamp (), this.getProvenance (), this.getScore (), StringUtils.abbreviate ( this.getNotes (), 20 ), 
   		StringUtils.abbreviate ( this.getInternalNotes (), 20 )
