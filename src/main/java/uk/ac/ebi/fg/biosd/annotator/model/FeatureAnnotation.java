@@ -4,10 +4,11 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.MappedSuperclass;
+import javax.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.annotations.Index;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 
@@ -19,6 +20,14 @@ import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
  *
  */
 @MappedSuperclass
+@Table ( indexes = {
+	@Index ( columnList = "type" ),
+	@Index ( columnList = "provenance" ),
+	@Index ( columnList = "timestamp" ),
+	@Index ( columnList = "score" ),
+	@Index ( columnList = "notes" ),
+	@Index ( columnList = "internal_notes" ),
+})
 public abstract class FeatureAnnotation
 {
 	private String sourceText;
@@ -51,7 +60,6 @@ public abstract class FeatureAnnotation
 	}
 
 
-	@Index ( name = "feature_ann_type" )
   public String getType() {
     return type;
   }
@@ -63,7 +71,6 @@ public abstract class FeatureAnnotation
   /**
    * A person or a software component that generated this annotation. 
    */
-	@Index ( name = "feature_ann_prov" )
   public String getProvenance ()
 	{
 		return provenance;
@@ -77,7 +84,6 @@ public abstract class FeatureAnnotation
 	/**
 	 * When this annotation was created or last updated. TODO: Do we need to distinguish between creation/update.
 	 */
-	@Index ( name = "feature_ann_ts" )
 	public Date getTimestamp ()
 	{
 		return timestamp;
@@ -95,7 +101,6 @@ public abstract class FeatureAnnotation
 	 * the {@link #getProvenance() provenance} or can be stored into {@link #getInternalNotes() internalNotes}.
 	 * 
 	 */
-	@Index ( name = "feature_ann_score" )
 	public Double getScore ()
 	{
 		return score;
@@ -109,7 +114,6 @@ public abstract class FeatureAnnotation
 	/**
 	 * Notes that can possibly be shown to the end-user.
 	 */
-	@Index ( name = "feature_ann_notes" )
 	public String getNotes ()
 	{
 		return notes;
@@ -125,7 +129,6 @@ public abstract class FeatureAnnotation
 	 * stored by the tool that computed this annotation.
 	 */
 	@Column ( name = "internal_notes" )
-	@Index ( name = "feature_ann_int_notes" )
 	public String getInternalNotes ()
 	{
 		return internalNotes;

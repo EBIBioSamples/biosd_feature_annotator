@@ -89,7 +89,7 @@ public class NumericalDataAnnotator
 		if ( pvalStr.length () > AnnotatorResources.MAX_STRING_LEN ) return false;
 				
 		// Do we already have it?
-		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 		
 		synchronized ( pvalStr.intern () )
 		{

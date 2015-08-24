@@ -1,22 +1,11 @@
 package uk.ac.ebi.fg.biosd.annotator;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
-
-import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
-import uk.ac.ebi.fg.biosd.annotator.test.MockupZOOMASearch;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.Store;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 /**
  * TODO: comment me!
@@ -35,9 +24,6 @@ public class AnnotatorResources
 	// TODO: needs to be moved to 'store'
 	private final Table<Class, String, Object> newStore = HashBasedTable.create ();	
 	
-	private final Store store = new SynchronizedStore ( new MemoryStore () );
-	private final Map<String, List<DiscoveredTerm>> ontoTerms = new HashMap<String, List<DiscoveredTerm>> ();
-	private final AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( this.store );
 	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
 
@@ -48,32 +34,17 @@ public class AnnotatorResources
 	private AnnotatorResources () 
 	{
 		((StatsZOOMASearchFilter) this.zoomaClient).setThrottleMode ( true );
-		pvAnnMgr = new PropertyValAnnotationManager ( this );
+		pvAnnMgr = new PropertyValAnnotationManager ( this.zoomaClient );
 	}
 
 	public static AnnotatorResources getInstance ()
 	{
 		return instance;
 	}
-
-	public Store getStore ()
-	{
-		return store;
-	}
 	
-	public Table<Class, String, Object> getNewStore ()
+	public Table<Class, String, Object> getStore ()
 	{
 		return newStore;
-	}
-
-	public Map<String, List<DiscoveredTerm>> getOntoTerms ()
-	{
-		return ontoTerms;
-	}
-
-	public AnnotationNormalizer<Annotation> getAnnNormalizer ()
-	{
-		return annNormalizer;
 	}
 	
 	public PropertyValAnnotationManager getPvAnnMgr ()

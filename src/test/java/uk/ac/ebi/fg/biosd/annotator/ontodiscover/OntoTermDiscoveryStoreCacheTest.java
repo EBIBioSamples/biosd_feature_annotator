@@ -65,7 +65,7 @@ public class OntoTermDiscoveryStoreCacheTest
 		// Verify
 		String pvkey = ExpPropValAnnotation.getPvalText ( pval );
 		
-		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 		List<DiscoveredTerm> dterms = (List<DiscoveredTerm>) store.get ( DiscoveredTerm.class, pvkey );
 		assertNotNull ( "ZOOMA terms not found in store", dterms );
 		assertTrue ( "dterms is empty!", dterms.size () > 0 );

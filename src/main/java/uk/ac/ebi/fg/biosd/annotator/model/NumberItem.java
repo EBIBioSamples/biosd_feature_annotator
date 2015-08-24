@@ -3,9 +3,9 @@ package uk.ac.ebi.fg.biosd.annotator.model;
 import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
+import javax.persistence.Index;
 import javax.persistence.NamedQuery;
-
-import org.hibernate.annotations.Index;
+import javax.persistence.Table;
 
 /**
  * TODO: Comment me!
@@ -36,7 +36,6 @@ public class NumberItem extends ValueItem<Double>
 	}
 
 	@Column ( name = "number_val" )
-	@Index ( name = "number_item_value" )
 	@Override
 	public Double getValue ()
 	{

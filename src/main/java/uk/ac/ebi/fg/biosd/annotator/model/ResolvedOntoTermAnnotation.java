@@ -3,7 +3,6 @@ package uk.ac.ebi.fg.biosd.annotator.model;
 import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
@@ -24,7 +23,6 @@ import javax.persistence.Index;
 @Table ( 
 	name = "resolved_oe_feature_ann", 
 	indexes = {
-		@Index ( name = "resoeann_pvkey", columnList = "source_text" ),
 		@Index ( name = "resoeann_term_uri", columnList = "term_uri" )
 	}
 )

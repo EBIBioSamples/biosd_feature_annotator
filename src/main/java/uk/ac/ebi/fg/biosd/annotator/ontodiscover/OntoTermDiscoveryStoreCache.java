@@ -30,7 +30,7 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 		String pvkey = ExpPropValAnnotation.getPvalText ( typeLabel, valueLabel );
 		if ( pvkey == null ) return CachedOntoTermDiscoverer.NULL_RESULT;
 		
-		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 		
 		// This is needed by this cache and ignored during the persistence stage (ExpPropValAnnotation are considered instead)
 		store.put ( DiscoveredTerm.class, pvkey, dterms );
@@ -73,7 +73,7 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 		String pvkey = ExpPropValAnnotation.getPvalText ( typeLabel, valueLabel );
 		if ( pvkey == null ) return CachedOntoTermDiscoverer.NULL_RESULT;
 		
-		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 		return (List<DiscoveredTerm>) store.get ( DiscoveredTerm.class, pvkey );
 	}
 

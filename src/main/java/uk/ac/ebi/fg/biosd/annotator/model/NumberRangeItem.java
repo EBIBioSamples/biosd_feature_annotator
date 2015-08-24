@@ -5,8 +5,8 @@ import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import javax.persistence.NamedQuery;
-
-import org.hibernate.annotations.Index;
+import javax.persistence.Table;
+import javax.persistence.Index;
 
 /**
  * TODO: Comment me!
@@ -38,7 +38,6 @@ public class NumberRangeItem extends RangeItem<Double>
 
 	
 	@Column ( name = "number_low" )
-	@Index ( name = "number_range_lo" )
 	@Override
 	public Double getLow ()
 	{
@@ -46,7 +45,6 @@ public class NumberRangeItem extends RangeItem<Double>
 	}
 
 	@Column ( name = "number_hi" )
-	@Index ( name = "number_range_hi" )
 	@Override
 	public Double getHi ()
 	{

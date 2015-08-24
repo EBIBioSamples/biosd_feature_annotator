@@ -5,10 +5,9 @@ import java.util.Date;
 import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
+import javax.persistence.Index;
 import javax.persistence.NamedQuery;
-
-import org.hibernate.annotations.Index;
-import org.hibernate.annotations.Type;
+import javax.persistence.Table;
 
 /**
  * TODO: Comment me!
@@ -40,7 +39,6 @@ public class DateRangeItem extends RangeItem<Date>
 
 	
 	@Column ( name = "date_low" )
-	@Index ( name = "date_range_lo" )
 	@Override
 	public Date getLow ()
 	{
@@ -48,7 +46,6 @@ public class DateRangeItem extends RangeItem<Date>
 	}
 
 	@Column ( name = "date_hi" )
-	@Index ( name = "date_range_hi" )
 	@Override
 	public Date getHi ()
 	{

@@ -25,7 +25,7 @@ import com.google.common.collect.Table;
 public class AnnotatorPersister
 {
 	private EntityManager entityManager = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-	private Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
+	private Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 	
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	

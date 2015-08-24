@@ -49,7 +49,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	 */
 	public static final String MAX_THREAD_PROP = "uk.ac.ebi.fg.biosd.annotator.maxThreads";
 	
-	private double randomSelectionQuota = 100.0;
+	private double randomSelectionQuota = 1.0;
 
 	private XStopWatch timer = new XStopWatch (); 
 	
@@ -84,7 +84,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	
 	/**
 	 * This is to submit an {@link PropertyValAnnotationTask annotation task} about an {@link ExperimentalPropertyValue} 
-	 * with this {@link Identifiable#getId() id}. If {@link #getRandomSelectionQuota()} is &lt; 100, only the 
+	 * with this {@link Identifiable#getId() id}. If {@link #getRandomSelectionQuota()} is &lt; 1, only the 
 	 * corresponding random percentage of calls to this method will actually produce a submission.
 	 * 
 	 */
@@ -122,8 +122,6 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		try 
 		{
 			String hql = "FROM ExperimentalPropertyValue";
-			if ( this.randomSelectionQuota < 100.0 ) 
-				hql += " ORDER BY RAND()";
 			
 			EntityTransaction ts = em.getTransaction ();
 			ts.begin ();
@@ -134,9 +132,14 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 
 			q.setHint ( QueryHints.HINT_READONLY, true );
 			
-			for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: 
-						(List<ExperimentalPropertyValue<ExperimentalPropertyType>>) q.getResultList () )
-				submit ( pv );
+			List<ExperimentalPropertyValue<ExperimentalPropertyType>> pvs = 
+				(List<ExperimentalPropertyValue<ExperimentalPropertyType>>) q.getResultList ();
+			
+			int npvs = pvs.size ();
+			
+			for ( int i = 0;  i < npvs; i++ )
+				if ( this.randomSelectionQuota == 1d || RandomUtils.nextDouble (0d, 1d) <= this.randomSelectionQuota )
+					submit ( pvs.get ( i ) );
 			ts.commit ();
 		}
 		finally {
@@ -219,7 +222,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	/**
 	 * Gets the number of properties in the BioSD database. To be used prior to {@link #submit(Integer, Integer)}.
 	 * 
-	 * It adjusts the real total by multiplying it by {@link #getRandomSelectionQuota()}, if this is &lt; 100.
+	 * It adjusts the real total by multiplying it by {@link #getRandomSelectionQuota()}, if this is &lt; 1.
 	 */
 	public int getPropValCount ()
 	{
@@ -232,8 +235,8 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			).getSingleResult ();
 			int result = count.intValue ();
 			
-			if ( this.randomSelectionQuota < 100.0 )
-				result = (int) Math.round ( result * this.randomSelectionQuota / 100.0 );
+			if ( this.randomSelectionQuota < 1d )
+				result = (int) Math.round ( result * this.randomSelectionQuota );
 			
 			return result;
 		}

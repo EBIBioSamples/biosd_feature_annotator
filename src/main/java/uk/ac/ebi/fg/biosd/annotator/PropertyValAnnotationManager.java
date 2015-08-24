@@ -10,6 +10,7 @@ import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
+import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
@@ -38,7 +39,7 @@ public class PropertyValAnnotationManager
 	 */
 	public final static String PROVENANCE_MARKER = "BioSD Feature Annotation Tool";
 	
-	PropertyValAnnotationManager ( float zoomaThresholdScore, AnnotatorResources annRes )
+	PropertyValAnnotationManager ( float zoomaThresholdScore, AbstractZOOMASearch zoomaClient )
 	{
 		ontoResolver = new OntoResolverAndAnnotator ();
 		
@@ -46,7 +47,7 @@ public class PropertyValAnnotationManager
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
 					new ZoomaOntoTermDiscoverer ( 
-						new ZOOMAUnitSearch ( annRes.getZoomaClient () ), zoomaThresholdScore 
+						new ZOOMAUnitSearch ( zoomaClient ), zoomaThresholdScore 
 					),
 					new BioSDOntoDiscoveringCache ()
 				),
@@ -57,7 +58,7 @@ public class PropertyValAnnotationManager
 		ontoDiscoverer = new OntoDiscoveryAndAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-					new ZoomaOntoTermDiscoverer ( annRes.getZoomaClient (), zoomaThresholdScore ),
+					new ZoomaOntoTermDiscoverer ( zoomaClient, zoomaThresholdScore ),
 					new BioSDOntoDiscoveringCache ()
 				),
 				new OntoTermDiscoveryStoreCache ()
@@ -68,7 +69,7 @@ public class PropertyValAnnotationManager
 	/**
 	 * Defaults to a score threshold of 80.
 	 */
-	PropertyValAnnotationManager ( AnnotatorResources annRes )
+	PropertyValAnnotationManager ( AbstractZOOMASearch annRes )
 	{
 		this ( 80f, annRes );
 	}

@@ -3,9 +3,8 @@ package uk.ac.ebi.fg.biosd.annotator.model;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Table;
-
-import org.hibernate.annotations.Index;
 
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 
@@ -17,7 +16,10 @@ import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
  * 
  */
 @Entity
-@Table ( name = "onto_entry_computed" )
+@Table ( 
+	name = "onto_entry_computed", 
+	indexes = @Index ( columnList = "label" )
+)
 public class ComputedOntoTerm
 {
 	private String uri;
@@ -49,7 +51,6 @@ public class ComputedOntoTerm
 		this.uri = uri;
 	}
 	
-	@Index ( name = "oe_computed_lbl" )
 	public String getLabel ()
 	{
 		return label;

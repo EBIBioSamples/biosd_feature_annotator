@@ -85,7 +85,7 @@ public class NumericalDataAnnotatorTest
 		
 		// Verify
 		//
-		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 		DataItem dataItem = (DataItem) store.get ( DataItem.class, pval.getTermText () );
 		assertNotNull ( "No data-item found in memory store!", dataItem );
 		

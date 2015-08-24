@@ -54,7 +54,7 @@ public class OntoResolverTest
 		
 		// Check
 		//
-		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 
 		ComputedOntoTerm oes = (ComputedOntoTerm) store.get ( 
 			ComputedOntoTerm.class, "http://www.ebi.ac.uk/efo/EFO_0000270"

@@ -6,9 +6,8 @@ import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import javax.persistence.NamedQuery;
-
-import org.hibernate.annotations.Index;
-
+import javax.persistence.Table;
+import javax.persistence.Index;
 
 /**
  * TODO: Comment me!
@@ -39,7 +38,6 @@ public class DateItem extends ValueItem<Date>
 
 	
 	@Column ( name = "date_val" )
-	@Index ( name = "date_item_value" )
 	@Override
 	public Date getValue ()
 	{

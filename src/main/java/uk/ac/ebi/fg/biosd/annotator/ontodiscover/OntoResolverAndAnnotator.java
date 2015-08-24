@@ -68,7 +68,7 @@ public class OntoResolverAndAnnotator
 		if ( oekey == null ) return false; // This OE cannot be annotated
 		
 		// Do you have it in memory?
-		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getNewStore ();
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 		ResolvedOntoTermAnnotation oeann = null;
 		synchronized ( oekey.intern () )
 		{
