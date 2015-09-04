@@ -28,6 +28,10 @@ import uk.ac.ebi.utils.regex.RegEx;
  *
  */
 @Entity
+@NamedQuery(
+	name = "pvAnn.findBySourceText",
+	query = "FROM ExpPropValAnnotation ann WHERE sourceText = :sourceText"
+)
 @Table ( 
 	name = "exp_prop_val_feature_ann", 
 	indexes = {
@@ -36,10 +40,6 @@ import uk.ac.ebi.utils.regex.RegEx;
 	}
 )
 @IdClass ( ExpPropValAnnotation.Key.class )
-@NamedQuery(
-	name = "findByPv",
-	query = "FROM ExpPropValAnnotation ann WHERE sourceText = :pvkey"
-)
 public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 {
 	private final static RegEx COMMENT_RE = new RegEx ( "(Comment|Characteristic)\\s*\\[\\s*(.+)\\s*\\]", Pattern.CASE_INSENSITIVE );

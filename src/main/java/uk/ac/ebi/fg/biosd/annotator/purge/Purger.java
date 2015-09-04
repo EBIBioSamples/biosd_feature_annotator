@@ -142,7 +142,7 @@ public class Purger
 		// TODO: needs hibernate.jdbc.batch_size
 		qry
 			.setReadOnly ( true )
-			.setFetchSize ( 1000 )
+			.setFetchSize ( 10000 )
 			.setCacheMode ( CacheMode.IGNORE );
 
 		for ( ScrollableResults annRs = qry.scroll ( ScrollMode.FORWARD_ONLY ); annRs.next (); )
@@ -154,13 +154,13 @@ public class Purger
 			this.entityManager.remove ( entity );
 			
 			// Flush changes from time to time
-			if ( ++result % 100 == 0 )
+			if ( ++result % 10000 == 0 )
 			{
 				this.entityManager.flush ();
 				this.entityManager.clear ();
 			}
 			
-			if ( result % 1000 == 0 ) log.info ( "{} entities processed", result );
+			if ( result % 100000 == 0 ) log.info ( "{} entities processed", result );
 		}
 		
 		tx.commit ();

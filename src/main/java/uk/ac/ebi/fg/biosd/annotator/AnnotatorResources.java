@@ -22,7 +22,7 @@ public class AnnotatorResources
 	public static final int MAX_STRING_LEN = 150;
 	
 	// TODO: needs to be moved to 'store'
-	private final Table<Class, String, Object> newStore = HashBasedTable.create ();	
+	private final Table<Class, String, Object> store = HashBasedTable.create ();	
 	
 	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
@@ -44,7 +44,7 @@ public class AnnotatorResources
 	
 	public Table<Class, String, Object> getStore ()
 	{
-		return newStore;
+		return store;
 	}
 	
 	public PropertyValAnnotationManager getPvAnnMgr ()

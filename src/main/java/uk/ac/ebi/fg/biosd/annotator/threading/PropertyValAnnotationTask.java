@@ -18,12 +18,10 @@ import uk.ac.ebi.utils.threading.BatchServiceTask;
  * @author Marco Brandizi
  *
  */
-public class PropertyValAnnotationTask extends BatchServiceTask
+class PropertyValAnnotationTask extends AnnotatorTask
 {
 	private final ExperimentalPropertyValue<ExperimentalPropertyType> propertyValue; 
-	
-	private Logger log = LoggerFactory.getLogger ( this.getClass () );
-	
+		
 	/**
 	 * We share a single instance of the annotator, which keeps links to caches and the like.
 	 */

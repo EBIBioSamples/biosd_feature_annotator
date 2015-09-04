@@ -40,7 +40,7 @@ import uk.org.lidalia.slf4jext.Level;
  * @author Marco Brandizi
  *
  */
-public class PropertyValAnnotationService extends BatchService<PropertyValAnnotationTask>
+public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 {
 	/** 
 	 * This is a system property that allows you to define a limit for the number of threads the annotator can use.
@@ -49,7 +49,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	 */
 	public static final String MAX_THREAD_PROP = "uk.ac.ebi.fg.biosd.annotator.maxThreads";
 	
-	private double randomSelectionQuota = 1.0;
+	double randomSelectionQuota = 1.0;
 
 	private XStopWatch timer = new XStopWatch (); 
 	
@@ -114,37 +114,16 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	 * This considers only those properties that haven't neither any ZOOMA-computed term associated, nor a 
 	 * {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology term found marker'}.
 	 */
-	@SuppressWarnings ( { "unchecked" } )
 	public void submit ( Integer offset, Integer limit )
 	{
-		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		if ( offset == null ) offset = 0;
+		if ( limit == null ) limit = this.getPropValCount ();
 		
-		try 
-		{
-			String hql = "FROM ExperimentalPropertyValue";
-			
-			EntityTransaction ts = em.getTransaction ();
-			ts.begin ();
-			Query q = em.createQuery ( hql );
-			
-			if ( offset != null ) q.setFirstResult ( offset );
-			if ( limit != null ) q.setMaxResults ( limit );
+		int chunkSize = (int) Math.ceil ( limit / ( Runtime.getRuntime().availableProcessors() / 2d ) );
+		if ( chunkSize == 0 ) chunkSize = limit;
 
-			q.setHint ( QueryHints.HINT_READONLY, true );
-			
-			List<ExperimentalPropertyValue<ExperimentalPropertyType>> pvs = 
-				(List<ExperimentalPropertyValue<ExperimentalPropertyType>>) q.getResultList ();
-			
-			int npvs = pvs.size ();
-			
-			for ( int i = 0;  i < npvs; i++ )
-				if ( this.randomSelectionQuota == 1d || RandomUtils.nextDouble (0d, 1d) <= this.randomSelectionQuota )
-					submit ( pvs.get ( i ) );
-			ts.commit ();
-		}
-		finally {
-			if ( em.isOpen () ) em.close ();
-		}
+		for ( int ichunk = 0; ichunk < limit; ichunk += chunkSize )
+			super.submit ( new PvChunkSubmissionTask ( this, ichunk + offset, chunkSize ) );
 	}
 
 	public void submitAll ()
@@ -289,7 +268,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 				);
 				theEx = ex;
 				try {
-					Thread.sleep ( RandomUtils.nextLong ( 50, 1000 ) );
+					Thread.sleep ( RandomUtils.nextLong ( 1000*60, 1000*60*5 ) );
 				}
 				catch ( InterruptedException ex1 ) {
 					throw new RuntimeException ( "Internal error: " + ex1.getMessage (), ex1 );

@@ -7,9 +7,8 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 
-import org.hibernate.Session;
-
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.persistence.dao.ExpPropValAnnotationDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryCache;
@@ -24,7 +23,7 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyDiscoveryException;
  *
  */
 public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
-{
+{	
 	@Override
 	public List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> dterms )
 		throws OntologyDiscoveryException
@@ -35,22 +34,17 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 	
 
 	@Override
-	@SuppressWarnings ( "unchecked" )
 	public List<DiscoveredTerm> getOntologyTermUris ( String valueLabel, String typeLabel ) throws OntologyDiscoveryException
 	{
 		String pvkey = ExpPropValAnnotation.getPvalText ( typeLabel, valueLabel );
 		if ( pvkey == null ) return CachedOntoTermDiscoverer.NULL_RESULT;
 
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		ExpPropValAnnotationDAO expPropValAnnotationDAO = new ExpPropValAnnotationDAO ( em );
 
 		try
 		{
-			Session session = (Session) em.getDelegate ();
-			List<ExpPropValAnnotation> pvanns = session
-				.getNamedQuery ( "findByPv" )
-				.setReadOnly ( true )
-				.setParameter ( "pvkey", pvkey )
-				.list ();
+			List<ExpPropValAnnotation> pvanns = expPropValAnnotationDAO.findBySourceText ( pvkey, true );
 			
 			if ( pvanns == null || pvanns.isEmpty () ) return null;
 			if ( pvanns.size () == 1 

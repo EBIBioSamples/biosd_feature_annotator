@@ -25,6 +25,7 @@ import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.FeatureAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.persistence.dao.ExpPropValAnnotationDAO;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
@@ -107,13 +108,13 @@ public class PropertyValAnnotationServiceTest
 		// TODO: replace with the interfaces to be developed.
 		//
 		em = emf.createEntityManager ();
+		ExpPropValAnnotationDAO pvannDao = new ExpPropValAnnotationDAO ( em );
+		
 		for ( int i = 0; i <= 1; i++ )
 		{
 			ExperimentalPropertyValue<ExperimentalPropertyType> pv = pvs.get ( i );
-			Query q = em.createNamedQuery ( "findByPv", ExpPropValAnnotation.class )
-				.setParameter ( "pvkey", ExpPropValAnnotation.getPvalText ( pv ) );
-		
-			List<ExpPropValAnnotation> pvanns = q.getResultList ();
+			List<ExpPropValAnnotation> pvanns = pvannDao.findByExpPropVal ( pv );
+
 			assertTrue ( String.format ( "No annotations saved for %s!", pv.getTermText () ), pvanns.size () > 0 );
 			
 			log.info ( "--------------------------- Saved annotations for '{}' --------------------------", pv.getTermText () );

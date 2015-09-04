@@ -1,8 +1,15 @@
 package uk.ac.ebi.fg.biosd.annotator.persistence;
 
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.List;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
+import org.hibernate.LockMode;
+import org.hibernate.LockOptions;
+import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,31 +59,92 @@ public class AnnotatorPersister
 	
 	private <T> long persistEntities ( Class<T> type )
 	{
-		log.info ( "Saving instances of {}", type.getName () );
+		Collection<Object> objects = store.row ( type ).values ();
+		int sz = objects == null ? 0 :  objects.size ();
+		log.info ( "Saving {} instances of {}", sz, type.getName () );
+		if ( sz == 0 ) return 0;
 		
-		EntityTransaction tx = entityManager.getTransaction ();
-		tx.begin ();
-		int ct = 0;
-		
-		for ( Object o: store.row ( type ).values () )
+		lock ();
+		EntityTransaction tx = this.entityManager.getTransaction ();
+		try
 		{
-			Object eid = this.entityManager.getEntityManagerFactory ().getPersistenceUnitUtil ().getIdentifier ( o );
-			Object edb = this.entityManager.find ( o.getClass (), eid );
-			if ( edb != null ) continue;
-			
-			this.entityManager.persist ( o );
-			
-			if ( ++ct % 100000 == 0 )
-			{
-				tx.commit ();
-				log.info ( "committed {} items", ct );
-				tx.begin ();
-			}
-		}
+			tx.begin ();
+			int ct = 0;
 
-		tx.commit ();
-		log.info ( "done, {} total instances of {} committed", ct, type.getName () );
-		
-		return ct;		
+			for ( Object o: objects )
+			{
+				Object eid = this.entityManager.getEntityManagerFactory ().getPersistenceUnitUtil ().getIdentifier ( o );
+				Object edb = this.entityManager.find ( o.getClass (), eid );
+				if ( edb != null ) {
+					if ( log.isTraceEnabled () ) log.trace ( "Object already in the DB: {}", edb.toString () );
+					continue;
+				}
+								
+				if ( log.isTraceEnabled () ) log.trace ( "Saving: {}", o.toString () );
+				this.entityManager.persist ( o );
+				
+				if ( ++ct % 100000 == 0 )
+				{
+					tx.commit ();
+					log.info ( "committed {} items", ct );
+					tx.begin ();
+				}
+			}
+
+			tx.commit ();
+			log.info ( "done, {} total instances of {} committed", ct, type.getName () );
+			
+			return ct;
+		}
+		finally
+		{
+			if ( tx.isActive () )
+				// Well, it shouldn't be, probably there's an error and hence let's rollback
+				tx.rollback ();
+			
+			unlock ();
+		}		
 	}
+
+
+	private void lock ()
+	{
+		try
+		{
+			EntityTransaction tx = this.entityManager.getTransaction ();
+			
+			while ( true )
+			{
+				tx.begin ();
+				
+				@SuppressWarnings ( "unchecked" )
+				List<Object> lockrec = this.entityManager.createNativeQuery ( 
+					"SELECT id FROM feature_annotator_save_lock FOR UPDATE" 
+				).getResultList ();
+				
+				if ( lockrec.size () == 0 ) break;
+
+				tx.rollback ();
+				Thread.sleep ( 3000 );
+			}
+			
+			this.entityManager.createNativeQuery ( "INSERT INTO feature_annotator_save_lock VALUES ( 1 )" ).executeUpdate ();
+			tx.commit ();
+		}
+		catch ( InterruptedException ex )
+		{
+			throw new RuntimeException ( 
+				"Internal error while trying to get a process lock for saving annotations: " + ex.getMessage (), 
+			ex );
+		}
+	}
+	
+	private void unlock () 
+	{
+		EntityTransaction tx = this.entityManager.getTransaction ();
+		tx.begin ();
+		this.entityManager.createNativeQuery ( "DELETE FROM feature_annotator_save_lock" ).executeUpdate ();
+		tx.commit ();
+	}
+	
 }
