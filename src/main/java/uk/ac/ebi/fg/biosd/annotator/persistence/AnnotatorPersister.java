@@ -1,15 +1,11 @@
 package uk.ac.ebi.fg.biosd.annotator.persistence;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
-import org.hibernate.LockMode;
-import org.hibernate.LockOptions;
-import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,7 +115,7 @@ public class AnnotatorPersister
 				
 				@SuppressWarnings ( "unchecked" )
 				List<Object> lockrec = this.entityManager.createNativeQuery ( 
-					"SELECT id FROM feature_annotator_save_lock FOR UPDATE" 
+					"SELECT id FROM fann_save_lock FOR UPDATE" 
 				).getResultList ();
 				
 				if ( lockrec.size () == 0 ) break;
@@ -128,7 +124,7 @@ public class AnnotatorPersister
 				Thread.sleep ( 3000 );
 			}
 			
-			this.entityManager.createNativeQuery ( "INSERT INTO feature_annotator_save_lock VALUES ( 1 )" ).executeUpdate ();
+			this.entityManager.createNativeQuery ( "INSERT INTO fann_save_lock VALUES ( 1 )" ).executeUpdate ();
 			tx.commit ();
 		}
 		catch ( InterruptedException ex )
@@ -143,8 +139,13 @@ public class AnnotatorPersister
 	{
 		EntityTransaction tx = this.entityManager.getTransaction ();
 		tx.begin ();
-		this.entityManager.createNativeQuery ( "DELETE FROM feature_annotator_save_lock" ).executeUpdate ();
+		this.entityManager.createNativeQuery ( "DELETE FROM fann_save_lock" ).executeUpdate ();
 		tx.commit ();
 	}
 	
+	public int forceUnlock ()
+	{
+		this.unlock ();
+		return 1;
+	}
 }

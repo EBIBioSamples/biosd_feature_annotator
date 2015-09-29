@@ -11,9 +11,9 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 
 /**
  * This annotates a {@link ExperimentalPropertyValue} with ontology entries returned by {@link OntologyTermDiscoverer},

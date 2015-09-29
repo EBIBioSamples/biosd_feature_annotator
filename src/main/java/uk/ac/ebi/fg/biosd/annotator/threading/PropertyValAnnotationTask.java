@@ -1,13 +1,9 @@
 package uk.ac.ebi.fg.biosd.annotator.threading;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
-import uk.ac.ebi.utils.threading.BatchServiceTask;
 
 /**
  * This wraps the invocation of {@link PropertyValAnnotationManager} into a proper {@link PropertyValAnnotationTask task}

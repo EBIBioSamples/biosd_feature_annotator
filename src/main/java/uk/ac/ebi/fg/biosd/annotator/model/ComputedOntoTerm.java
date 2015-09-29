@@ -1,5 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
+import static uk.ac.ebi.fg.biosd.annotator.resources.FeatureAnnotatorResources.TABLE_PREFIX;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -17,7 +19,7 @@ import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
  */
 @Entity
 @Table ( 
-	name = "onto_entry_computed", 
+	name = TABLE_PREFIX + "oe_computed", 
 	indexes = @Index ( columnList = "label" )
 )
 public class ComputedOntoTerm

@@ -1,7 +1,6 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
 import javax.persistence.Entity;
-import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 
 import org.apache.commons.lang3.StringUtils;

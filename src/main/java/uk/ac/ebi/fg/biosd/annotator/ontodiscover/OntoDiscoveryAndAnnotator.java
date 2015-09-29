@@ -6,11 +6,13 @@ import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryMemCache;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntoTermDiscoveryMemCache;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 
 /**
  * TODO: comment me!
+ * 
+ * TODO: currently we ignore labels (coming from Bioportal).
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>25 Jun 2015</dd>
@@ -41,9 +43,9 @@ public class OntoDiscoveryAndAnnotator
 		String pvalTypeLabel = pair.getLeft (), pvalLabel = pair.getRight ();
 		
 		if ( isNumberOrDate && pvalTypeLabel != null )
-			ontoTermDiscoverer.getOntologyTermUris ( pvalTypeLabel, null );
+			ontoTermDiscoverer.getOntologyTerms ( pvalTypeLabel, null );
 		else
-			ontoTermDiscoverer.getOntologyTermUris ( pvalLabel, pvalTypeLabel );
+			ontoTermDiscoverer.getOntologyTerms ( pvalLabel, pvalTypeLabel );
 	}
 
 }

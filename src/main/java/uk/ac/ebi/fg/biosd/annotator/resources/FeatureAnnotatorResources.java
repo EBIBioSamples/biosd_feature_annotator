@@ -14,6 +14,8 @@ import uk.ac.ebi.fg.core_model.resources.Resources;
  */
 public class FeatureAnnotatorResources extends BioSdResources
 {
+	public static final String TABLE_PREFIX = "fann_";
+	
 	/**
 	 * Overrides biosd_model.
 	 */

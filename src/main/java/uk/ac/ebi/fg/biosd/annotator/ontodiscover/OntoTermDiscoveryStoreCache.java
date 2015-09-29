@@ -6,14 +6,15 @@ import java.util.List;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryCache;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyDiscoveryException;
+import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntoTermDiscoveryCache;
+import uk.ac.ebi.onto_discovery.api.OntologyDiscoveryException;
 
 import com.google.common.collect.Table;
 
 /**
- * TODO: comment me!
+ * Caches discovered terms in memory, using {@link AnnotatorResources#getStore()}, so that they can later be saved
+ * into the BioSD database.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>25 Jun 2015</dd>
@@ -51,7 +52,7 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 		// Else, store an annotation for each found term
 		for ( DiscoveredTerm dterm: dterms )
 		{
-			String uri = dterm.getUri ().toASCIIString ();
+			String uri = dterm.getIri ();
 			
 			ExpPropValAnnotation pvann = new ExpPropValAnnotation ( pvkey );
 			pvann.setType ( ANNOTATION_TYPE_MARKER );
@@ -66,8 +67,9 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 		return dterms;
 	}
 
+	@SuppressWarnings ( { "rawtypes", "unchecked" } )
 	@Override
-	public List<DiscoveredTerm> getOntologyTermUris ( String valueLabel, String typeLabel )
+	public List<DiscoveredTerm> getOntologyTerms ( String valueLabel, String typeLabel )
 		throws OntologyDiscoveryException
 	{
 		String pvkey = ExpPropValAnnotation.getPvalText ( typeLabel, valueLabel );

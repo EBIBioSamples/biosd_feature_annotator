@@ -7,8 +7,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
-import com.google.common.collect.Table;
-
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
@@ -20,7 +18,9 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
+
+import com.google.common.collect.Table;
 
 /**
  * TODO: Comment me!
@@ -71,7 +71,7 @@ public class NumericalDataAnnotator
 			// This are the ontology terms associated to the property value by ZOOMA
 			// Only UO terms will be returned here
 			// The invocation saves the terms into memory, for later persistence, and that's all we need here.
-			ontoTermDiscoverer.getOntologyTermUris ( unitLabel, null );
+			ontoTermDiscoverer.getOntologyTerms ( unitLabel, null );
 		}
 	} // annotateUnit ()
 		
@@ -84,9 +84,8 @@ public class NumericalDataAnnotator
 	 */
 	private boolean annotateData ( ExperimentalPropertyValue<?> pval )
 	{
-		String pvalStr = StringUtils.trimToNull ( pval.getTermText () );
+		String pvalStr = DataItem.getPvalText ( pval );
 		if ( pvalStr == null ) return false;
-		if ( pvalStr.length () > AnnotatorResources.MAX_STRING_LEN ) return false;
 				
 		// Do we already have it?
 		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();

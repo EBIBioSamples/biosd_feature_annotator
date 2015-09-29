@@ -4,7 +4,6 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 
-import org.hibernate.Session;
 import org.hibernate.jpa.QueryHints;
 
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
@@ -25,23 +24,24 @@ public class ExpPropValAnnotationDAO extends AbstractDAO<ExpPropValAnnotation>
 	{
 		super ( ExpPropValAnnotation.class, entityManager );
 	}
-
-
+	
 	public List<ExpPropValAnnotation> findBySourceText ( String sourceText, boolean isReadOnly )
 	{
 		if ( sourceText == null ) return null; 
-
+		
 		return this.getEntityManager ()
-			.createNamedQuery ( "pvAnn.findBySourceText", ExpPropValAnnotation.class )
+			.createNamedQuery ( "pvAnn.findBySourceText", this.getManagedClass () )
 			.setHint ( QueryHints.HINT_READONLY, true )
 			.setParameter ( "sourceText", sourceText )
 			.getResultList ();
 	}
 	
-	public List<ExpPropValAnnotation> findBySourceText ( String sourceText ) {
+	public List<ExpPropValAnnotation> findBySourceText ( String sourceText )
+	{
 		return findBySourceText ( sourceText, false );
 	}
 
+	
 	public List<ExpPropValAnnotation> findByExpPropVal ( ExperimentalPropertyValue<?> pv, boolean isReadOnly )
 	{
 		return findBySourceText ( ExpPropValAnnotation.getPvalText ( pv ), isReadOnly );
@@ -51,5 +51,5 @@ public class ExpPropValAnnotationDAO extends AbstractDAO<ExpPropValAnnotation>
 	{
 		return findByExpPropVal ( pv, false );
 	}
-
+	
 }

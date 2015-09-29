@@ -32,7 +32,6 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.utils.regex.RegEx;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;

@@ -1,9 +1,15 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 
 import org.apache.commons.lang3.StringUtils;
+
+import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 
 
 /**
@@ -48,6 +54,22 @@ public abstract class AbstractOntoTermAnnotation extends FeatureAnnotation
 		this.ontoTermUri = ontoTermUri;
 	}
 
+	
+	public OntologyEntry asOntologyEntry ()
+	{
+		return new OntologyEntry ( this.getOntoTermUri (), null );
+	}
+	
+	public static <T extends AbstractOntoTermAnnotation> List<OntologyEntry> asOntologyEntries ( 
+		Collection<T> anns 
+	) 
+	{
+		if ( anns == null ) return null;
+		List<OntologyEntry> result = new ArrayList<> ();
+		for ( AbstractOntoTermAnnotation ann: anns ) result.add ( ann.asOntologyEntry () );
+		return result;
+	} 
+	
 	
   @Override
   public boolean equals ( Object o ) 

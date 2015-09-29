@@ -1,17 +1,13 @@
 package uk.ac.ebi.fg.biosd.annotator.threading;
 
 import java.io.InputStream;
-import java.util.List;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
 import javax.persistence.PersistenceException;
-import javax.persistence.Query;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
-import org.hibernate.jpa.QueryHints;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;

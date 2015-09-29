@@ -6,6 +6,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.Session;
+import org.hibernate.annotations.QueryHints;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
@@ -34,23 +36,38 @@ public class DataItemDAO extends AbstractDAO<DataItem>
 	
 	
 	@SuppressWarnings ( "unchecked" )
-	public <D extends DataItem> D findByText ( String valueText ) 
+	public <D extends DataItem> D findByText ( String valueText, boolean isReadOnly ) 
 	{
 		valueText = StringUtils.trimToNull ( valueText );
 		if ( valueText == null || valueText.length () > AnnotatorResources.MAX_STRING_LEN ) return null;
 		
-		return (D) this.getEntityManager ().find ( DataItem.class, valueText );
+		Session session = (Session) this.getEntityManager ().getDelegate ();
+		session.setDefaultReadOnly ( isReadOnly );
+		
+		return (D) session.get ( DataItem.class, valueText );
+	}
+	
+	public <D extends DataItem> D findByText ( String valueText )
+	{
+		return findByText ( valueText, false );
+	}
+
+	
+	public <D extends DataItem> D findByText ( ExperimentalPropertyValue<?> pv, boolean isReadOnly )
+	{
+		if ( pv == null ) return null;
+		return findByText ( pv.getTermText (), isReadOnly );
 	}
 	
 	public <D extends DataItem> D findByText ( ExperimentalPropertyValue<?> pv )
 	{
-		if ( pv == null ) return null;
-		return findByText ( pv.getTermText () );
+		return findByText ( pv, false );
 	}
+
 	
 	
 	@SuppressWarnings ( "unchecked" )
-	public <D extends DataItem> List<D> find ( D di, boolean getFirstOnly )
+	public <D extends DataItem> List<D> find ( D di, boolean getFirstOnly, boolean isReadOnly )
 	{
 		String qref = null;
 		ValueItem<?> val = null;
@@ -73,6 +90,7 @@ public class DataItemDAO extends AbstractDAO<DataItem>
 		);
 				
 		Query q = this.getEntityManager ().createNamedQuery ( qref );
+		q.setHint ( QueryHints.READ_ONLY, isReadOnly );
 
 		if ( val != null ) 
 			q.setParameter ( "value", val.getValue () );
@@ -88,7 +106,7 @@ public class DataItemDAO extends AbstractDAO<DataItem>
 	
 	public <D extends DataItem> D find ( D di )
 	{
-		List<D> results = find ( di, true );
+		List<D> results = find ( di, true, false );
 		return results.isEmpty () ? null : results.iterator ().next ();
 	}
 	

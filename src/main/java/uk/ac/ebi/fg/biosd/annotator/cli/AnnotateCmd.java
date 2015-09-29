@@ -15,6 +15,7 @@ import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
 
@@ -55,8 +56,10 @@ public class AnnotateCmd
 				if ( cli.hasOption ( "submission" ) || cli.hasOption ( "sampletab" ) ) xopts++;
 				if ( cli.hasOption ( "offset" ) || cli.hasOption ( "limit" ) ) xopts++;
 				if ( cli.hasOption ( "purge" ) ) xopts++;
-				if ( cli.hasOption ( "property-count" ) )
+				
+				if ( cli.hasOption ( "property-count" ) || cli.hasOption ( "unlock" ) )
 				{
+					// random-quota is incompatible with the above options, while it is with the others
 					if ( cli.hasOption ( "random-quota" ) )
 						xopts = 2;
 					else
@@ -92,11 +95,21 @@ public class AnnotateCmd
 		  	Purger purger = new Purger ();
 		  	if ( rndQuota != null ) purger.setDeletionRate ( rndQuota );
 		  	
-		  	log.info ( "--------- removing annotator entities older than {} day(s), please wait... ---------\n", age );
+		  	log.info ( "--------- removing annotator entities older than {} day(s), please wait... ---------", age );
 		  	int nitems = purger.purgeOlderThan ( age );
 		  	log.info ( "older annotator entries purged, {} item(s) removed", nitems ); 
 		  	return;
 		  }
+		  
+		  // Reset locks
+		  if ( cli.hasOption ( "unlock" ) )
+		  {
+				log.info ( "--------- forcibly removing annotator lock flags from the database ---------" );
+		  	int result = new AnnotatorPersister ().forceUnlock ();
+		  	log.info ( "done, {} record(s) removed", result );
+		  	return;
+		  }
+		  
 		  
 		  
 		  // This is the real annotation job
@@ -207,13 +220,23 @@ public class AnnotateCmd
 
 		opts.addOption ( OptionBuilder
 			.withDescription ( "remove entries created by the annotator, which are older than <age-days> (default is 90),"
-				+ " so that annotations can be updated (incompatible with other options, except --random-quota)" )
+				+ " so that annotations can be updated (incompatible with other options, except --random-quota)." 
+			)
 			.withLongOpt ( "purge" )
 			.withArgName ( "age-days" )
 			.hasOptionalArg ()
 			.create ( 'g' )
 		);
-		
+
+		opts.addOption ( OptionBuilder
+			.withDescription ( 
+				"Removes lock records from the database, used to synchronise processes in clustering/LSF mode. This might be"
+				+ " useful if the execution of annotate_lsf.sh seems to hang up. STOP any annotator job on LSF before running"
+				+ " this option!"
+			)
+			.withLongOpt ( "unlock" )
+			.create ( 'k' )
+		);
 		
 		opts.addOption ( OptionBuilder
 			.withDescription ( "prints out this message" )

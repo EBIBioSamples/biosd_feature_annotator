@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 
 import javax.persistence.EntityManager;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,17 +57,21 @@ public class OntoResolverTest
 		//
 		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 
-		ComputedOntoTerm oes = (ComputedOntoTerm) store.get ( 
+		ComputedOntoTerm oeComp = (ComputedOntoTerm) store.get ( 
 			ComputedOntoTerm.class, "http://www.ebi.ac.uk/efo/EFO_0000270"
 		);
-		assertNotNull ( "Expected OntoTerm not created!", oes );
+		assertNotNull ( "Expected OntoTerm not created!", oeComp );
 		
-		ResolvedOntoTermAnnotation oeann = (ResolvedOntoTermAnnotation) store.get (
+		ResolvedOntoTermAnnotation oeAnn = (ResolvedOntoTermAnnotation) store.get (
 			ResolvedOntoTermAnnotation.class, ResolvedOntoTermAnnotation.getOntoEntryText ( oe ) 
 		);
-		
-		assertNotNull ( "No annotations created!", oeann );
 
+		assertNotNull ( "Annotation not created!", oeAnn );
+		assertNotNull ( "Resolved term not created!", oeComp );
+		assertEquals ( "Wrong label fetched for the annotation!", "asthma", StringUtils.lowerCase ( oeComp.getLabel () ) ); 
+		assertEquals ( "Wrong URI fetched for the resolved term", "http://www.ebi.ac.uk/efo/EFO_0000270", oeComp.getUri () );
+		assertEquals ( "Annotation and term have different URIs!", oeComp.getUri (), oeAnn.getOntoTermUri () );
+		
 		// Verify persistence
 		//
 		AnnotatorPersister persister = new AnnotatorPersister ();
@@ -74,12 +79,17 @@ public class OntoResolverTest
 		
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 
-		ComputedOntoTerm oedb = em.find ( ComputedOntoTerm.class, oes.getUri () );
-		assertNotNull ( "Resolved ontology term not saved!", oedb );
+		ComputedOntoTerm oeCompDb = em.find ( ComputedOntoTerm.class, oeComp.getUri () );
+		assertNotNull ( "Resolved ontology term not saved!", oeCompDb );
 		
-		ResolvedOntoTermAnnotation oeanndb = em.find ( ResolvedOntoTermAnnotation.class, oeann.getSourceText () );
-		assertNotNull ( "Ontology annotation not saved!", oeanndb );
-		assertEquals ( "Wrong annotation type!", OntoResolverAndAnnotator.ANNOTATION_TYPE_MARKER, oeanndb.getType () );
-		assertEquals ( "Wrong annotation provenance!", PropertyValAnnotationManager.PROVENANCE_MARKER, oeanndb.getProvenance () );
+		ResolvedOntoTermAnnotation oeAnnDb = em.find ( ResolvedOntoTermAnnotation.class, oeAnn.getSourceText () );
+		assertNotNull ( "Ontology annotation not saved!", oeAnnDb );
+		assertEquals ( "Wrong annotation type!", OntoResolverAndAnnotator.ANNOTATION_TYPE_MARKER, oeAnnDb.getType () );
+		assertEquals ( "Wrong annotation provenance!", PropertyValAnnotationManager.PROVENANCE_MARKER, oeAnnDb.getProvenance () );
+	
+		assertNotNull ( "Resolved term not created in the DB!", oeCompDb );
+		assertEquals ( "Wrong label fetched for the annotation from DB!", "asthma", StringUtils.lowerCase ( oeCompDb.getLabel () ) ); 
+		assertEquals ( "Wrong URI fetched for the resolved term from DB!", "http://www.ebi.ac.uk/efo/EFO_0000270", oeCompDb.getUri () );
+		assertEquals ( "Annotation and term have different URIs in the DB!", oeCompDb.getUri (), oeAnnDb.getOntoTermUri () );
 	}
 }

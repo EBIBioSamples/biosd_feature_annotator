@@ -1,5 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
+import static uk.ac.ebi.fg.biosd.annotator.resources.FeatureAnnotatorResources.TABLE_PREFIX;
+
 import java.io.Serializable;
 import java.util.regex.Pattern;
 
@@ -33,7 +35,7 @@ import uk.ac.ebi.utils.regex.RegEx;
 	query = "FROM ExpPropValAnnotation ann WHERE sourceText = :sourceText"
 )
 @Table ( 
-	name = "exp_prop_val_feature_ann", 
+	name = TABLE_PREFIX + "exp_pv_feature_ann", 
 	indexes = {
 		@Index ( name = "pvann_pvkey", columnList = "source_text" ),
 		@Index ( name = "pvann_uri", columnList = "term_uri" )

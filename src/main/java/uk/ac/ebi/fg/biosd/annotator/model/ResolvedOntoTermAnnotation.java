@@ -1,16 +1,17 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
+import static uk.ac.ebi.fg.biosd.annotator.resources.FeatureAnnotatorResources.TABLE_PREFIX;
+
 import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.Index;
 import javax.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
 
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
-
-import javax.persistence.Index;
 
 /**
  * TODO: comment me!
@@ -21,7 +22,7 @@ import javax.persistence.Index;
  */
 @Entity
 @Table ( 
-	name = "resolved_oe_feature_ann", 
+	name = TABLE_PREFIX + "resolved_oe_ann", 
 	indexes = {
 		@Index ( name = "resoeann_term_uri", columnList = "term_uri" )
 	}

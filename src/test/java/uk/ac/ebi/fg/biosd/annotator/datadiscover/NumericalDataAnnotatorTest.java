@@ -12,7 +12,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 
 import org.joda.time.DateTime;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,9 +35,9 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer.DiscoveredTerm;
 
 import com.google.common.collect.Table;
 
@@ -145,7 +144,7 @@ public class NumericalDataAnnotatorTest
 		DataItemDAO didao = new DataItemDAO ( em );
 
 		NumberItem di = new NumberItem ( 50.0 );
-		List<NumberItem> didbs = didao.find ( di, false );
+		List<NumberItem> didbs = didao.find ( di, false, true );
 		assertEquals ( "Wrong no of saved numbers!", 1, didbs.size () );
 		
 		// Purge
@@ -153,6 +152,6 @@ public class NumericalDataAnnotatorTest
 		purger.purge ( new DateTime ().minusMinutes ( 5 ).toDate (), new Date () );
 		
 		didao.setEntityManager ( em = emf.createEntityManager () );
-		assertEquals ( "Data item not deleted!", 0, didao.find ( di, false ).size () );
+		assertEquals ( "Data item not deleted!", 0, didao.find ( di, false, true ).size () );
 	}
 }

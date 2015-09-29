@@ -5,11 +5,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 
+import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,14 +22,15 @@ import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
+import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.utils.time.XStopWatch;
 
 /**
@@ -63,7 +66,7 @@ public class BioSDOntoDiscoveringCacheTest
 	@After
 	public void cleanUp ()
 	{
-		//new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
+		new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
 	}
 	
 	
@@ -83,7 +86,7 @@ public class BioSDOntoDiscoveringCacheTest
 		// Annotate this property
 		//
 		timer.start ();
-		List<DiscoveredTerm> terms = ontoTermDisvoverer.getOntologyTermUris ( value, type );
+		List<DiscoveredTerm> terms = ontoTermDisvoverer.getOntologyTerms ( value, type );
 		long time1 = timer.getTime ();
 		
 		assertTrue ( "No discovered terms!", terms.size () > 0 );
@@ -111,7 +114,7 @@ public class BioSDOntoDiscoveringCacheTest
 		
 		for ( DiscoveredTerm dtermi: terms )
 		{
-			String uri = dtermi.getUri ().toASCIIString ();
+			String uri = dtermi.getIri ();
 			ExpPropValAnnotation pvanndb = em.find ( ExpPropValAnnotation.class, new ExpPropValAnnotation.Key ( pvkey, uri ) );
 
 			assertNotNull ( format ( "PV annotation not saved for %s:%s!", pvkey, uri ), pvanndb );
@@ -131,7 +134,7 @@ public class BioSDOntoDiscoveringCacheTest
 		timer.restart ();
 		for ( int i = 0; i < 100; i++ )
 		{
-			List<DiscoveredTerm> terms2 = biosdCache.getOntologyTermUris ( value, type );
+			List<DiscoveredTerm> terms2 = biosdCache.getOntologyTerms ( value, type );
 			log.trace ( "Call {}, time {}", i, timer.getTime () );
 			assertEquals ( "Second call to the cache didn't work!", terms.size (), terms2.size () );
 		}
@@ -160,7 +163,7 @@ public class BioSDOntoDiscoveringCacheTest
 		ExperimentalPropertyValue<ExperimentalPropertyType> pval 
 			= new ExperimentalPropertyValue<> ( value, ptype );
 		
-		List<DiscoveredTerm> terms = ontoTermDisvoverer.getOntologyTermUris ( value, type );
+		List<DiscoveredTerm> terms = ontoTermDisvoverer.getOntologyTerms ( value, type );
 		assertTrue ( "Non-empty result for discovered terms!", terms.isEmpty () );
 		
 		AnnotatorPersister persister = new AnnotatorPersister ();

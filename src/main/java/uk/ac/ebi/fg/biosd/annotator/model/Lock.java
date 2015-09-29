@@ -1,5 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
+import static uk.ac.ebi.fg.biosd.annotator.resources.FeatureAnnotatorResources.TABLE_PREFIX;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -12,7 +14,7 @@ import javax.persistence.Table;
  *
  */
 @Entity
-@Table ( name = "feature_annotator_save_lock" )
+@Table ( name = TABLE_PREFIX + "save_lock" )
 public class Lock
 {
 	private int id = 0;

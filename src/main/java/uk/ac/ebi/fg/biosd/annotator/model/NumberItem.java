@@ -3,9 +3,7 @@ package uk.ac.ebi.fg.biosd.annotator.model;
 import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
-import javax.persistence.Index;
 import javax.persistence.NamedQuery;
-import javax.persistence.Table;
 
 /**
  * TODO: Comment me!

@@ -12,7 +12,6 @@ import uk.ac.ebi.bioportal.webservice.exceptions.OntologyServiceException;
 import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
-import uk.ac.ebi.fg.biosd.annotator.model.AbstractOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
@@ -92,12 +91,18 @@ public class OntoResolverAndAnnotator
 				uri = bpOntoTerm.getIri ();
 
 				// Save in the memory store, for later persistence
-				store.put ( ComputedOntoTerm.class, uri, new ComputedOntoTerm ( uri, bpOntoTerm.getPreferredLabel () ) );
+				// This ComputedOntoTerm might be already in the store, unless it's already there.
+				synchronized ( uri.intern () )
+				{
+					if ( !store.contains ( ComputedOntoTerm.class, uri ) )
+						store.put ( ComputedOntoTerm.class, uri, new ComputedOntoTerm ( uri, bpOntoTerm.getPreferredLabel () ) );
+				}
 
-				// else, it will stay null and the annotation will tell us it's null
+				// if Bioportal fails, this step is skipped, the annotation's URI will stay null and the annotation will tell 
+				// us the resolution has already failed, so we don't need to try again
 				oeann.setOntoTermUri ( uri );
 			}
-			
+
 			// Save in memory store, for lookup and later persistence
 			store.put ( ResolvedOntoTermAnnotation.class, oekey, oeann );
 
