@@ -1,16 +1,15 @@
 package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache.NULL_TERM_URI;
+import static java.lang.String.format;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
 import org.junit.After;
@@ -20,19 +19,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
-import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.CachedOntoTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntoTermDiscoveryMemCache;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.utils.time.XStopWatch;
 
 /**
@@ -42,14 +40,27 @@ import uk.ac.ebi.utils.time.XStopWatch;
  * @author Marco Brandizi
  *
  */
-@SuppressWarnings ( "unchecked" )
 public class BioSDOntoDiscoveringCacheTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
+	private OntologyTermDiscoverer ontoTermDisvoverer;
+	private BioSDOntoDiscoveringCache biosdCache;
+	
 	
 	@Before
-	public void initResources () {
+	public void initResources () 
+	{
 		AnnotatorResources.reset ();
+
+		biosdCache = new BioSDOntoDiscoveringCache ();
+		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
+		zoomaDiscoverer.setZoomaThresholdScore ( 54.0f );
+
+		// We need both caches, because only OntoTermDiscoveryStoreCache will persist the disvovered terms
+		ontoTermDisvoverer = new CachedOntoTermDiscoverer (  
+			new CachedOntoTermDiscoverer ( zoomaDiscoverer, biosdCache ),
+			new OntoTermDiscoveryStoreCache ()
+		);
 	}
 	
 	@After
@@ -69,79 +80,63 @@ public class BioSDOntoDiscoveringCacheTest
 		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( type );
 		ExperimentalPropertyValue<ExperimentalPropertyType> pval 
 			= new ExperimentalPropertyValue<> ( value, ptype );
-		
-		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
-		EntityManager em = emf.createEntityManager ();
-		
-		EntityTransaction tx = em.getTransaction ();
-		tx.begin ();
-		em.persist ( pval );
-		tx.commit ();
-		em.close ();
-		
+				
 		XStopWatch timer = new XStopWatch ();
-		
-		BioSDOntoDiscoveringCache baseCache = new BioSDOntoDiscoveringCache ();
-		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
-		zoomaDiscoverer.setZoomaThreesholdScore ( 54.0f );
-		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
-		
-		timer.start ();
 		
 		// Annotate this property
 		//
-		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
+		timer.start ();
+		List<DiscoveredTerm> terms = ontoTermDisvoverer.getOntologyTerms ( value, type );
 		long time1 = timer.getTime ();
 		
+		assertTrue ( "No discovered terms!", terms.size () > 0 );
+		
 		log.info ( "Discovered entries:\n{}", terms.toString () );
-			
-		ExtendedDiscoveredTerm dterm = (ExtendedDiscoveredTerm) terms.iterator ().next ();
-		String termUri = dterm.getUri ().toASCIIString ();
-		float termScore = dterm.getScore ();
-		int nterms = terms.size ();
 		
-		// Now save it to the DB
-		for ( DiscoveredTerm dtermi: terms )
-			pval.addOntologyTerm ( ( (ExtendedDiscoveredTerm) dtermi).getOntologyTerm () );
-		
-		// we have to do it this indirect way, due to the way the persister is designed to work
+		// Now save it to the DB and verify persistence
 		//
-		AnnotatorResources.getInstance ().getStore ().find ( pval, pval.getId ().toString () ); 
-		AnnotatorPersister persister = new AnnotatorPersister (); // it fetches the prop back from the store
+		AnnotatorPersister persister = new AnnotatorPersister ();
 		persister.persist ();
 		
-		
-		// verify it went to the DB
-		//
-		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( value, type );
+		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+		EntityManager em = emf.createEntityManager ();
 
-		em = emf.createEntityManager ();
-		List<Object[]> dbentries = em.createNamedQuery ( "findOntoAnnotations" )
-	  .setParameter ( "provenance", zoomaMarker.getProvenance ().getName () )
-	  .setParameter ( "annotation", zoomaMarker.getText () )
-		.getResultList ();
+		String pvkey = ExpPropValAnnotation.getPvalText ( pval );
+
+		// TODO: we need to move this on some DAO or alike
+		Number savedAnnCt = (Number) em.createQuery ( 
+			"SELECT COUNT ( DISTINCT pvann ) FROM ExpPropValAnnotation pvann WHERE sourceText = :sourceText" 
+		)
+		.setParameter ( "sourceText", pvkey )
+		.getSingleResult ();
+
+		assertEquals ( "Wrong size for saved terms!", terms.size (), savedAnnCt.intValue () );
 		
-		assertEquals ( "entries not saved in the cache!", nterms, dbentries.size () );
-		
-		boolean hasEntry = false;
-		for ( Object[] tuple: dbentries )
+		for ( DiscoveredTerm dtermi: terms )
 		{
-			OntologyEntry dbOe = (OntologyEntry) tuple [ 0 ];
-			double dbScore =  ((Number) tuple [ 1 ]).doubleValue ();
-			log.info ( "Tuple in the DB: {}, {}", dbOe, dbScore );
-			
-			if ( termUri.equals ( dbOe.getAcc () ) && termScore == dbScore )
-				hasEntry = true;
-		}
+			String uri = dtermi.getIri ();
+			ExpPropValAnnotation pvanndb = em.find ( ExpPropValAnnotation.class, new ExpPropValAnnotation.Key ( pvkey, uri ) );
+
+			assertNotNull ( format ( "PV annotation not saved for %s:%s!", pvkey, uri ), pvanndb );
+			assertEquals (
+				format ( "Wrong annotation type for %s:%s!", pvkey, uri ),
+				OntoTermDiscoveryStoreCache.ANNOTATION_TYPE_MARKER, pvanndb.getType ()
+			);
+			assertEquals ( 
+				format ( "Wrong annotation provenance for %s:%s!", pvkey, uri ),
+				PropertyValAnnotationManager.PROVENANCE_MARKER, pvanndb.getProvenance () 
+			);
+		}	
 		
-		assertTrue ( "Original Entry not found in the DB cache!", hasEntry );
-		
-		// Lookup again, now search times must be much faster, thanks to the cache
+		// Test that the BioSD cache is actually faster
 		//
+		log.debug ( "Testing calls to the loaded cache" );
+		timer.restart ();
 		for ( int i = 0; i < 100; i++ )
 		{
-			terms = client.getOntologyTermUris ( value, type );
+			List<DiscoveredTerm> terms2 = biosdCache.getOntologyTerms ( value, type );
 			log.trace ( "Call {}, time {}", i, timer.getTime () );
+			assertEquals ( "Second call to the cache didn't work!", terms.size (), terms2.size () );
 		}
 		timer.stop ();
 		
@@ -154,93 +149,43 @@ public class BioSDOntoDiscoveringCacheTest
 	}
 	
 	/**
-	 * Tests that string values not related to ontologies are actually associated to the 
-	 * {@link BioSDOntoDiscoveringCache#NULL_TERM_URI} and corresponding objects are created in the BioSD db.
-	 * 
-	 */
+	* Tests that string values not related to ontologies are actually associated to an empty result.
+	*/
+	@SuppressWarnings ( "unchecked" )
 	@Test
 	public void testNullMapping ()
 	{
-		BioSDOntoDiscoveringCache baseCache = new BioSDOntoDiscoveringCache ();
-		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
-		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, baseCache );
-
-		// Create and annotate the property
+		// Create the property
 		//
-		String value = "bla bla foo value 1234", type = "foo type 2233";
+		String value = "bla bla bla 123", type = "foo type";
 
-		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
+		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( type );
+		ExperimentalPropertyValue<ExperimentalPropertyType> pval 
+			= new ExperimentalPropertyValue<> ( value, ptype );
 		
-		assertTrue ( "Wrong mapping returned!", terms.isEmpty () );
-
+		List<DiscoveredTerm> terms = ontoTermDisvoverer.getOntologyTerms ( value, type );
+		assertTrue ( "Non-empty result for discovered terms!", terms.isEmpty () );
 		
-		// Now persist results in memory
 		AnnotatorPersister persister = new AnnotatorPersister ();
 		persister.persist ();
-
 		
-		// Verify there is the OE and the annotation
-		//
-		TextAnnotation zoomaMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( value, type );
+		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+		EntityManager em = emf.createEntityManager ();
 
-		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		
-		List<Object[]> dbentries = em.createNamedQuery ( "findOntoAnnotations" )
-	  .setParameter ( "provenance", zoomaMarker.getProvenance ().getName () )
-	  .setParameter ( "annotation", zoomaMarker.getText () )
+		String pvkey = ExpPropValAnnotation.getPvalText ( pval );
+
+		// TODO: we need to move this on some DAO or alike
+		List<ExpPropValAnnotation> dbanns = em.createQuery ( 
+			"FROM ExpPropValAnnotation pvann WHERE sourceText = :sourceText" 
+		)
+		.setParameter ( "sourceText", pvkey )
 		.getResultList ();
-		
-		assertEquals ( "nothing saved in the cache!", 1, dbentries.size () );
-				
-		OntologyEntry dbOe = ((OntologyEntry) dbentries.get ( 0 ) [ 0 ]);
-		
-		assertEquals ( "Null mapping didn't save null ontology term!", 
-			NULL_TERM_URI, 
-			dbOe.getAcc ()
+
+		assertEquals ( "Wrong size for saved terms!", 1, dbanns.size () );
+		assertEquals ( "Saved annotation has a bad URI!",
+			ExpPropValAnnotation.NULL_TERM_URI,
+			dbanns.iterator ().next ().getOntoTermUri () 
 		);
-
-		em.close ();
-		
-	}
-	
-	
-	/**
-	 * Tests that {@link BioSDOntoDiscoveringCache} and {@link OntologyTermDiscoverer} are used correctly when 
-	 * combined together.
-	 */
-	@Test
-	public void testBothCacheLevels ()
-	{
-		// The chain is: caller -> cached ( mem cache ) -> cached ( BioSD cache ) -> ZOOMA
-		// 
-		OntoTermDiscoveryMemCache memCache = new OntoTermDiscoveryMemCache ();
-		BioSDOntoDiscoveringCache dbCache = new BioSDOntoDiscoveringCache ();
-		
-		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
-		zoomaDiscoverer.setZoomaThreesholdScore ( 50.0f );
-		
-		OntologyTermDiscoverer level2Client = new CachedOntoTermDiscoverer ( zoomaDiscoverer, dbCache );
-		
-		OntologyTermDiscoverer client = new CachedOntoTermDiscoverer ( level2Client, memCache );
-	
-		
-		// Test this property
-		//
-		String value = "homo sapiens", type = "specie";
-
-		List<DiscoveredTerm> terms = client.getOntologyTermUris ( value, type );
-		log.info ( "Discovered entries:\n{}", terms.toString () );
-
-		// Save
-		//
-		AnnotatorPersister persister = new AnnotatorPersister ();
-		persister.persist ();
-		
-		
-		// Test both caches are used. More advanced tests of this are in the ZOOMA client module
-		//
-		assertNotNull ( "Entry not saved in memory cache!", memCache.getOntologyTermUris ( value, type ) );
-		assertNotNull ( "Entry not saved in DB cache!", dbCache.getOntologyTermUris ( value, type ) );
 	}
 	
 }

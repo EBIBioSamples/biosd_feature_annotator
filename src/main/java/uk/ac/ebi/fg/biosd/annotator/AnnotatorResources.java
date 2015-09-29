@@ -1,18 +1,11 @@
 package uk.ac.ebi.fg.biosd.annotator;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import uk.ac.ebi.fg.biosd.annotator.persistence.SynchronizedStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.MemoryStore;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.Store;
-import uk.ac.ebi.fg.biosd.sampletab.parser.object_normalization.normalizers.toplevel.AnnotationNormalizer;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 /**
  * TODO: comment me!
@@ -23,10 +16,17 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.Discovere
  */
 public class AnnotatorResources
 {
-	private final Store store = new SynchronizedStore ( new MemoryStore () );
-	private final Map<String, List<DiscoveredTerm>> ontoTerms = new HashMap<String, List<DiscoveredTerm>> ();
-	private final AnnotationNormalizer<Annotation> annNormalizer = new AnnotationNormalizer<Annotation> ( this.store );
+	/**
+	 * Property values or types longer than this lenght shouldn't be analysed
+	 */
+	public static final int MAX_STRING_LEN = 150;
+	
+	// TODO: needs to be moved to 'store'
+	private final Table<Class, String, Object> store = HashBasedTable.create ();	
+	
 	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
+	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
+
 	private final PropertyValAnnotationManager pvAnnMgr;
 	
 	private static AnnotatorResources instance = new AnnotatorResources ();
@@ -34,27 +34,17 @@ public class AnnotatorResources
 	private AnnotatorResources () 
 	{
 		((StatsZOOMASearchFilter) this.zoomaClient).setThrottleMode ( true );
-		pvAnnMgr = new PropertyValAnnotationManager ( this );
+		pvAnnMgr = new PropertyValAnnotationManager ( this.zoomaClient );
 	}
 
 	public static AnnotatorResources getInstance ()
 	{
 		return instance;
 	}
-
-	public Store getStore ()
+	
+	public Table<Class, String, Object> getStore ()
 	{
 		return store;
-	}
-
-	public Map<String, List<DiscoveredTerm>> getOntoTerms ()
-	{
-		return ontoTerms;
-	}
-
-	public AnnotationNormalizer<Annotation> getAnnNormalizer ()
-	{
-		return annNormalizer;
 	}
 	
 	public PropertyValAnnotationManager getPvAnnMgr ()

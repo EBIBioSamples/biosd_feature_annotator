@@ -1,15 +1,9 @@
 package uk.ac.ebi.fg.biosd.annotator.threading;
 
-import javax.persistence.PersistenceException;
-
-import org.apache.commons.lang3.RandomUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
-import uk.ac.ebi.utils.threading.BatchServiceTask;
 
 /**
  * This wraps the invocation of {@link PropertyValAnnotationManager} into a proper {@link PropertyValAnnotationTask task}
@@ -20,19 +14,17 @@ import uk.ac.ebi.utils.threading.BatchServiceTask;
  * @author Marco Brandizi
  *
  */
-public class PropertyValAnnotationTask extends BatchServiceTask
+class PropertyValAnnotationTask extends AnnotatorTask
 {
-	private final long propertyValueId; 
-	
-	private Logger log = LoggerFactory.getLogger ( this.getClass () );
-	
+	private final ExperimentalPropertyValue<ExperimentalPropertyType> propertyValue; 
+		
 	/**
 	 * We share a single instance of the annotator, which keeps links to caches and the like.
 	 */
-	public PropertyValAnnotationTask ( long pvalId )
+	public PropertyValAnnotationTask ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
 	{
-		super ( "ANN:" + pvalId );
-		this.propertyValueId = pvalId;
+		super ( "ANN:" + pv.getId () );
+		this.propertyValue = pv;
 	}
 
 	/**
@@ -43,36 +35,13 @@ public class PropertyValAnnotationTask extends BatchServiceTask
 	{
 		try 
 		{
-			PersistenceException theEx = null;
 			PropertyValAnnotationManager pvAnnMgr = AnnotatorResources.getInstance ().getPvAnnMgr ();
-					
-			// Try more times, in the attempt to face concurrency issues we have in cluster mode.
-			for ( int attempts = 5; attempts > 0; attempts-- )
-			{
-				try 
-				{
-					pvAnnMgr.annotate ( this.propertyValueId );
-					return;
-				}
-				catch ( PersistenceException ex )
-				{
-					log.trace ( String.format ( 
-						"Database error: '%s', probably due to concurrency issues, retrying %d more time(s)", ex.getMessage (), attempts ), 
-						ex
-					);
-					theEx = ex;
-					Thread.sleep ( RandomUtils.nextLong ( 50, 1000 ) );
-				}
-			}
-			throw new PersistenceException ( 
-				"Couldn't fetch data from the BioSD database, giving up after 5 attempts, likely due to: " + theEx.getMessage (),
-				theEx 
-			);
+			pvAnnMgr.annotate ( this.propertyValue );
 		}
 		catch ( Exception ex ) 
 		{
 			// TODO: proper exit code
-			log.error ( "Error while annotating property value #" + this.propertyValueId + ": " + ex.getMessage (), ex );
+			log.error ( "Error while annotating property value #" + this.propertyValue + ": " + ex.getMessage (), ex );
 			exitCode = 1;
 		}
 	}

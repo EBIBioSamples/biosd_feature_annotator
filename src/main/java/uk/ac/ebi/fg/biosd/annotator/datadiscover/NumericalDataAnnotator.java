@@ -9,21 +9,18 @@ import org.apache.commons.lang3.time.DateUtils;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ExtendedDiscoveredTerm;
+import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
+import uk.ac.ebi.fg.biosd.annotator.model.DateItem;
+import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
+import uk.ac.ebi.fg.biosd.annotator.model.NumberRangeItem;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DataItem;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.DateItem;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberItem;
-import uk.ac.ebi.fg.core_model.expgraph.properties.dataitems.NumberRangeItem;
-import uk.ac.ebi.fg.core_model.terms.AnnotationType;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
-import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.DiscoveredTerm;
+import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
+
+import com.google.common.collect.Table;
 
 /**
  * TODO: Comment me!
@@ -34,6 +31,8 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.OntologyTermDiscoverer.Discovere
  */
 public class NumericalDataAnnotator
 {
+	public static final String ANNOTATION_TYPE_MARKER = "Computed Numerical Data";
+	
 	private final OntologyTermDiscoverer ontoTermDiscoverer;
 	private final OntoResolverAndAnnotator ontoTermResolver;
 	
@@ -71,11 +70,8 @@ public class NumericalDataAnnotator
 			
 			// This are the ontology terms associated to the property value by ZOOMA
 			// Only UO terms will be returned here
-			for ( DiscoveredTerm dterm: ontoTermDiscoverer.getOntologyTermUris ( unitLabel, null ) )
-			{
-					OntologyEntry oe = ((ExtendedDiscoveredTerm) dterm).getOntologyTerm ();
-					u.addOntologyTerm ( oe );
-			}
+			// The invocation saves the terms into memory, for later persistence, and that's all we need here.
+			ontoTermDiscoverer.getOntologyTerms ( unitLabel, null );
 		}
 	} // annotateUnit ()
 		
@@ -88,98 +84,82 @@ public class NumericalDataAnnotator
 	 */
 	private boolean annotateData ( ExperimentalPropertyValue<?> pval )
 	{
-		String pvalStr = StringUtils.trimToNull ( pval.getTermText () );
+		String pvalStr = DataItem.getPvalText ( pval );
 		if ( pvalStr == null ) return false;
 				
-		DataItem dataItem = null;
+		// Do we already have it?
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 		
-		// Start checking a middle separator, to see if it is a range
-		String chunks[] = pvalStr.substring ( 0, Math.min ( pvalStr.length (), 300 ) ).split ( "(\\-|\\.\\.|\\,)" );
-		
-		if ( chunks != null && chunks.length == 2 )
+		synchronized ( pvalStr.intern () )
 		{
-			chunks [ 0 ] = StringUtils.trimToNull ( chunks [ 0 ] );
-			chunks [ 1 ] = StringUtils.trimToNull ( chunks [ 1 ] );
+			DataItem dataItem = (DataItem) store.get ( DataItem.class, pvalStr );
+			if ( dataItem != null ) return true;
+	
+			// Start checking a middle separator, to see if it is a range
+			String chunks[] = pvalStr.split ( "(\\-|\\.\\.|\\,)" );
 			
-			// Valid chunks?
-			if ( chunks [ 0 ] != null && chunks [ 1 ] != null )
+			if ( chunks != null && chunks.length == 2 )
 			{
-				// Number chunks?
-				if ( NumberUtils.isNumber ( chunks [ 0 ] ) && NumberUtils.isNumber ( chunks [ 1 ] ) )
+				chunks [ 0 ] = StringUtils.trimToNull ( chunks [ 0 ] );
+				chunks [ 1 ] = StringUtils.trimToNull ( chunks [ 1 ] );
+				
+				// Valid chunks?
+				if ( chunks [ 0 ] != null && chunks [ 1 ] != null )
 				{
-					try {
-						double lo = Double.parseDouble ( chunks [ 0 ] );
-						double hi = Double.parseDouble ( chunks [ 1 ] );
-						dataItem = new NumberRangeItem ( lo, hi );
-					} 
-					catch ( NumberFormatException nex ) {
-						// Just ignore all in case of problems
+					// Number chunks?
+					if ( NumberUtils.isNumber ( chunks [ 0 ] ) && NumberUtils.isNumber ( chunks [ 1 ] ) )
+					{
+						try {
+							double lo = Double.parseDouble ( chunks [ 0 ] );
+							double hi = Double.parseDouble ( chunks [ 1 ] );
+							dataItem = new NumberRangeItem ( lo, hi );
+						} 
+						catch ( NumberFormatException nex ) {
+							// Just ignore all in case of problems
+						}
 					}
+				} // if valid chunks
+			} // if there are chunks
+			
+			// Is it a single number?
+			else if ( NumberUtils.isNumber ( pvalStr ) ) 
+				try {
+					dataItem = new NumberItem ( Double.parseDouble ( pvalStr ) );
 				}
-			} // if valid chunks
-		} // if there are chunks
-		
-		// Is it a single number?
-		else if ( NumberUtils.isNumber ( pvalStr ) ) 
-			try {
-				dataItem = new NumberItem ( Double.parseDouble ( pvalStr ) );
+				catch ( NumberFormatException nex ) {
+					// Just ignore all in case of problems
 			}
-			catch ( NumberFormatException nex ) {
-				// Just ignore all in case of problems
-		}
-
-		else if ( pval.getUnit () != null )
-		{
-			// Or maybe a single date?
-			// TODO: factorise these constants
-			try {
-				dataItem = new DateItem ( DateUtils.parseDate ( pvalStr, 
-					"dd'/'MM'/'yyyy", "dd'/'MM'/'yyyy HH:mm:ss", "dd'/'MM'/'yyyy HH:mm", 
-					"dd'-'MM'-'yyyy", "dd'-'MM'-'yyyy HH:mm:ss", "dd'-'MM'-'yyyy HH:mm",
-					"yyyyMMdd", "yyyyMMdd'-'HHmmss", "yyyyMMdd'-'HHmm"  
-				));
+	
+			else if ( pval.getUnit () != null )
+			{
+				// Or maybe a single date?
+				// TODO: factorise these constants
+				try {
+					dataItem = new DateItem ( DateUtils.parseDate ( pvalStr, 
+						"dd'/'MM'/'yyyy", "dd'/'MM'/'yyyy HH:mm:ss", "dd'/'MM'/'yyyy HH:mm", 
+						"dd'-'MM'-'yyyy", "dd'-'MM'-'yyyy HH:mm:ss", "dd'-'MM'-'yyyy HH:mm",
+						"yyyyMMdd", "yyyyMMdd'-'HHmmss", "yyyyMMdd'-'HHmm"  
+					));
+				}
+				catch ( ParseException dex ) {
+					// Just ignore all in case of problems
+				}
 			}
-			catch ( ParseException dex ) {
-				// Just ignore all in case of problems
-			}
-		}
+			
+			if ( dataItem == null ) return false; 
+	
+			// annotate the new DI with origin and provenance
+			dataItem.setSourceText ( pvalStr );
+			dataItem.setType ( ANNOTATION_TYPE_MARKER );
+			dataItem.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
+			dataItem.setTimestamp ( new Date () );
+	
+			// Save in the memory store, for later persistence
+			store.put ( DataItem.class, pvalStr, dataItem );
+			
+			return true;
 		
-		if ( dataItem == null ) return false; 
-
-		AnnotatorResources annResources = AnnotatorResources.getInstance ();
-		DataItem diS = annResources.getStore ().find ( dataItem );
-		
-		if ( diS == null )
-		{
-			// annotate the new DI
-			TextAnnotation marker = createDataAnnotatorMarker ();
-			dataItem.addAnnotation ( marker );
-		}
-		else
-			// Reuse the existing one
-			dataItem = diS;
-		
-		// Attach the (old or new) data item to the current pv
-		pval.addDataItem ( dataItem );
-
-		return true;
-		
+		} // synchronized ( pvalStr )
 	} // annotateData ()
-
-
-	public static TextAnnotation createDataAnnotatorMarker ()
-	{
-		TextAnnotation result = new TextAnnotation ( 
-			new AnnotationType ( "Automatic Extracted Numerical Data" ),
-			"" 
-		);
-		
-		result.setProvenance ( new AnnotationProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER ) );
-		result.setTimestamp ( new Date () );
-		
-		AnnotatorResources.getInstance ().getAnnNormalizer ().normalize ( result );
-
-		return result;
-	}
 
 }

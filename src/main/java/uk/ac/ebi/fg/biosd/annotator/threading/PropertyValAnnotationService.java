@@ -1,32 +1,27 @@
 package uk.ac.ebi.fg.biosd.annotator.threading;
 
 import java.io.InputStream;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
-import javax.persistence.Query;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.Hibernate;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.BioSampleGroup;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
 import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
-import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.utils.memory.MemoryUtils;
 import uk.ac.ebi.utils.threading.BatchService;
 import uk.ac.ebi.utils.time.XStopWatch;
@@ -41,7 +36,7 @@ import uk.org.lidalia.slf4jext.Level;
  * @author Marco Brandizi
  *
  */
-public class PropertyValAnnotationService extends BatchService<PropertyValAnnotationTask>
+public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 {
 	/** 
 	 * This is a system property that allows you to define a limit for the number of threads the annotator can use.
@@ -50,8 +45,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	 */
 	public static final String MAX_THREAD_PROP = "uk.ac.ebi.fg.biosd.annotator.maxThreads";
 	
-	private double randomSelectionQuota = 100.0;
-	private Random rndGenerator = new Random ( System.currentTimeMillis () );
+	double randomSelectionQuota = 1.0;
 
 	private XStopWatch timer = new XStopWatch (); 
 	
@@ -62,41 +56,6 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 			PropertyValAnnotationService.this.waitAllFinished ();
 		}
 	};
-
-	
-	/**
-	 * Used in queries that picks up those properties not associated neither to ZOOMA-computed terms, nor marked
-	 * with {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology marker'}.
-	 *  
-	 */
-	private static final String PV_CRITERIA =
-		   "pv.id NOT IN \n"
-		 + "(    \n"
-		 + "	SELECT\n"
-		 + "	    pv1.id\n"
-		 + "	FROM\n"
-		 + "	    exp_prop_val pv1 INNER JOIN exp_prop_val_annotation pv2ann1\n"
-		 + "	        ON pv1.id = pv2ann1.owner_id INNER JOIN annotation ann1\n"
-		 + "	        ON pv2ann1.annotation_id = ann1.id ,\n"
-		 + "	    annotation_type atype1\n"
-		 + "	WHERE\n"
-		 + "	    ann1.type_id = atype1.id\n"
-		 + "	    AND atype1.name = :pvAnnType\n"
-		 + "	UNION    \n"
-		 + "	SELECT\n"
-		 + "	    pv2.id\n"
-		 + "	FROM\n"
-		 + "	    exp_prop_val pv2 INNER JOIN exp_prop_val_onto_entry pv2oe2\n"
-		 + "	        ON pv2.id = pv2oe2.owner_id INNER JOIN onto_entry oe2\n"
-		 + "	        ON pv2oe2.oe_id = oe2.id INNER JOIN onto_entry_annotation oe2ann2\n"
-		 + "	        ON oe2.id = oe2ann2.owner_id INNER JOIN annotation ann2\n"
-		 + "	        ON oe2ann2.annotation_id = ann2.id ,\n"
-		 + "	    annotation_type atype2\n"
-		 + "	WHERE\n"
-		 + "	    ann2.type_id = atype2.id\n"
-		 + "	    AND atype2.name = :oeAnnType\n"
-		 + ")\n";			
-		 
 
 	
 	public PropertyValAnnotationService ()
@@ -121,23 +80,27 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	
 	/**
 	 * This is to submit an {@link PropertyValAnnotationTask annotation task} about an {@link ExperimentalPropertyValue} 
-	 * with this {@link Identifiable#getId() id}. If {@link #getRandomSelectionQuota()} is &lt; 100, only the 
+	 * with this {@link Identifiable#getId() id}. If {@link #getRandomSelectionQuota()} is &lt; 1, only the 
 	 * corresponding random percentage of calls to this method will actually produce a submission.
 	 * 
 	 */
-	public void submit ( long pvalId )
+	public void submit ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
 	{
-		if ( randomSelectionQuota < 100.0 && rndGenerator.nextDouble () >= randomSelectionQuota ) return;
-		
 		if ( timer.isStopped () ) timer.start ();
 				
 		// This will flush the collected annotations to the DB when the memory is too full, or when enough time 
-		// has passed We add the time criterion, cause we don't want to waste too much if the storage operation fails.
+		// has passed. We add the time criterion, cause we don't want to waste too much if the storage operation fails.
 		//
 		if ( !MemoryUtils.checkMemory ( this.memFlushAction, 0.25 ) && timer.getTime () > 1000 * 3600 * 3 )
 			this.memFlushAction.run ();
 		
-		super.submit ( new PropertyValAnnotationTask ( pvalId ) );
+		// We need to force eager mode, we're about to close the session
+		Hibernate.initialize ( pv.getType () );
+		Hibernate.initialize ( pv.getTermText () );
+		Hibernate.initialize ( pv.getUnit () );
+		Hibernate.initialize ( pv.getOntologyTerms () );
+		
+		super.submit ( new PropertyValAnnotationTask ( pv ) );
 	}
 
 	/**
@@ -147,38 +110,16 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	 * This considers only those properties that haven't neither any ZOOMA-computed term associated, nor a 
 	 * {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology term found marker'}.
 	 */
-	@SuppressWarnings ( { "unchecked" } )
 	public void submit ( Integer offset, Integer limit )
 	{
-		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		if ( offset == null ) offset = 0;
+		if ( limit == null ) limit = this.getPropValCount ();
 		
-		try 
-		{
-			Query q = em.createNativeQuery ( "SELECT id FROM exp_prop_val pv WHERE\n" + PV_CRITERIA );
-			TextAnnotation oeMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
-			TextAnnotation pvMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
-			q.setParameter ( "oeAnnType", oeMarker.getType ().getName () );
-			q.setParameter ( "pvAnnType", pvMarker.getType ().getName () );
-			
-			if ( offset != null ) q.setFirstResult ( offset );
-			if ( limit != null ) q.setMaxResults ( limit );
-			
-			// In the case of bloody Oracle, the damn Hibernate adds ROWID to the projection, which doesn't happen with
-			// H2 (i.e., decent SQL syntax that supports LIMIT/OFFSET)
-			// We have to workaround the bastard the way below
-			//
-			List<Object> ids = q.getResultList ();
-			for ( Object ido: ids ) 
-			{
-				long id = ido instanceof Number 
-					? ((Number) ido).longValue ()
-					: ( (Number) ( (Object[]) ido )[ 0 ] ).longValue (); // see above why
-				submit ( id );
-			}
-		}
-		finally {
-			if ( em.isOpen () ) em.close ();
-		}
+		int chunkSize = (int) Math.ceil ( limit / ( Runtime.getRuntime().availableProcessors() / 2d ) );
+		if ( chunkSize == 0 ) chunkSize = limit;
+
+		for ( int ichunk = 0; ichunk < limit; ichunk += chunkSize )
+			super.submit ( new PvChunkSubmissionTask ( this, ichunk + offset, chunkSize ) );
 	}
 
 	public void submitAll ()
@@ -191,23 +132,21 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	 * or {@link BioSampleGroup sample group} linked to this submission.
 	 * 
 	 */
+	@SuppressWarnings ( "unchecked" )
 	public void submitMSI ( MSI msi )
 	{
-		Set<Long> pvIds = new HashSet<> ();
-		log.info ( "Scanning {} sample groups", msi.getSampleGroups ().size () );
+		log.info ( "Submission '{}', annotating {} sample groups", msi.getAcc (), msi.getSampleGroups ().size () );
 		for ( BioSampleGroup sg: msi.getSampleGroups () )
 		{
-			for ( ExperimentalPropertyValue<?> pv: sg.getPropertyValues () ) pvIds.add ( pv.getId () );
 			for ( BioSample smp: sg.getSamples () )
-				for ( ExperimentalPropertyValue<?> pv: smp.getPropertyValues () ) pvIds.add ( pv.getId () );
+				for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: smp.getPropertyValues () )
+					submit ( pv );
 		}
 
-		log.info ( "Scanning {} samples", msi.getSamples ().size () );
+		log.info ( "Submission '{}', annotating {} samples", msi.getAcc (), msi.getSamples ().size () );
 		for ( BioSample smp: msi.getSamples () )
-			for ( ExperimentalPropertyValue<?> pv: smp.getPropertyValues () ) pvIds.add ( pv.getId () );
-		
-		log.info ( "Starting annotation tasks for {} property values", pvIds.size () );
-		for ( long pvid: pvIds ) submit ( pvid );
+			for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: smp.getPropertyValues () )
+				submit ( pv );
 	}
 	
 	/**
@@ -258,9 +197,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 	/**
 	 * Gets the number of properties in the BioSD database. To be used prior to {@link #submit(Integer, Integer)}.
 	 * 
-	 * This considers only those properties that haven't neither any ZOOMA-computed term associated, nor a 
-	 * {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology term found marker'}.
-	 *
+	 * It adjusts the real total by multiplying it by {@link #getRandomSelectionQuota()}, if this is &lt; 1.
 	 */
 	public int getPropValCount ()
 	{
@@ -268,15 +205,15 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 		
 		try
 		{
-			TextAnnotation oeMarker = BioSDOntoDiscoveringCache.createZOOMAMarker ( "foo", "foo" );
-			TextAnnotation pvMarker = OntoDiscoveryAndAnnotator.createEmptyZoomaMappingMarker ();
-			
 			Number count = (Number) em.createNativeQuery (
-				"SELECT COUNT ( pv.id ) FROM exp_prop_val pv WHERE\n" + PV_CRITERIA
-			).setParameter ( "oeAnnType", oeMarker.getType ().getName () )
-			.setParameter ( "pvAnnType", pvMarker.getType ().getName () )
-			.getSingleResult ();
-			return count.intValue ();
+				"SELECT COUNT ( pv.id ) FROM exp_prop_val pv"
+			).getSingleResult ();
+			int result = count.intValue ();
+			
+			if ( this.randomSelectionQuota < 1d )
+				result = (int) Math.round ( result * this.randomSelectionQuota );
+			
+			return result;
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();
@@ -327,7 +264,7 @@ public class PropertyValAnnotationService extends BatchService<PropertyValAnnota
 				);
 				theEx = ex;
 				try {
-					Thread.sleep ( RandomUtils.nextLong ( 50, 1000 ) );
+					Thread.sleep ( RandomUtils.nextLong ( 1000*60, 1000*60*5 ) );
 				}
 				catch ( InterruptedException ex1 ) {
 					throw new RuntimeException ( "Internal error: " + ex1.getMessage (), ex1 );

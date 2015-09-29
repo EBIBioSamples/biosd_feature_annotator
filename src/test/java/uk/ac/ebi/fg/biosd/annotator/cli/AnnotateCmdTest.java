@@ -2,29 +2,26 @@ package uk.ac.ebi.fg.biosd.annotator.cli;
 
 import static junit.framework.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URL;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.joda.time.DateTime;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.FeatureAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
@@ -35,7 +32,6 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.ac.ebi.utils.regex.RegEx;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -86,26 +82,39 @@ public class AnnotateCmdTest
 		boolean hasFoundAnn = false;
 		for ( BioSample smp: msi.getSamples () )
 			for ( ExperimentalPropertyValue<?> pv: smp.getPropertyValues () )
+			{
+				List<FeatureAnnotation> anns = new LinkedList<> ();
+				anns.addAll ( 
+					em.createQuery ( "FROM ExpPropValAnnotation ann WHERE sourceText = :pvTxt", FeatureAnnotation.class )
+				  	.setParameter ( "pvTxt", ExpPropValAnnotation.getPvalText ( pv ) )
+				  	.getResultList ()
+				);
+				anns.addAll ( em.createQuery ( "FROM DataItem ann WHERE sourceText = :pvTxt", FeatureAnnotation.class )
+				 .setParameter ( "pvTxt", pv.getTermText () )
+				 .getResultList () 
+				);
 				for ( OntologyEntry oe: pv.getOntologyTerms () )
-					for ( Annotation ann: oe.getAnnotations () )
-					{
-						log.info ( String.format ( 
-							"Annotated Property: %s/%s[#%d], %s[#%d], %f", 
-							pv.getTermText (), pv.getType ().getTermText (), pv.getId (), 
-							oe.getAcc (), oe.getId (), 
-							ann.getScore ()
-						));
-						
-						hasFoundAnn = true;
-		}
+					anns.addAll ( 
+						em.createQuery ( "FROM ResolvedOntoTermAnnotation ann WHERE sourceText = :pvTxt", FeatureAnnotation.class )
+					  	.setParameter ( "pvTxt", ResolvedOntoTermAnnotation.getOntoEntryText ( oe ) )
+					  	.getResultList () 
+				);
+				
+				for ( FeatureAnnotation fa: anns )
+				{
+					log.info ( "Value: {}, annotation: {}", pv.getTermText (), fa.toString () );
+					hasFoundAnn = true;
+				}
+			}
 		
 		// Clean-up, let's fix things to allow '--purge' to behave correctly
 		EntityTransaction tx = em.getTransaction ();
 		tx.begin ();
-		em.createQuery ( "UPDATE TextAnnotation SET timestamp = :tsNew WHERE timestamp >= :tsOld" )
-			.setParameter ( "tsOld", new DateTime().minusMinutes ( 1 ).toDate () )
-			.setParameter ( "tsNew", new DateTime ().minusYears ( 6 ).toDate () )
-			.executeUpdate ();
+		for ( String entityName: new String[] { "ExpPropValAnnotation", "DataItem", "ResolvedOntoTermAnnotation" } )
+			em.createQuery ( "UPDATE " + entityName + " SET timestamp = :tsNew WHERE timestamp >= :tsOld" )
+				.setParameter ( "tsOld", new DateTime().minusMinutes ( 1 ).toDate () )
+				.setParameter ( "tsNew", new DateTime ().minusYears ( 6 ).toDate () )
+				.executeUpdate ();
 		tx.commit ();
 		em.close ();
 		
@@ -134,7 +143,7 @@ public class AnnotateCmdTest
 		ch.qos.logback.classic.Logger rootLogger = logCtx.getLogger ( AnnotateCmd.class );
     rootLogger.addAppender ( appender );
 
-    // catching logger set, now go with the call
+    // Now go with the call
 		AnnotateCmd.main ( "--purge", "" + 365 * 5 );
 		
 		// Remove the submission

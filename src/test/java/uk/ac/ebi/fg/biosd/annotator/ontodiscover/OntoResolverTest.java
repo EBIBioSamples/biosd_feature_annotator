@@ -1,27 +1,26 @@
 package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 
-import static org.apache.commons.lang3.StringUtils.contains;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
 
-import org.junit.Assert;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
+import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
-import uk.ac.ebi.fg.biosd.model.persistence.hibernate.application_mgmt.ExpPropValDAO;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
-import uk.ac.ebi.fg.core_model.toplevel.TextAnnotation;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
+
+import com.google.common.collect.Table;
 
 /**
  * TODO: Comment me!
@@ -48,76 +47,49 @@ public class OntoResolverTest
 		oe.setLabel ( "Asthma Disease" );
 		pval.addOntologyTerm ( oe );
 		
-			
-		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
-		EntityManager em = emf.createEntityManager ();
-		EntityTransaction tx = em.getTransaction ();
-		tx.begin ();
-		em.persist ( pval );
-		tx.commit ();
-		em.close ();
-
 		
 		// Annotate
 		//
 		OntoResolverAndAnnotator ontoAnnotator = new OntoResolverAndAnnotator ();
 		ontoAnnotator.annotate ( pval );
 		
-		// Save
-		//
-		AnnotatorResources.getInstance ().getStore ().find ( pval, pval.getId ().toString () );
-		new AnnotatorPersister().persist ();
-		
-		
 		// Check
 		//
-		ExpPropValDAO pvdao = new ExpPropValDAO ( em = emf.createEntityManager () );
-		ExperimentalPropertyValue<?> pvdb = pvdao.find ( pval.getId () );
-		OntologyEntry oedb = pvdb.getSingleOntologyTerm ();
-		
-		assertEquals ( "Accession wasn't set with the right URI!", "http://www.ebi.ac.uk/efo/EFO_0000270", oedb.getAcc () );
-		assertFalse ( "No annotations saved!", oedb.getAnnotations () == null || oedb.getAnnotations ().isEmpty () );
-		TextAnnotation foundAnn = null;
-		TextAnnotation marker = OntoResolverAndAnnotator.createOntoResolverMarker ( oe.getAcc (), src.getAcc (), oe.getLabel () );
-		for ( Annotation ann: oedb.getAnnotations () )
-		{
-			if ( ! ( ann instanceof TextAnnotation ) ) continue;
-			
-			TextAnnotation tann = ( (TextAnnotation) ann );
-			if ( tann.getType () == null || !marker.getType ().getName ().equals ( tann.getType ().getName () ) ) continue;
-			
-			if ( !contains ( tann.getText (), oe.getAcc () ) ) continue;
-			if ( !contains ( tann.getText (), oe.getLabel () ) ) continue;
-			if ( !contains ( tann.getText (), src.getAcc () ) ) continue;
-			
-			foundAnn = tann;
-			break;
-		}
+		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 
-		Assert.assertTrue ( "No Ontology Discoverer Annotation found!", foundAnn != null );
+		ComputedOntoTerm oeComp = (ComputedOntoTerm) store.get ( 
+			ComputedOntoTerm.class, "http://www.ebi.ac.uk/efo/EFO_0000270"
+		);
+		assertNotNull ( "Expected OntoTerm not created!", oeComp );
+		
+		ResolvedOntoTermAnnotation oeAnn = (ResolvedOntoTermAnnotation) store.get (
+			ResolvedOntoTermAnnotation.class, ResolvedOntoTermAnnotation.getOntoEntryText ( oe ) 
+		);
 
-		// Remove
-		tx = em.getTransaction ();
-		tx.begin ();
+		assertNotNull ( "Annotation not created!", oeAnn );
+		assertNotNull ( "Resolved term not created!", oeComp );
+		assertEquals ( "Wrong label fetched for the annotation!", "asthma", StringUtils.lowerCase ( oeComp.getLabel () ) ); 
+		assertEquals ( "Wrong URI fetched for the resolved term", "http://www.ebi.ac.uk/efo/EFO_0000270", oeComp.getUri () );
+		assertEquals ( "Annotation and term have different URIs!", oeComp.getUri (), oeAnn.getOntoTermUri () );
 		
-		em.createNativeQuery ( "DELETE FROM exp_prop_val_onto_entry WHERE owner_id=:pvid AND oe_id = :oeid" )
-			.setParameter ( "pvid", pval.getId () )
-			.setParameter ( "oeid", oedb.getId () )
-			.executeUpdate ();
+		// Verify persistence
+		//
+		AnnotatorPersister persister = new AnnotatorPersister ();
+		persister.persist ();
 		
-		em.createQuery ( "DELETE FROM ExperimentalPropertyValue WHERE id = " + pval.getId () ).executeUpdate ();
-		
-		em.createNativeQuery ( "DELETE FROM onto_entry_annotation WHERE owner_id=:oeid AND annotation_id = :annid" )
-			.setParameter ( "oeid", oedb.getId () )
-			.setParameter ( "annid", foundAnn.getId () )
-			.executeUpdate ();
-		
-		em.remove ( foundAnn );
-		em.remove ( oedb );
-		oe = em.merge ( oe );
-		em.remove ( oe );
-		tx.commit ();
-		em.close ();
+		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 
+		ComputedOntoTerm oeCompDb = em.find ( ComputedOntoTerm.class, oeComp.getUri () );
+		assertNotNull ( "Resolved ontology term not saved!", oeCompDb );
+		
+		ResolvedOntoTermAnnotation oeAnnDb = em.find ( ResolvedOntoTermAnnotation.class, oeAnn.getSourceText () );
+		assertNotNull ( "Ontology annotation not saved!", oeAnnDb );
+		assertEquals ( "Wrong annotation type!", OntoResolverAndAnnotator.ANNOTATION_TYPE_MARKER, oeAnnDb.getType () );
+		assertEquals ( "Wrong annotation provenance!", PropertyValAnnotationManager.PROVENANCE_MARKER, oeAnnDb.getProvenance () );
+	
+		assertNotNull ( "Resolved term not created in the DB!", oeCompDb );
+		assertEquals ( "Wrong label fetched for the annotation from DB!", "asthma", StringUtils.lowerCase ( oeCompDb.getLabel () ) ); 
+		assertEquals ( "Wrong URI fetched for the resolved term from DB!", "http://www.ebi.ac.uk/efo/EFO_0000270", oeCompDb.getUri () );
+		assertEquals ( "Annotation and term have different URIs in the DB!", oeCompDb.getUri (), oeAnnDb.getOntoTermUri () );
 	}
 }

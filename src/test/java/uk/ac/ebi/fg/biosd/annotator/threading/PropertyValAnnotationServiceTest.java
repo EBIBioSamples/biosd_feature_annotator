@@ -1,36 +1,31 @@
 package uk.ac.ebi.fg.biosd.annotator.threading;
 
-import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
+import javax.persistence.Query;
 
-import junit.framework.Assert;
-
-import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
+import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.FeatureAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
+import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.persistence.dao.ExpPropValAnnotationDAO;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
@@ -40,12 +35,9 @@ import uk.ac.ebi.fg.biosd.sampletab.persistence.Persister;
 import uk.ac.ebi.fg.biosd.sampletab.persistence.Unloader;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
-import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.terms.OntologyEntryDAO;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
-import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AnnotatableDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
-import uk.ac.ebi.fg.core_model.toplevel.Annotation;
 import uk.org.lidalia.slf4jext.Level;
 
 /**
@@ -68,14 +60,14 @@ public class PropertyValAnnotationServiceTest
 	@After
 	public void cleanUp ()
 	{
-		new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
+		new Purger ().purge ( new DateTime ().minusMinutes ( 5 ).toDate (), new Date() );
 	}
 
 	/**
 	 * Basic test against a couple of properties.
 	 */
-	//@Test
-	@SuppressWarnings ( "rawtypes" )
+	@Test
+	@SuppressWarnings ( { "unchecked" } )
 	public void testService ()
 	{
 		// Test against these.
@@ -113,53 +105,37 @@ public class PropertyValAnnotationServiceTest
 		service.waitAllFinished ();
 
 		// Verify
+		// TODO: replace with the interfaces to be developed.
 		//
 		em = emf.createEntityManager ();
-		AnnotatableDAO<ExperimentalPropertyValue> pvdao = new AnnotatableDAO<> ( ExperimentalPropertyValue.class, em );
+		ExpPropValAnnotationDAO pvannDao = new ExpPropValAnnotationDAO ( em );
+		
+		for ( int i = 0; i <= 1; i++ )
+		{
+			ExperimentalPropertyValue<ExperimentalPropertyType> pv = pvs.get ( i );
+			List<ExpPropValAnnotation> pvanns = pvannDao.findByExpPropVal ( pv );
 
-		Set<Long> foundOeIds = new HashSet<> ();
-		for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: pvs )
-		{
-			ExperimentalPropertyValue<?> pvdb = pvdao.find ( pv.getId () );
-			Assert.assertNotNull ( "Property: " + pv + " not saved!", pvdb );
+			assertTrue ( String.format ( "No annotations saved for %s!", pv.getTermText () ), pvanns.size () > 0 );
 			
-			Set<OntologyEntry> oes = pvdb.getOntologyTerms ();
-			log.info ( "Stored Property Value: {}", pvdb );
-			
-			for ( OntologyEntry oe: oes ) foundOeIds.add ( oe.getId () );
-		}
-		
-		assertEquals ( "Couldn't find expected ontology entries!", 2, foundOeIds.size () );
-		
-		// Clean-up
-		tx = em.getTransaction ();
-		tx.begin ();		
-		for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: pvs )
-		{
-			ExperimentalPropertyValue<?> pvdb = pvdao.find ( pv.getId () );
-			for ( OntologyEntry oe: pvdb.getOntologyTerms () )
-			{
-				for ( Annotation ann: oe.getAnnotations () )
-					em.remove ( ann );
-				em.remove ( oe );
+			log.info ( "--------------------------- Saved annotations for '{}' --------------------------", pv.getTermText () );
+			for ( ExpPropValAnnotation pvann: pvanns ) {
+				log.info ( pvann.toString () );
 			}
-			em.remove ( pvdb );
 		}
 		
-		OntologyEntryDAO<OntologyEntry> oedao = new OntologyEntryDAO<> ( OntologyEntry.class, em );
-		OntologyEntry nullOe = oedao.find ( BioSDOntoDiscoveringCache.NULL_TERM_URI, null, null, null );
-		for ( Annotation ann: nullOe.getAnnotations () ) em.remove ( ann );
-		em.remove ( nullOe );
-		
-		tx.commit ();
+		Query q = em.createQuery ( "FROM NumberItem WHERE value = 123" );
+		List<NumberItem> nums = q.getResultList ();
+		assertTrue ( "Number annotation not saved!", nums.size () > 0 );
+		log.info ( "------------------------ Number annotation saved: {} ---------------------", nums.get ( 0 ) );
+
 		em.close ();
-		
 	}
 	
 	/**
 	 * Tests against a real-world submission.
 	 */
 	@Test
+	@SuppressWarnings ( "unchecked" )
 	public void testSubmitMsi () throws Exception
 	{
 		// The test case is stored in the Maven project, load it
@@ -183,21 +159,32 @@ public class PropertyValAnnotationServiceTest
 		
 		msi = dao.find ( msi.getAcc () );
 		
-		log.info ( "Showing Computed Annotations" );
+		log.info ( "----------- Showing Computed Annotations --------" );
 		boolean hasFoundAnn = false;
+		
 		for ( BioSample smp: msi.getSamples () )
 			for ( ExperimentalPropertyValue<?> pv: smp.getPropertyValues () )
+			{
+				List<FeatureAnnotation> anns = new LinkedList<> ();
+				anns.addAll ( em.createQuery ( "FROM ExpPropValAnnotation ann WHERE sourceText = :pvTxt" )
+				  .setParameter ( "pvTxt", ExpPropValAnnotation.getPvalText ( pv ) )
+				  .getResultList ()
+				);
+				anns.addAll ( em.createQuery ( "FROM DataItem ann WHERE sourceText = :pvTxt" )
+				 .setParameter ( "pvTxt", pv.getTermText () )
+				 .getResultList () 
+				);
 				for ( OntologyEntry oe: pv.getOntologyTerms () )
-					for ( Annotation ann: oe.getAnnotations () )
-					{
-						log.info ( String.format ( 
-							"Annotated Property: %s/%s[#%d], %s[#%d], %f", 
-							pv.getTermText (), pv.getType ().getTermText (), pv.getId (), 
-							oe.getAcc (), oe.getId (), 
-							ann.getScore ()
-						));
-						
-						hasFoundAnn = true;
+					anns.addAll ( em.createQuery ( "FROM ResolvedOntoTermAnnotation ann WHERE sourceText = :pvTxt" )
+					  .setParameter ( "pvTxt", ResolvedOntoTermAnnotation.getOntoEntryText ( oe ) )
+					  .getResultList () 
+				);
+				
+				for ( FeatureAnnotation fa: anns )
+				{
+					log.info ( "Value: {}, annotation: {}", pv.getTermText (), fa.toString () );
+					hasFoundAnn = true;
+				}
 		}
 		
 		em.close ();
