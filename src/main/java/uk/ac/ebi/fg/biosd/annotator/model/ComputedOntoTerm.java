@@ -8,10 +8,14 @@ import javax.persistence.Id;
 import javax.persistence.Index;
 import javax.persistence.Table;
 
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 
 /**
- * TODO: comment me!
+ * This is can be used to associate information to an ontology term URI, usually stored by 
+ * {@link AbstractOntoTermAnnotation}. At the moment, only the {@link OntoResolverAndAnnotator} gets term labels
+ * and link this class to {@link ResolvedOntoTermAnnotation}.
+ * 
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>5 May 2015</dd>

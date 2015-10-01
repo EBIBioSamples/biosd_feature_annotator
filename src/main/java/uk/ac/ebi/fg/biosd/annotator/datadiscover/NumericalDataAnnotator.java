@@ -23,7 +23,10 @@ import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 import com.google.common.collect.Table;
 
 /**
- * TODO: Comment me!
+ * Extracts numbers, ranges, dates from the text value in {@link ExperimentalPropertyValue}. It also tries to find 
+ * ontology terms for {@link ExperimentalPropertyValue#getUnit() units}.
+ * 
+ * Results are saved in {@link AnnotatorResources the common store}. 
  *
  * <dl><dt>date</dt><dd>19 Nov 2014</dd></dl>
  * @author Marco Brandizi
@@ -36,6 +39,9 @@ public class NumericalDataAnnotator
 	private final OntologyTermDiscoverer ontoTermDiscoverer;
 	private final OntoResolverAndAnnotator ontoTermResolver;
 	
+	/**
+	 * @param ontoTermDiscoverer will be used to annotate a property value unit.
+	 */
 	public NumericalDataAnnotator ( OntologyTermDiscoverer ontoTermDiscoverer )
 	{
 		this.ontoTermResolver = new OntoResolverAndAnnotator ();
@@ -44,8 +50,7 @@ public class NumericalDataAnnotator
 
 
 	/**
-	 * 
-	 * @param pv
+	 * Does the annotation job. 
 	 * @return true if it has actually found a number or date in the pval value. 
 	 */
 	public boolean annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pval )
@@ -55,7 +60,11 @@ public class NumericalDataAnnotator
 		return result;
 	}
 	
-	
+	/**
+	 *  Find ontology terms about the unit in a property value. This uses the {@link OntoResolverAndAnnotator}, if 
+	 *  one {@link Unit#getOntologyTerms() unit ontology term} is present in the BioSD DB, otherwise, it 
+	 *  tries to {@link OntologyTermDiscoverer discover} an ontology entry from ontologies (usually the Unit Ontology).
+	 */
 	private void annotateUnit ( ExperimentalPropertyValue<?> pval )
 	{
 		Unit u = pval.getUnit ();
@@ -77,9 +86,9 @@ public class NumericalDataAnnotator
 		
 	
 	/**
-	 * TODO: comment me! 
+	 * Tries to extract numerical/date information from the text value of an experimental property value. Possibly
+	 * creates and save an instance in the hierarchy of {@link DataItem}.
 	 * 
-	 * @param pval
 	 * @return true if it has actually found a number or date in the pval value. 
 	 */
 	private boolean annotateData ( ExperimentalPropertyValue<?> pval )

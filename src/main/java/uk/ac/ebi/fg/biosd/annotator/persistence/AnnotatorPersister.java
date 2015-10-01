@@ -1,5 +1,6 @@
 package uk.ac.ebi.fg.biosd.annotator.persistence;
 
+import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
 
@@ -10,16 +11,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.cli.AnnotateCmd;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 
 import com.google.common.collect.Table;
 
 /**
- * TODO: comment me!
+ * The annotator persister. This is called by {@link PropertyValAnnotationService}, when it finishes, or when the 
+ * system memory needs to be flushed. Persists annotations in memory onto the BioSD database.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>19 Mar 2015</dd>
@@ -32,6 +36,10 @@ public class AnnotatorPersister
 	
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
+	/**
+	 * All the job here in this entry point.
+	 * 
+	 */
 	public long persist ()
 	{
 		try
@@ -52,7 +60,11 @@ public class AnnotatorPersister
 		
 	}
 
-	
+	/**
+	 * Expects to find objects stored as instances of "type" in the {@link AnnotatorResources#getStore() annotator store}.
+	 * Sends all of them to the DB, via Hibernate. Manages it all inside multiple transactions.
+	 * 
+	 */
 	private <T> long persistEntities ( Class<T> type )
 	{
 		Collection<Object> objects = store.row ( type ).values ();
@@ -102,7 +114,16 @@ public class AnnotatorPersister
 		}		
 	}
 
-
+	/**
+	 * Invoked by {@link #persistEntities(Class)}. Implements a custom DB-level lock, to be used to isolate the persistence
+	 * of the {@link AnnotatorResources#getStore() annotator store}. This is necessary to coordinate multiple annotation
+	 * processes, running in separated JVMs (we use the LSF cluster). Transactions are not enough for this, because 
+	 * our transactions are too long and end up to cause timeout errors to waiting processes. Optimistic locking is 
+	 * not good either, because the persistence of most objects we deal with require {@link Connection#TRANSACTION_SERIALIZABLE}, 
+	 * (to prevent <a href = "https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html">phantom reads</a>),
+	 * which doesn't easily play with optimistic locking. 
+	 * 
+	 */
 	private void lock ()
 	{
 		try
@@ -135,6 +156,9 @@ public class AnnotatorPersister
 		}
 	}
 	
+	/**
+	 * @see #lock().
+	 */
 	private void unlock () 
 	{
 		EntityTransaction tx = this.entityManager.getTransaction ();
@@ -143,6 +167,12 @@ public class AnnotatorPersister
 		tx.commit ();
 	}
 	
+	/**
+	 * Used in tests and in a {@link AnnotateCmd command line} option. Removes {@link #lock() DB locks} left over 
+	 * (e.g. by system crashes). Obviously, you need to know what you're doing, when using this option.
+	 * 
+	 * @return 1, the no of records modified in the DB.
+	 */
 	public int forceUnlock ()
 	{
 		this.unlock ();

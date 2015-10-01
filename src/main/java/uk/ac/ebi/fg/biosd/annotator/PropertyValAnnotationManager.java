@@ -13,19 +13,13 @@ import uk.ac.ebi.fg.core_model.toplevel.AnnotationProvenance;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
-import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 
 /**
- * This annotates a {@link ExperimentalPropertyValue} with ontology entries returned by {@link OntologyTermDiscoverer},
- * which in turn uses a memory cache and {@link BioSDOntoDiscoveringCache}. Details about how this happens are explained
- * in {@link ExtendedDiscoveredTerm}.
- * 
- * TODO: This also annotates a property value with information extracted from it about 1) explicity ontology entries
- * (which are checked via Bioportal) 2) numeric/date values, including ranges, and units (Unit Ontology + Bioportal
- * are used for this).
- * 
- * <dl><dt>date</dt><dd>1 Sep 2014</dd></dl>
- * @author Marco Brandizi
+ * Coordinates the task of computing several annotations for a single {@link ExperimentalPropertyValue}, including
+ * ontology annotations and numerical value extractions.  
+ *
+ * @author brandizi
+ * <dl><dt>Date:</dt><dd>1 Oct 2015</dd>
  *
  */
 public class PropertyValAnnotationManager
@@ -47,7 +41,8 @@ public class PropertyValAnnotationManager
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
 					new ZoomaOntoTermDiscoverer ( 
-						new ZOOMAUnitSearch ( zoomaClient ), zoomaThresholdScore 
+						// unit annotations tend to have lower score
+						new ZOOMAUnitSearch ( zoomaClient ), zoomaThresholdScore - 10
 					),
 					new BioSDOntoDiscoveringCache ()
 				),
@@ -75,9 +70,7 @@ public class PropertyValAnnotationManager
 	}
 
 	/**
-	 * Call different types of annotators and link the computed results to the property value. pvalId is the 
-	 * property #ID in the BioSD database.
-	 *  
+	 * Call different types of annotators and link the computed results to the property value. 
 	 */
 	public void annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
 	{

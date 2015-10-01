@@ -238,7 +238,8 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 
 	/**
 	 * First waits that all the tasks are finished, then flushes all in-memory changes to the database. Finally
-	 * cleans up the memory and resets {@link #timer}.
+	 * cleans up the memory and resets {@link #timer}. This is either called when there is nothing more to submit, or
+	 * internally, when the memory is almost full and needs to be flushed.
 	 * 
 	 */
 	@Override

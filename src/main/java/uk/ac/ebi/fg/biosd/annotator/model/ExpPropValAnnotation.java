@@ -23,7 +23,7 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.utils.regex.RegEx;
 
 /**
- * TODO: comment me!
+ * Represent an ontology term associated to the text coming from an {@link ExperimentalPropertyValue}.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>5 May 2015</dd>
@@ -46,6 +46,15 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 {
 	private final static RegEx COMMENT_RE = new RegEx ( "(Comment|Characteristic)\\s*\\[\\s*(.+)\\s*\\]", Pattern.CASE_INSENSITIVE );
 
+	/**
+	 * We hae a composite key for this made of the source text and the ontlogy term URI that was associated to it. 
+	 * Note that when we search for the terms associated to some text, we have the latter as key, to which multiple 
+	 * terms may be associated.
+	 *
+	 * @author brandizi
+	 * <dl><dt>Date:</dt><dd>1 Oct 2015</dd>
+	 *
+	 */
 	@Embeddable
 	public static class Key implements Serializable
 	{
@@ -120,6 +129,9 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 	}	
 	
 
+	/**
+	 * @see #getTypeAndval(String, String)
+	 */
 	@Id
 	@Column( name = "source_text", length = AnnotatorResources.MAX_STRING_LEN * 2 + 1 )
 	@Override
@@ -134,7 +146,10 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 		return super.getOntoTermUri ();
 	}
 
-	
+	/**
+	 * Invokes {@link #getTypeAndVal(ExperimentalPropertyValue)} and then {@link #getPvalText(String, String)}, 
+	 * to obtain strings like "Organism|Homo Sapiens". 
+	 */
 	public static String getPvalText ( ExperimentalPropertyValue<?> pv )
 	{
 		Pair<String, String> pair = getTypeAndVal ( pv ); 
@@ -143,6 +158,10 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 		return getPvalText ( pair.getLeft (), pair.getRight () );
 	}
 	
+	/**
+	 * Decomposes the parameter into a pair of strings and pass them to {@link #getTypeAndval(String, String)}.
+	 * Uses {@link #getExpPropTypeLabel(ExperimentalPropertyType)} to unwrap elements like Comment[] or Characteristic[].	 *  
+	 */
 	public static Pair<String, String> getTypeAndVal ( ExperimentalPropertyValue<?> pv )
 	{
 		if ( pv == null ) return null;
@@ -154,7 +173,13 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 		return getTypeAndval ( ptypeStr, pvalStr );
 	}
 
-	
+	/**
+	 * Returns a canonical pair of strings, where the left is about the type (e.g., "Organism", and the right about the 
+	 * value (e.g., "Homo Sapiens"). Does some pre-processing, such as space trimming or checking for 
+	 * {@link AnnotatorResources#MAX_STRING_LEN}. We don't standardise into lower or upper case, cause the difference
+	 * might be relevant in certain cases (e.g. units like mA, gene symbols).
+	 * 
+	 */
 	public static Pair<String, String> getTypeAndval ( String ptypeStr, String pvalStr )
 	{
 		pvalStr = StringUtils.trimToNull ( pvalStr );
@@ -167,7 +192,10 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 		return Pair.of ( ptypeStr, pvalStr );
 	}
 	
-	
+	/**
+	 *  Takes {@link #getTypeAndval(String, String)} and builds strings like "Organism|Homo Sapiens", which can be
+	 *  used as {@link #getSourceText()}.
+	 */
 	public static String getPvalText ( String ptypeStr, String pvalStr )
 	{
 		Pair<String, String> pair = getTypeAndval ( ptypeStr, pvalStr ); 

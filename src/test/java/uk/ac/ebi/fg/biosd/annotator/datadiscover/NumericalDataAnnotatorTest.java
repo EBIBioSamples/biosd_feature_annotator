@@ -42,7 +42,7 @@ import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer.DiscoveredTerm;
 import com.google.common.collect.Table;
 
 /**
- * TODO: comment me!
+ * Test for {@link NumericalDataAnnotatorTest}.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>17 Dec 2014</dd>

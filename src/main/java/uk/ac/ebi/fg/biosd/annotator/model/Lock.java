@@ -6,8 +6,10 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
+
 /**
- * TODO: comment me!
+ * This is used to have a DB table where to store a saving lock @see {@link AnnotatorPersister} for details.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>3 Sep 2015</dd>

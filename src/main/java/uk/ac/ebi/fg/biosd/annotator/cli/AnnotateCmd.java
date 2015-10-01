@@ -20,7 +20,6 @@ import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
 
 /**
- * 
  * The annotation command. All the work is invoked through an .sh script in the final binary, which in turn invokes this.
  *
  * <dl><dt>date</dt><dd>13 Oct 2014</dd></dl>

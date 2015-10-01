@@ -13,7 +13,8 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 
 /**
- * TODO: comment me!
+ * Take a chunk of {@link ExperimentalPropertyValue} and creates {@link PropertyValAnnotationTask} for each
+ * record in it. 
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>1 Sep 2015</dd>
@@ -24,9 +25,6 @@ class PvChunkSubmissionTask extends AnnotatorTask
 	private final int offset, limit;
 	private final PropertyValAnnotationService service;
 	
-	/**
-	 * @param name
-	 */
 	public PvChunkSubmissionTask ( PropertyValAnnotationService service, int offset, int limit )
 	{
 		super ( "PVCHUNK:" + offset + "-" + ( offset + limit - 1 ) );
@@ -51,6 +49,7 @@ class PvChunkSubmissionTask extends AnnotatorTask
 
 			q.setHint ( QueryHints.HINT_READONLY, true );
 			
+			@SuppressWarnings ( "unchecked" )
 			List<ExperimentalPropertyValue<ExperimentalPropertyType>> pvs = 
 				(List<ExperimentalPropertyValue<ExperimentalPropertyType>>) q.getResultList ();
 			

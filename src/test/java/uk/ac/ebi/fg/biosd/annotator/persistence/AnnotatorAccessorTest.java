@@ -3,6 +3,7 @@ package uk.ac.ebi.fg.biosd.annotator.persistence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 import java.util.List;
@@ -23,18 +24,23 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
+import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
+import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
+import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
 
 /**
- * TODO: comment me!
+ * Tests for the {@link AnnotatorAccessor}. Have a look at the code here to get an idea of it works.
+ * If you're looking for examples on how to use this class, have a look at {@link #testAll()}. 
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>10 Sep 2015</dd>
@@ -44,6 +50,73 @@ public class AnnotatorAccessorTest
 {
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
+	
+	@Test
+	public void testAll ()
+	{
+		// ---- First let's create some examples, see below for the code relevant to AnnotatorAccessor
+		// 
+		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( "disease" );
+		ExperimentalPropertyValue<ExperimentalPropertyType> pval = new ExperimentalPropertyValue<> ( "asthma", ptype );
+		
+		ReferenceSource src = new ReferenceSource ( "MESH", null );
+		OntologyEntry oe = new OntologyEntry ( "D001249", src );
+		pval.addOntologyTerm ( oe );
+
+		// A numeric value with a unit
+		ExperimentalPropertyValue<ExperimentalPropertyType> pvtemp = 
+			new ExperimentalPropertyValue<ExperimentalPropertyType> ( "120", new ExperimentalPropertyType ( "Treatment Temperature" ) );
+		pvtemp.setUnit ( new Unit ( "Degree Celsius", new UnitDimension ( "Temperature" ) ) );
+		
+		// This is the annotation creation part, normally done by the annotator, during its periodic scheduled run
+		// Keep going down
+		PropertyValAnnotationManager annMgr = AnnotatorResources.getInstance ().getPvAnnMgr ();
+		annMgr.annotate ( pval );
+		annMgr.annotate ( pvtemp );
+		new AnnotatorPersister ().persist ();
+		
+		
+		// ----------------> The meat, now we read it, this is the part up to the clients (e.g. X-S)
+		// 
+		
+		// This is the usual EMF configured by the BioSD loader (via hibernate.properties)
+		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		
+		// This is the facade to get all info stored by the annotator
+		// See also the hierarchy rooted at uk.ac.ebi.fg.biosd.annotator.model.FeatureAnnotation 
+		AnnotatorAccessor annAccessor = new AnnotatorAccessor ( em );
+		
+		// You can get all ontologies associated to a PV, either in the original submission, or coming from the 
+		// annotator
+		List<OntologyEntry> oeanns = annAccessor.getAllOntologyEntries ( pval );
+		boolean foundZOOMA = false, foundResolved = false; 
+		for ( OntologyEntry oeann: oeanns )
+		{
+			log.info ( "Ontology Entry found in annotations: URI/ACC: {}, Label: {}", oeann.getAcc (), oeann.getLabel () );
+			// We expect ZOOMA to find this
+			foundZOOMA |= "http://www.ebi.ac.uk/efo/EFO_0000270".equals ( oeann.getAcc () );
+
+			// And the Bioportal-based resolver to get this from our initial annotation. The latter is replaced
+			foundResolved |= "http://purl.bioontology.org/ontology/MESH/D001249".equals ( oeann.getAcc () ); 
+		}
+		assertTrue ( "ZOOMA didnt't work!",  foundZOOMA );
+		assertTrue ( "Bioportal resolution didnt't work!",  foundResolved );
+
+		
+		// Again, ontology entry for the unit, no matter if it comes from the original submission, or was annotated
+		OntologyEntry uoe = annAccessor.getUnitOntologyEntry ( pvtemp.getUnit () );
+		assertNotNull ( "Unit not annotated!", uoe );
+		assertEquals  ( "Wrong ontology URI for the unit!", "http://purl.obolibrary.org/obo/UO_0000027", uoe.getAcc () );
+		
+		// Numerical value possibly extracted by the property textual value
+		DataItem di = annAccessor.getExpPropValDataItem ( pvtemp );
+		assertTrue ( "Numeric annotation not created!", di != null && di instanceof NumberItem );
+		
+		NumberItem ni = (NumberItem) di;
+		assertTrue ( "Wrong number annotation!", 120 == ni.getValue () );
+	}
+	
+	
 	@Test
 	public void testGetExpPropValAnnotations ()
 	{
@@ -52,6 +125,7 @@ public class AnnotatorAccessorTest
 		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( type );
 		ExperimentalPropertyValue<ExperimentalPropertyType> pv = new ExperimentalPropertyValue<> ( value, ptype );
 
+		
 		// This is the annotation creation part, normally done by the annotator, during its periodic scheduled run
 		PropertyValAnnotationManager annMgr = AnnotatorResources.getInstance ().getPvAnnMgr ();
 		annMgr.annotate ( pv );
@@ -163,6 +237,7 @@ public class AnnotatorAccessorTest
 	public void initResources () 
 	{
 		AnnotatorResources.reset ();
+		
 	}
 	
 	@After

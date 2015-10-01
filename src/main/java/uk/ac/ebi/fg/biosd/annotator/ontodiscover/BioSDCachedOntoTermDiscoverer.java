@@ -13,7 +13,7 @@ import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 import au.com.bytecode.opencsv.CSVReader;
 
 /**
- * An adapter to the special cases we have in BioSD
+ * An adapter of {@link CachedOntoTermDiscoverer} to the special cases we have in BioSD.
  * @author brandizi
  *
  */

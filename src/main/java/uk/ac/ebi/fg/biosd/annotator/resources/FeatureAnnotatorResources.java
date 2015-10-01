@@ -14,6 +14,9 @@ import uk.ac.ebi.fg.core_model.resources.Resources;
  */
 public class FeatureAnnotatorResources extends BioSdResources
 {
+	/**
+	 * Model tables provided by the annotator are inside the same DB used by BioSD, so we prefer to prefix them.
+	 */
 	public static final String TABLE_PREFIX = "fann_";
 	
 	/**

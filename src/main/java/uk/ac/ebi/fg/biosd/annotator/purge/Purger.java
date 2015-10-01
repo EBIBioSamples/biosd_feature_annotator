@@ -16,10 +16,13 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
+import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 
 /**
- * TODO: comment me!
+ * Manages the purging of annotations.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>11 Jul 2015</dd>
@@ -80,6 +83,9 @@ public class Purger
 		return result;
 	}
 
+	/**
+	 * Removes {@link ResolvedOntoTermAnnotation} and cascades to associated {@link ComputedOntoTerm}s.
+	 */
 	private int purgeResolvedOntoTerms ( Date startTime, Date endTime )
 	{
 		// TODO: first remove ResolvedOntoTermAnnotation instances
@@ -109,7 +115,9 @@ public class Purger
 
 	}	
 	
-	
+	/**
+	 *  Purges {@link ExpPropValAnnotation}.
+	 */
 	private int purgePvAnnotations ( Date startTime, Date endTime )
 	{
 		String hql= "FROM ExpPropValAnnotation ann WHERE\n"
@@ -128,10 +136,18 @@ public class Purger
 		return result;
 	}
 
+	/**
+	 * doRandomDeletes = true
+	 */
 	private int purgeEntities ( Query qry ) {
 		return purgeEntities ( qry, true );
 	}
 	
+	/**
+	 * Aids the removal of objects. Performs the SELECT query qry and removes every entry. Wraps everything into
+	 * periodically-commited transactions. If doRandomDeletes is true, takes into account {@link #getDeletionRate()}.
+	 * 
+	 */
 	private int purgeEntities ( Query qry, boolean doRandomDeletes )
 	{
 		int result = 0;

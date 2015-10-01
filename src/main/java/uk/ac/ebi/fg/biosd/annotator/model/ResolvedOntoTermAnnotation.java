@@ -10,11 +10,13 @@ import javax.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
 
+import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
+import uk.ac.ebi.fg.core_model.resources.Const;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
 
 /**
- * TODO: comment me!
+ * An annotation that comes from the {@link OntoResolverAndAnnotator}.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>5 May 2015</dd>
@@ -42,16 +44,23 @@ public class ResolvedOntoTermAnnotation extends AbstractOntoTermAnnotation
 		super ( oetext );
 	}
 	
+	/**
+	 * Makes a textual representation of the ontology term that is suitable to be used as 
+	 * {@link #getSourceText() source text} for a {@link ResolvedOntoTermAnnotation}. This is in practice the term 
+	 * accession + source, with some processing, like space wrapping and checks for {@link Const#COL_LENGTH_URIS}. 
+	 *  
+	 */
 	public static String getOntoEntryText ( OntologyEntry oe )
 	{
 		if ( oe == null ) return null;
 		String acc = StringUtils.trimToNull ( oe.getAcc () );
-		if ( acc == null ) return null; 
-		if ( acc.length () > 2000 ) return null;
+		if ( acc == null ) return null;
+		// TODO: move this to constant class
+		if ( acc.length () > Const.COL_LENGTH_URIS ) return null;
 		
 		ReferenceSource src = oe.getSource ();
 		String srcStr = src == null ? "" : StringUtils.trimToEmpty ( src.getAcc () );
-		if ( srcStr.length () > 1999 ) return null;
+		if ( srcStr.length () > Const.COL_LENGTH_URIS - 1 ) return null;
 		if ( srcStr.length () > 0 ) srcStr += '|';
 		return srcStr + acc;
 	}

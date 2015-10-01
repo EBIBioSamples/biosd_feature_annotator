@@ -2,12 +2,6 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>uk.ac.ebi.fg.biosd</groupId>
-    <artifactId>biosd_common</artifactId>
-    <version>2.0-SNAPSHOT</version>
-  </parent>
-
   <artifactId>biosd_feature_annotator</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>BioSD Feature Annotator</name>
@@ -18,9 +12,14 @@
   <url>http://github.com/EBIBioSamples/biosd_feature_annotator</url>
 	
 	<scm>
-		<developerConnection>TODO</developerConnection>
-	</scm>
+		<developerConnection>scm:git:git@github.com:EBIBioSamples/biosd_feature_annotator.git</developerConnection>
+	</scm>	
 
+  <parent>
+    <groupId>uk.ac.ebi.fg.biosd</groupId>
+    <artifactId>biosd_common</artifactId>
+    <version>2.0-SNAPSHOT</version>
+  </parent>
 
 
 	<dependencies>
@@ -177,5 +176,18 @@
 		</plugins>
 
 	</build>
+
+
+	<repositories>
+
+		<repository>
+	    <id>EBIBioSamples-GH-repo</id>
+	    <url>https://raw.githubusercontent.com/EBIBioSamples/EBIBioSamples.github.io/maven-repo</url>
+	    <snapshots>
+	      <enabled>true</enabled>
+	    </snapshots>
+	  </repository>
+
+	</repositories>
 
 </project>

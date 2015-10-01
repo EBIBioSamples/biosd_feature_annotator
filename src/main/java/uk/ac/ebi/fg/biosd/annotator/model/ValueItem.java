@@ -7,7 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 
 
 /**
- * TODO: Comment me!
+ * Used to represent single value, number or date. 
  *
  * <dl><dt>date</dt><dd>23 Jun 2014</dd></dl>
  * @author Marco Brandizi

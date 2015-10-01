@@ -6,7 +6,7 @@ import javax.persistence.Entity;
 import javax.persistence.NamedQuery;
 
 /**
- * TODO: Comment me!
+ * A number value.
  *
  * <dl><dt>date</dt><dd>23 Jun 2014</dd></dl>
  * @author Marco Brandizi

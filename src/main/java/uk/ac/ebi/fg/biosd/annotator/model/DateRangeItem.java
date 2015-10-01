@@ -8,7 +8,7 @@ import javax.persistence.Entity;
 import javax.persistence.NamedQuery;
 
 /**
- * TODO: Comment me!
+ * A date range. For the moment it's not used.
  *
  * <dl><dt>date</dt><dd>23 Jun 2014</dd></dl>
  * @author Marco Brandizi

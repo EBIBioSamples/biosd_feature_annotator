@@ -20,7 +20,7 @@ import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.utils.test.junit.TestEntityMgrProvider;
 
 /**
- * TODO: Comment me!
+ * Tests for {@link DataItem}.
  *
  * <dl><dt>date</dt><dd>25 Jun 2014</dd></dl>
  * @author Marco Brandizi

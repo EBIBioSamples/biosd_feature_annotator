@@ -13,7 +13,7 @@ import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 
 
 /**
- * TODO: comment me!
+ * Represent an ontology term that is associated to some entity.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>25 Jun 2015</dd>
@@ -35,9 +35,6 @@ public abstract class AbstractOntoTermAnnotation extends FeatureAnnotation
 		super ();
 	}
 
-	/**
-	 * @param sourceText
-	 */
 	public AbstractOntoTermAnnotation ( String sourceText )
 	{
 		super ( sourceText );

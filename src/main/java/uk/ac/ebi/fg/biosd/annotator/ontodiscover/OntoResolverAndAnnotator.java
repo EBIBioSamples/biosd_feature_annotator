@@ -21,7 +21,10 @@ import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
 import com.google.common.collect.Table;
 
 /**
- * TODO: comment me!
+ * "Resolves" {@link OntologyEntry} or OE's attached to 
+ * {@link FreeTextTerm#getOntologyTerms() OE's attached to free-text objects}. This means that explicit annotations are
+ * checked against an ontology lookup service (such as Bioportal) and proper annotations are linked to the initial 
+ * parameter and stored into the {@link AnnotatorResources#getStore() annotator's store}.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>25 Jun 2015</dd>
@@ -54,7 +57,6 @@ public class OntoResolverAndAnnotator
 	
 	
 	/**
-	 * TODO: comment me again!
 	 * @return true if the term is actually associated to another ontology term computed via ontology lookup.
 	 */
 	private boolean resolveOntoTerm ( OntologyEntry oe )

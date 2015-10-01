@@ -13,7 +13,8 @@ import org.apache.commons.lang3.StringUtils;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 
 /**
- * TODO: comment me!
+ * A model class for feature annotations. This top-level class essentially stores provenance information, together
+ * with a timestamp and a possible annotation confidence score.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>5 May 2015</dd>

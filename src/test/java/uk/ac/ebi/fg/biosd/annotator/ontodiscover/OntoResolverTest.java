@@ -23,7 +23,7 @@ import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
 import com.google.common.collect.Table;
 
 /**
- * TODO: Comment me!
+ * Tests for {@link OntoResolverAndAnnotator}.
  *
  * <dl><dt>date</dt><dd>21 Nov 2014</dd></dl>
  * @author Marco Brandizi

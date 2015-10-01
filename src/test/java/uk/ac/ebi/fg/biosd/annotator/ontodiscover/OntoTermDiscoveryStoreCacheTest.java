@@ -21,7 +21,7 @@ import uk.ac.ebi.utils.time.XStopWatch;
 import com.google.common.collect.Table;
 
 /**
- * TODO: comment me!
+ * Tests for {@link OntoTermDiscoveryStoreCache}.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>26 Jun 2015</dd>
@@ -38,6 +38,7 @@ public class OntoTermDiscoveryStoreCacheTest
 	
 
 	@Test
+	@SuppressWarnings ( { "rawtypes", "unchecked" } )
 	public void testBasics ()
 	{
 		OntoDiscoveryAndAnnotator ontoDiscoverer = new OntoDiscoveryAndAnnotator (

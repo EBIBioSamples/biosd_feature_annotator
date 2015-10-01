@@ -15,7 +15,7 @@ import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 
 /**
- * TODO: Comment me!
+ * A model class used to represent numerical and date information.
  *
  * <dl><dt>date</dt><dd>23 Jun 2014</dd></dl>
  * @author Marco Brandizi
@@ -45,6 +45,11 @@ public abstract class DataItem extends FeatureAnnotation
 		super ( sourceText );
 	}
 	
+	/**
+	 * Gets text representation of an {@link ExperimentalPropertyValue} that is supposed to contain information about
+	 * {@link DataItem data items}. In practice this is some pre-processing, like space trimming, and checking for
+	 * {@link AnnotatorResources#MAX_STRING_LEN}.
+	 */
 	public static String getPvalText ( String pvalText )
 	{
 		String result = StringUtils.trimToNull ( pvalText );

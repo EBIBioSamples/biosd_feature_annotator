@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.utils.threading.BatchServiceTask;
 
 /**
- * TODO: comment me!
- *
+ * The common task used for {@link PropertyValAnnotationService}. It's empty, it's used only to mark the top-level.
+ * 
  * @author brandizi
  * <dl><dt>Date:</dt><dd>1 Sep 2015</dd>
  *
