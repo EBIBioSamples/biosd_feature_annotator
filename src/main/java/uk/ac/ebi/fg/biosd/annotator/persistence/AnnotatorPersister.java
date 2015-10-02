@@ -46,7 +46,7 @@ public class AnnotatorPersister
 	{
 		try
 		{
-			log.info ( StringUtils.center ( " Persisting annotations collected so far, please wait... ", 110, "-" ) );
+			log.info ( StringUtils.center ( " Persisting annotations gathered so far, please wait... ", 110, "-" ) );
 			long ct = 0;
 
 			ct = persistEntities ( DataItem.class );

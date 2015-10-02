@@ -12,6 +12,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +95,9 @@ public class AnnotateCmd
 		  	Purger purger = new Purger ();
 		  	if ( rndQuota != null ) purger.setDeletionRate ( rndQuota );
 		  	
-		  	log.info ( "--------- removing annotator entities older than {} day(s), please wait... ---------", age );
+		  	log.info ( StringUtils.center ( String.format ( 
+		  		" Removing annotator entities older than %d day(s), please wait... ", age 
+		  	), 110, "-" ));
 		  	int nitems = purger.purgeOlderThan ( age );
 		  	log.info ( "older annotator entries purged, {} item(s) removed", nitems ); 
 		  	return;
@@ -103,7 +106,7 @@ public class AnnotateCmd
 		  // Reset locks
 		  if ( cli.hasOption ( "unlock" ) )
 		  {
-				log.info ( "--------- forcibly removing annotator lock flags from the database ---------" );
+				log.info ( StringUtils.center ( " Forcibly removing annotator lock flags from the database ", 120, '-' ));
 		  	int result = new AnnotatorPersister ().forceUnlock ();
 		  	log.info ( "done, {} record(s) removed", result );
 		  	return;
