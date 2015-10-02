@@ -7,6 +7,7 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,7 @@ import com.google.common.collect.Table;
 public class AnnotatorPersister
 {
 	private EntityManager entityManager = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+	@SuppressWarnings ( "rawtypes" )
 	private Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 	
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
@@ -44,7 +46,7 @@ public class AnnotatorPersister
 	{
 		try
 		{
-			log.info ( "persisting annotations collected so far, please wait..." );
+			log.info ( StringUtils.center ( " Persisting annotations collected so far, please wait... ", 110, "-" ) );
 			long ct = 0;
 
 			ct = persistEntities ( DataItem.class );

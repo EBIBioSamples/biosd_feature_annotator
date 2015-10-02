@@ -23,7 +23,7 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.utils.regex.RegEx;
 
 /**
- * Represent an ontology term associated to the text coming from an {@link ExperimentalPropertyValue}.
+ * Represents an ontology term associated to the text coming from an {@link ExperimentalPropertyValue}.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>5 May 2015</dd>
@@ -47,7 +47,7 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 	private final static RegEx COMMENT_RE = new RegEx ( "(Comment|Characteristic)\\s*\\[\\s*(.+)\\s*\\]", Pattern.CASE_INSENSITIVE );
 
 	/**
-	 * We hae a composite key for this made of the source text and the ontlogy term URI that was associated to it. 
+	 * We have a composite key for this made of the source text and the ontlogy term URI that was associated to it. 
 	 * Note that when we search for the terms associated to some text, we have the latter as key, to which multiple 
 	 * terms may be associated.
 	 *

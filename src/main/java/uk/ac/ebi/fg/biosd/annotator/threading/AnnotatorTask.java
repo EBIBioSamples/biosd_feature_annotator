@@ -1,8 +1,5 @@
 package uk.ac.ebi.fg.biosd.annotator.threading;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import uk.ac.ebi.utils.threading.BatchServiceTask;
 
 /**
@@ -14,8 +11,6 @@ import uk.ac.ebi.utils.threading.BatchServiceTask;
  */
 public abstract class AnnotatorTask extends BatchServiceTask
 {
-	protected Logger log = LoggerFactory.getLogger ( this.getClass () );
-
 	public AnnotatorTask ( String name ) {
 		super ( name );
 	}	

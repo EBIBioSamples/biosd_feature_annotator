@@ -29,6 +29,10 @@ OPTS="$OPTS -Dfile.encoding=UTF-8"
 #
 ###
 
+# Sometimes it hangs on external web services, this will make it to timeout (they are -1 = oo by default)
+OPTS="$OPTS -Dsun.net.client.defaultConnectTimeout=30000 -Dsun.net.client.defaultReadTimeout=120000"
+
+
 cd "$(dirname $0)"
 MYDIR="$(pwd)"
 

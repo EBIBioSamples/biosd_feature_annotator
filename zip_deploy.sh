@@ -24,7 +24,8 @@ echo "_______________ Deploying the Command Line Binary ($version) to $target __
 rm -Rf "$target/biosd_feature_annotator_${version}/lib"
 
 yes A| unzip biosd_feature_annotator_${version}.zip -d "$target"
-chmod -R ug=rwX,o=rX "$target/biosd_feature_annotator_${version}"
+cp -f biosd_feature_annotator_${version}.zip "$target"
+chmod -R ug=rwX,o=rX "$target/biosd_feature_annotator_${version}" "$target/biosd_feature_annotator_${version}.zip"
 
 echo ______________________________________________________________________________
 echo

@@ -58,7 +58,7 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 			pvann.setType ( ANNOTATION_TYPE_MARKER );
 			pvann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
 			pvann.setOntoTermUri ( uri );
-			pvann.setScore ( (double) dterm.getScore () ); 
+			pvann.setScore ( dterm.getScore () ); 
 			pvann.setTimestamp ( new Date () );
 
 			store.put ( ExpPropValAnnotation.class, pvkey + ":" + uri, pvann ); 
