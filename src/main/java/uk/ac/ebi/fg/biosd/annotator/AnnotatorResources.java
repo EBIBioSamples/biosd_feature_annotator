@@ -1,11 +1,16 @@
 package uk.ac.ebi.fg.biosd.annotator;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import com.google.common.collect.Tables;
 
 /**
  * Several common resources used by the annotator. 
@@ -23,7 +28,21 @@ public class AnnotatorResources
 	public static final int MAX_STRING_LEN = 150;
 	
 	@SuppressWarnings ( "rawtypes" )
-	private final Table<Class, String, Object> store = HashBasedTable.create ();	
+	// This seems to be the only and absurd way to tell Google Collections that I want a damn efficiently-synchronised 
+	// Table. ConcurrentHashMap is better than synchronising on the whole table object, synchronisation on 
+	// single key values doesn't work.
+	private final Table<Class, String, Object> store = Tables.newCustomTable 
+	( 
+		new ConcurrentHashMap<Class, Map<String, Object>>(),
+		new Supplier<Map<String, Object>>() 
+		{
+			@Override
+			public Map<String, Object> get () {	return new ConcurrentHashMap<String, Object> ();	}
+		}
+	);
+	
+	
+	// HashBasedTable.create ();	
 	
 	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );

@@ -53,7 +53,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			
 			List<DiscoveredTerm> result = new ArrayList<DiscoveredTerm> ();
 			for ( ExpPropValAnnotation ann: pvanns )
-				result.add ( new DiscoveredTerm ( ann.getOntoTermUri (), ann.getScore ().floatValue () ) );
+				result.add ( new DiscoveredTerm ( ann.getOntoTermUri (), ann.getScore () ) );
 			
 			return result;
 		}

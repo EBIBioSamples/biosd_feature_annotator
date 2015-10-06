@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.bioportal.webservice.utils.BioportalWebServiceUtils;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
@@ -265,8 +266,11 @@ public class AnnotateCmd
 		helpFormatter.printOptions ( pw, 100, getOptions (), 2, 4 );
 		
 		out.println ( "\nEnvironment:" );
-		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationService.MAX_THREAD_PROP + "\": max number of threads that can be used" );
+		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationService.MAX_THREAD_PROP + "=<no>\": max number of threads that can be used" );
 		out.println ( "  (very important in LSF mode)" );
+		out.println ();
+		// TODO: the same for ZOOMA
+		out.println ( "  OPTS=\"$OPTS -D" + BioportalWebServiceUtils.STATS_SAMPLING_TIME_PROP_NAME + "=<ms>\": period for bioportal for reporting statistics" );
 		
 		out.println ( "\n\n" );
 		
