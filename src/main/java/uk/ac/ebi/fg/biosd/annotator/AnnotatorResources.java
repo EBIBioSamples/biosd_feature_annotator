@@ -8,7 +8,6 @@ import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 
 import com.google.common.base.Supplier;
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
 
@@ -50,7 +49,7 @@ public class AnnotatorResources
 	private final PropertyValAnnotationManager pvAnnMgr;
 	
 	private static AnnotatorResources instance = new AnnotatorResources ();
-	
+		
 	private AnnotatorResources () 
 	{
 		((StatsZOOMASearchFilter) this.zoomaClient).setThrottleMode ( true );
