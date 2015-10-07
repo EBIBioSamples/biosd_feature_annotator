@@ -12,7 +12,7 @@ import uk.ac.ebi.fg.core_model.resources.Resources;
  * <dl><dt>Date:</dt><dd>2 Sep 2015</dd>
  *
  */
-public class FeatureAnnotatorResources extends BioSdResources
+public class AnnotatorBioSDResources extends BioSdResources
 {
 	/**
 	 * Model tables provided by the annotator are inside the same DB used by BioSD, so we prefer to prefix them.

@@ -12,7 +12,7 @@ import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchInterface;
 
 /**
  * It's like {@link ZOOMASearchInterface ZOOMA-based search}, but considers only terms coming from the 
- * <a href ="http://bioportal.bioontology.org/ontologies/UO Unit">Ontology</a>.
+ * <a href ="http://bioportal.bioontology.org/ontologies/UO">Unit Ontology</a>.
  *
  * @author brandizi
  * <dl><dt>Date:</dt><dd>17 Dec 2014</dd>

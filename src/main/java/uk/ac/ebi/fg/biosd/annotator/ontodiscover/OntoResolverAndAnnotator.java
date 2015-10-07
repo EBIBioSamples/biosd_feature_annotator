@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.bioportal.webservice.exceptions.OntologyServiceException;
 import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
+import uk.ac.ebi.bioportal.webservice.utils.BioportalWebServiceUtils;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
@@ -36,6 +37,11 @@ public class OntoResolverAndAnnotator
 	
 	private final BioportalClient bioportalClient = new BioportalClient ( "07732278-7854-4c4f-8af1-7a80a1ffc1bb" );
 	private final Logger log = LoggerFactory.getLogger ( this.getClass () );
+	
+	static {
+		BioportalWebServiceUtils.STATS_WRAPPER.setPopUpExceptions ( false );
+	}
+	
 	
 	public OntoResolverAndAnnotator () {}
 	

@@ -1,6 +1,6 @@
 package uk.ac.ebi.fg.biosd.annotator.model;
 
-import static uk.ac.ebi.fg.biosd.annotator.resources.FeatureAnnotatorResources.TABLE_PREFIX;
+import static uk.ac.ebi.fg.biosd.annotator.resources.AnnotatorBioSDResources.TABLE_PREFIX;
 
 import java.io.Serializable;
 import java.util.regex.Pattern;
