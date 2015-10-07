@@ -10,7 +10,7 @@
 if [ "$LSF_GROUP" == '' ]; then LSF_GROUP='biosd_annotator'; fi
 
 # The number of running nodes at any time (i.e., the LSF -L option for LSF_GROUP)
-if [ "$LSF_NODES" == '' ]; then LSF_NODES=5; fi
+if [ "$LSF_NODES" == '' ]; then LSF_NODES=3; fi
 
 # How many sample property values are annotated by each LSF job (i.e., instance of annotate.sh)?
 # We will create as many jobs as necessary, depending on annotate.sh --property-count
@@ -31,9 +31,9 @@ else
 fi
 
 # This is absolutely necessary when you run the annotator through the cluster, since every thread in every JVM instance 
-# takes one DB connection and, without this controlo, parallel instances will soon overcome the server limit.
+# takes one DB connection and, without this control, parallel instances will soon overcome the server limit.
 #
-nthreads=$(( 240 / $LSF_NODES ))
+nthreads=$(( 120 / $LSF_NODES ))
 export OPTS="$OPTS -Duk.ac.ebi.fg.biosd.annotator.maxThreads=$nthreads" 
 
 
