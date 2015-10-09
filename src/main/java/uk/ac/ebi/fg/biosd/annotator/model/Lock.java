@@ -2,6 +2,9 @@ package uk.ac.ebi.fg.biosd.annotator.model;
 
 import static uk.ac.ebi.fg.biosd.annotator.resources.AnnotatorBioSDResources.TABLE_PREFIX;
 
+import java.util.Date;
+
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -19,17 +22,29 @@ import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 @Table ( name = TABLE_PREFIX + "save_lock" )
 public class Lock
 {
-	private int id = 0;
+	private int status = 0;
+	private Date timestamp = null;
 
 	@Id
-	public int getId ()
+	public int getStatus ()
 	{
-		return id;
+		return status;
 	}
 
-	public void setId ( int id )
+	public void setStatus ( int status )
 	{
-		this.id = id;
+		this.status = status;
 	}
 
+	@Column ( name = "lock_ts" )
+	public Date getTimestamp ()
+	{
+		return timestamp;
+	}
+
+	public void setTimestamp ( Date timestamp )
+	{
+		this.timestamp = timestamp;
+	}
+	
 }

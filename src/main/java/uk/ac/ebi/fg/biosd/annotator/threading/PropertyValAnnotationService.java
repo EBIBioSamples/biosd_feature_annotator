@@ -11,7 +11,6 @@ import org.hibernate.Hibernate;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.BioSampleGroup;
@@ -19,12 +18,11 @@ import uk.ac.ebi.fg.biosd.model.organizational.MSI;
 import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
+import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
-import uk.ac.ebi.utils.memory.MemoryUtils;
 import uk.ac.ebi.utils.threading.BatchService;
-import uk.ac.ebi.utils.time.XStopWatch;
 import uk.org.lidalia.slf4jext.Level;
 
 /**
@@ -46,18 +44,7 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	public static final String MAX_THREAD_PROP = "uk.ac.ebi.fg.biosd.annotator.maxThreads";
 	
 	double randomSelectionQuota = 1.0;
-
-	private XStopWatch timer = new XStopWatch (); 
-	
-	private Runnable memFlushAction = new Runnable() 
-	{
-		@Override
-		public void run () {
-			PropertyValAnnotationService.this.waitAllFinished ();
-		}
-	};
-
-	
+		
 	public PropertyValAnnotationService ()
 	{
 		super ();
@@ -86,19 +73,19 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	 */
 	public void submit ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
 	{
-		if ( timer.isStopped () ) timer.start ();
-				
-		// This will flush the collected annotations to the DB when the memory is too full, or when enough time 
-		// has passed. We add the time criterion, cause we don't want to waste too much if the storage operation fails.
-		//
-		if ( !MemoryUtils.checkMemory ( this.memFlushAction, 0.25 ) && timer.getTime () > 1000 * 3600 * 3 )
-			this.memFlushAction.run ();
-		
 		// We need to force eager mode, we're about to close the session
 		Hibernate.initialize ( pv.getType () );
 		Hibernate.initialize ( pv.getTermText () );
-		Hibernate.initialize ( pv.getUnit () );
 		Hibernate.initialize ( pv.getOntologyTerms () );
+
+		Unit u;
+		Hibernate.initialize ( u = pv.getUnit () );
+		if ( u != null ) 
+		{
+			Hibernate.initialize ( u.getOntologyTerms () );
+			Hibernate.initialize ( u.getTermText () );
+			Hibernate.initialize ( u.getDimension () );
+		}
 		
 		super.submit ( new PropertyValAnnotationTask ( pv ) );
 	}
@@ -107,8 +94,6 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	 * Invokes {@link #submit(long)} for the properties listed in this offset and position.
 	 * This is mainly used to split the property value set in chunks and pass them to LSF-based invocations.
 	 * 
-	 * This considers only those properties that haven't neither any ZOOMA-computed term associated, nor a 
-	 * {@link OntoDiscoveryAndAnnotator#createEmptyZoomaMappingMarker() 'no-ontology term found marker'}.
 	 */
 	public void submit ( Integer offset, Integer limit )
 	{
@@ -236,47 +221,29 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 		this.randomSelectionQuota = randomSelectionQuota;
 	}
 
+	
+
 	/**
-	 * First waits that all the tasks are finished, then flushes all in-memory changes to the database. Finally
-	 * cleans up the memory and resets {@link #timer}. This is either called when there is nothing more to submit, or
-	 * internally, when the memory is almost full and needs to be flushed.
-	 * 
+	 * Waits for all the tasks to finish and then {@link #persist()}s. 
 	 */
 	@Override
 	public void waitAllFinished ()
 	{
-		this.timer.reset ();
 		super.waitAllFinished ();
-		
-		// Try more times, in the attempt to face concurrency issues.
-		RuntimeException theEx = null;
-		for ( int attempts = 5; attempts > 0; attempts-- )
-		{
-			theEx = null;
-			try {
-				new AnnotatorPersister ().persist ();
-				break;
-			}
-			catch ( PersistenceException ex )
-			{
-				log.trace ( String.format ( 
-					"Database error: '%s', probably due to concurrency issues, retrying %d more time(s)", ex.getMessage (), attempts ), 
-					ex
-				);
-				theEx = ex;
-				try {
-					Thread.sleep ( RandomUtils.nextLong ( 1000*60, 1000*60*5 ) );
-				}
-				catch ( InterruptedException ex1 ) {
-					throw new RuntimeException ( "Internal error: " + ex1.getMessage (), ex1 );
-				}
-			}
-		}
-		if ( theEx != null ) throw new PersistenceException ( 
-			"Couldn't fetch data from the BioSD database, giving up after 5 attempts, likely due to: " + theEx.getMessage (),
-			theEx 
-		);
-		
-		AnnotatorResources.reset ();
+		this.persist ();
 	}
+	
+	
+	/**
+	 * Saves {@link AnnotatorResources#getStore() gathered annotations}, used by {@link #waitAllFinished()}.
+	 */
+	private void persist ()
+	{
+		new AnnotatorPersister ().persist ();
+		
+		// Just in case it's needed by JUnit tests
+		AnnotatorResources.getInstance ().reset ();
+		
+	} // persist()
+
 }

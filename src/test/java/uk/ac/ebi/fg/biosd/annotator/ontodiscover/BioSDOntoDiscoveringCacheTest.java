@@ -50,7 +50,7 @@ public class BioSDOntoDiscoveringCacheTest
 	@Before
 	public void initResources () 
 	{
-		AnnotatorResources.reset ();
+		AnnotatorResources.getInstance ().reset ();
 
 		biosdCache = new BioSDOntoDiscoveringCache ();
 		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );

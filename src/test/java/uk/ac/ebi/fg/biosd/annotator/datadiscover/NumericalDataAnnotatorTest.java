@@ -64,7 +64,7 @@ public class NumericalDataAnnotatorTest
 	
 	@Before
 	public void initResources () {
-		AnnotatorResources.reset ();
+		AnnotatorResources.getInstance ().reset ();
 	}
 	
 	

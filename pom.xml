@@ -95,7 +95,13 @@
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-queryparser</artifactId>
 			<version>4.10.2</version>
-		</dependency>		
+		</dependency>
+		
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-c3p0</artifactId>
+  	</dependency>
+				
 				
 	</dependencies>
 

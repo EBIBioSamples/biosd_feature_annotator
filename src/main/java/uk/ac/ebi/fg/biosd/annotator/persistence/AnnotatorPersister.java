@@ -2,11 +2,15 @@ package uk.ac.ebi.fg.biosd.annotator.persistence;
 
 import java.sql.Connection;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
+import javax.persistence.PersistenceException;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +20,11 @@ import uk.ac.ebi.fg.biosd.annotator.cli.AnnotateCmd;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.model.Lock;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
 import uk.ac.ebi.fg.core_model.resources.Resources;
+import uk.ac.ebi.utils.runcontrol.MultipleAttemptsExecutor;
 
 import com.google.common.collect.Table;
 
@@ -32,6 +38,8 @@ import com.google.common.collect.Table;
  */
 public class AnnotatorPersister
 {
+	public static final String LOCK_TIMEOUT_PROP = "uk.ac.ebi.debug.lock_timeout";
+	
 	private EntityManager entityManager = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 	@SuppressWarnings ( "rawtypes" )
 	private Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
@@ -47,8 +55,9 @@ public class AnnotatorPersister
 		try
 		{
 			log.info ( StringUtils.center ( " Persisting annotations gathered so far, please wait... ", 110, "-" ) );
+			
 			long ct = 0;
-
+			
 			ct = persistEntities ( DataItem.class );
 			ct += persistEntities ( ComputedOntoTerm.class );
 			ct += persistEntities ( ResolvedOntoTermAnnotation.class );
@@ -67,54 +76,70 @@ public class AnnotatorPersister
 	 * Sends all of them to the DB, via Hibernate. Manages it all inside multiple transactions.
 	 * 
 	 */
-	private <T> long persistEntities ( Class<T> type )
+	private <T> long persistEntities ( final Class<T> type )
 	{
-		Collection<Object> objects = store.row ( type ).values ();
+		final Collection<Object> objects = store.row ( type ).values ();
 		int sz = objects == null ? 0 :  objects.size ();
-		log.info ( "Saving {} instances of {}", sz, type.getName () );
+		log.info ( "Saving {} instance(s) of {}", sz, type.getName () );
 		if ( sz == 0 ) return 0;
 		
-		lock ();
-		EntityTransaction tx = this.entityManager.getTransaction ();
-		try
-		{
-			tx.begin ();
-			int ct = 0;
-
-			for ( Object o: objects )
+		final Integer[] result = new Integer [ 1 ];
+		
+		// Try multiple times, it's so important that we complete it.
+		//
+		new MultipleAttemptsExecutor ( 5, 1000 * 60, 1000 * 60 * 5, PersistenceException.class )
+		.execute ( new Runnable() {
+			@Override
+			public void run ()
 			{
-				Object eid = this.entityManager.getEntityManagerFactory ().getPersistenceUnitUtil ().getIdentifier ( o );
-				Object edb = this.entityManager.find ( o.getClass (), eid );
-				if ( edb != null ) {
-					if ( log.isTraceEnabled () ) log.trace ( "Object already in the DB: {}", edb.toString () );
-					continue;
-				}
-								
-				if ( log.isTraceEnabled () ) log.trace ( "Saving: {}", o.toString () );
-				this.entityManager.persist ( o );
-				
-				if ( ++ct % 100000 == 0 )
+				lock ();
+				EntityTransaction tx = entityManager.getTransaction ();
+				try
 				{
-					tx.commit ();
-					log.info ( "committed {} items", ct );
 					tx.begin ();
-				}
-			}
+					int ct = 0;
 
-			tx.commit ();
-			log.info ( "done, {} total instances of {} committed", ct, type.getName () );
+					for ( Object o: objects )
+					{
+						Object eid = entityManager.getEntityManagerFactory ().getPersistenceUnitUtil ().getIdentifier ( o );
+						Object edb = entityManager.find ( o.getClass (), eid );
+						if ( edb != null ) {
+							if ( log.isTraceEnabled () ) log.trace ( "Object already in the DB: {}", edb.toString () );
+							continue;
+						}
+										
+						if ( log.isTraceEnabled () ) log.trace ( "Saving: {}", o.toString () );
+						entityManager.persist ( o );
+						
+						if ( ++ct % 100000 == 0 )
+						{
+							tx.commit ();
+							log.info ( "committed {} items", ct );
+							tx.begin ();
+						}
+					}
+
+					tx.commit ();
+					log.info ( "done, {} total instances of {} committed", ct, type.getName () );
+					
+					result [ 0 ] = ct;
+				}
+				finally
+				{
+					if ( tx.isActive () )
+						// Well, it shouldn't be, probably there's an error and hence let's rollback
+						tx.rollback ();
+					
+					unlock ();
+				}		
 			
-			return ct;
-		}
-		finally
-		{
-			if ( tx.isActive () )
-				// Well, it shouldn't be, probably there's an error and hence let's rollback
-				tx.rollback ();
+			} // run ()
 			
-			unlock ();
-		}		
-	}
+		}); // MultipleAttemptsExecutor
+
+		return result [ 0 ];
+		
+	} // persistEntities
 
 	/**
 	 * Invoked by {@link #persistEntities(Class)}. Implements a custom DB-level lock, to be used to isolate the persistence
@@ -130,11 +155,32 @@ public class AnnotatorPersister
 	{
 		try
 		{
+			// Wait a random time, to minimise collisions and unnecessary attempts to write
+			// on an already-locked table (seems to happen without exceptions, due to optimistic locking
+			//
+			Thread.sleep ( RandomUtils.nextLong ( 0, 2001 ) );
+			
+			Map<String, Object> dbprops = this.entityManager.getEntityManagerFactory ().getProperties ();
+			
+			String driverName = StringUtils.trimToEmpty ( 
+				(String) dbprops.get ( "hibernate.connection.driver_class" ) );
+			
+			String sqlSerialize = 
+				driverName.contains ( ".h2." ) ? "SET LOCK_MODE = 1"
+				: driverName.contains ( "Oracle" ) ? "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE"
+				: null;
+			
+			if ( sqlSerialize == null ) throw new RuntimeException ( 
+				"Internal error: I don't know how to set serializable isolation level for '" + driverName + "'"
+			);
+			
 			EntityTransaction tx = this.entityManager.getTransaction ();
 			
 			while ( true )
 			{
 				tx.begin ();
+
+				this.entityManager.createNativeQuery ( sqlSerialize ).executeUpdate ();
 				
 				@SuppressWarnings ( "unchecked" )
 				List<Object> lockrec = this.entityManager.createNativeQuery ( 
@@ -166,6 +212,10 @@ public class AnnotatorPersister
 		EntityTransaction tx = this.entityManager.getTransaction ();
 		tx.begin ();
 		this.entityManager.createNativeQuery ( "DELETE FROM fann_save_lock" ).executeUpdate ();
+		Lock newLockRec = new Lock ();
+		newLockRec.setStatus ( 0 );
+		newLockRec.setTimestamp ( new Date () );
+		this.entityManager.persist ( newLockRec );
 		tx.commit ();
 	}
 	
@@ -173,11 +223,9 @@ public class AnnotatorPersister
 	 * Used in tests and in a {@link AnnotateCmd command line} option. Removes {@link #lock() DB locks} left over 
 	 * (e.g. by system crashes). Obviously, you need to know what you're doing, when using this option.
 	 * 
-	 * @return 1, the no of records modified in the DB.
 	 */
-	public int forceUnlock ()
+	public void forceUnlock ()
 	{
 		this.unlock ();
-		return 1;
 	}
 }

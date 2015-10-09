@@ -33,7 +33,7 @@ public class OntoResolverTest
 {
 	@Before
 	public void initResources () {
-		AnnotatorResources.reset ();
+		AnnotatorResources.getInstance ().reset ();
 	}
 
 	@Test

@@ -10,7 +10,7 @@
 if [ "$LSF_GROUP" == '' ]; then LSF_GROUP='biosd_annotator'; fi
 
 # The number of running nodes at any time (i.e., the LSF -L option for LSF_GROUP)
-if [ "$LSF_NODES" == '' ]; then LSF_NODES=3; fi
+if [ "$LSF_NODES" == '' ]; then LSF_NODES=5; fi
 
 # How many sample property values are annotated by each LSF job (i.e., instance of annotate.sh)?
 # We will create as many jobs as necessary, depending on annotate.sh --property-count
@@ -50,6 +50,9 @@ then
   exit 1
 fi
 
+# Remove locks. Be aware that this is not compatible with annotator instances running in parallel
+./annotate.sh --unlock
+
 # Split the whole job into chunks
 # 
 echo "Processing $pval_size property values with $LSF_NODES nodes, $PROPERTIES_PER_JOB records per job"
@@ -58,7 +61,7 @@ echo "Using additional command line arguments:" ${1+"$@"}
 chunkct=1
 for (( offset=0; offset<$pval_size; offset+=$PROPERTIES_PER_JOB ))
 do
-	bsub -J biosdann$chunkct -g /$LSF_GROUP -oo "./logs/biosdann_$chunkct".out -M 38000 \
+	bsub -J biosdann$chunkct -g /$LSF_GROUP -oo "./logs/biosdann_$chunkct".out -M 20000 \
 		./annotate.sh --offset $offset --limit $PROPERTIES_PER_JOB ${1+"$@"}
 	(( chunkct++ ))
 done

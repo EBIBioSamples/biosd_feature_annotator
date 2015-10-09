@@ -89,10 +89,10 @@ public class AnnotatorResources
 
 	/**
 	 * This resets the common resources used by the annotator and provided by this singleton, the main one being
-	 * {@link #getStore() annotation store}. This methos is typically used at the end/begin of JUnit tests.  
+	 * {@link #getStore() annotation store}. This method is typically used at the end/begin of JUnit tests.  
 	 */
-	public static final void reset ()
+	public void reset ()
 	{
-		instance = new AnnotatorResources ();
+		this.store.clear ();
 	}
 }

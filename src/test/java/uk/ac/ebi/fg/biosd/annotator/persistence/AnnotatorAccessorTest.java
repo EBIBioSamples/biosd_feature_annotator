@@ -236,8 +236,7 @@ public class AnnotatorAccessorTest
 	@Before
 	public void initResources () 
 	{
-		AnnotatorResources.reset ();
-		
+		AnnotatorResources.getInstance ().reset ();		
 	}
 	
 	@After

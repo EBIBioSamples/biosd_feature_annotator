@@ -44,4 +44,5 @@
 	<!-- Add Loggers this way if you want finer reports for selected components -->
   <!-- logger name = "uk.ac.ebi.example" level = "INFO"/ -->
   <!-- logger name = "uk.ac.ebi.fg.biosd.annotator.threading" level = "DEBUG" -->
+  <logger name = "uk.ac.ebi.fgpt.zooma.search" level = "INFO" />
 </configuration>

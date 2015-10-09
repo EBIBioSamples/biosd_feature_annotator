@@ -37,11 +37,13 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 		String pvkey = ExpPropValAnnotation.getPvalText ( typeLabel, valueLabel );
 		if ( pvkey == null ) return CachedOntoTermDiscoverer.NULL_RESULT;
 
-		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		ExpPropValAnnotationDAO expPropValAnnotationDAO = new ExpPropValAnnotationDAO ( em );
+		EntityManager em = null;
 
 		try
 		{
+			em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+			ExpPropValAnnotationDAO expPropValAnnotationDAO = new ExpPropValAnnotationDAO ( em );
+
 			List<ExpPropValAnnotation> pvanns = expPropValAnnotationDAO.findBySourceText ( pvkey, true );
 			
 			if ( pvanns == null || pvanns.isEmpty () ) return null;
@@ -58,7 +60,7 @@ public class BioSDOntoDiscoveringCache extends OntoTermDiscoveryCache
 			return result;
 		}
 		finally {
-			if ( em.isOpen () ) em.close ();
+			if ( em != null && em.isOpen () ) em.close ();
 		}
 	}
 	

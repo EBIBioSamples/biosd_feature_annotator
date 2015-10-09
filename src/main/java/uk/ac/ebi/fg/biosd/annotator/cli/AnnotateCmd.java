@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.PrintWriter;
 
+import javax.persistence.EntityManagerFactory;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -20,6 +22,7 @@ import uk.ac.ebi.bioportal.webservice.utils.BioportalWebServiceUtils;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
+import uk.ac.ebi.fg.core_model.resources.Resources;
 
 /**
  * The annotation command. All the work is invoked through an .sh script in the final binary, which in turn invokes this.
@@ -39,12 +42,22 @@ public class AnnotateCmd
 	
 	private static Logger log = LoggerFactory.getLogger ( AnnotateCmd.class );
 
-	
+	private static PropertyValAnnotationService annService = null;
 	
 	public static void main ( String... args )
 	{
 		try
 		{
+			// Add a termination handler, unless we're doing JUnit testing (invoked explicitly in such a case)
+			if ( !"true".equals ( System.getProperty ( NO_EXIT_PROP ) ) )
+				Runtime.getRuntime ().addShutdownHook ( new Thread ( new Runnable() 
+				{
+					@Override
+					public void run () {
+						terminationHandler ();
+					}
+				}));
+			
 			CommandLineParser clparser = new GnuParser ();
 			CommandLine cli = clparser.parse ( getOptions(), args );
 			
@@ -74,17 +87,7 @@ public class AnnotateCmd
 				return;
 			}
 			
-			
-			PropertyValAnnotationService annService = new PropertyValAnnotationService ();
-			
-			// Count experimental property values, invoked by the cluster-based command
-		  if ( cli.hasOption ( "property-count" ) )
-		  {
-		  	out.println ( annService.getPropValCount () );
-				log.info ( "all went fine!" );
-		  	return;
-		  }
-			
+						
 			Double rndQuota = Double.valueOf ( cli.getOptionValue ( "random-quota", "100.0" ) );
 			rndQuota = rndQuota < 100.0 && rndQuota >= 0.0 ? rndQuota / 100d : null;
 		  
@@ -113,6 +116,18 @@ public class AnnotateCmd
 		  	return;
 		  }
 		  
+		  
+			
+		  annService = new PropertyValAnnotationService ();
+			
+			// Count experimental property values, invoked by the cluster-based command
+		  if ( cli.hasOption ( "property-count" ) )
+		  {
+		  	out.println ( annService.getPropValCount () );
+				log.info ( "all went fine!" );
+				annService = null; // Skip the saving job.
+		  	return;
+		  }
 		  
 		  
 		  // This is the real annotation job
@@ -145,11 +160,7 @@ public class AnnotateCmd
 					offsetStr == null ? null : Integer.valueOf ( offsetStr ), 
 					limitStr == null ? null : Integer.valueOf ( limitStr ) 
 				);
-			}
-			
-			// Whatever you did, wait that all the annotators finish.
-		  annService.waitAllFinished ();
-			log.info ( "all should have gone fine!" );
+			}			
 		}
 		catch ( Throwable ex ) 
 		{
@@ -159,10 +170,39 @@ public class AnnotateCmd
 		finally 
 		{
 			// See NO_EXIT_PROP definition
-			if ( !"true".equals ( System.getProperty ( NO_EXIT_PROP ) ) )
+			if ( "true".equals ( System.getProperty ( NO_EXIT_PROP ) ) )
+				terminationHandler ();
+			else
 				System.exit ( exitCode );
 		}
 	}
+	
+	/**
+	 * Last operations, before JVM shutdown (or the end of a JUnit test). 
+	 * flushes the in-memory annotations that were gathered so far to the DB, Closes the entity manager factory.
+	 * 
+	 */
+	private static void terminationHandler ()
+	{
+		if ( getExitCode () == 128 ) return; // --help opion
+
+		if ( annService != null ) 
+		{
+			annService.waitAllFinished ();
+			
+			log.info ( getExitCode () == 0 
+				? "Computations should have gone fine!"
+				: "Some problems occurred, but some data were saved"
+			);
+		}
+
+		if ( "true".equals ( System.getProperty ( NO_EXIT_PROP ) ) ) return;
+
+		EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+		if ( emf != null && emf.isOpen () ) emf.close ();		
+	}
+	
+	
 	
 	@SuppressWarnings ( "static-access" )
 	private static Options getOptions ()
@@ -274,7 +314,7 @@ public class AnnotateCmd
 		
 		out.println ( "\n\n" );
 		
-		exitCode = 1;
+		exitCode = 128;
 	}
 
 	/**

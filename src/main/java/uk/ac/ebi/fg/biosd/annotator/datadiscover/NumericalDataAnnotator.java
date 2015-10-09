@@ -121,7 +121,10 @@ public class NumericalDataAnnotator
 						try {
 							double lo = Double.parseDouble ( chunks [ 0 ] );
 							double hi = Double.parseDouble ( chunks [ 1 ] );
-							dataItem = new NumberRangeItem ( lo, hi );
+							
+							// TODO: We need fixes to be able to accommodate bigger numbers in Oracle
+							if ( Math.abs ( lo ) < 10E125d && Math.abs ( hi ) < 10E125 )
+								dataItem = lo <= hi ? new NumberRangeItem ( lo, hi ) : new NumberRangeItem ( hi, lo );
 						} 
 						catch ( NumberFormatException nex ) {
 							// Just ignore all in case of problems
@@ -132,8 +135,13 @@ public class NumericalDataAnnotator
 			
 			// Is it a single number?
 			else if ( NumberUtils.isNumber ( pvalStr ) ) 
-				try {
-					dataItem = new NumberItem ( Double.parseDouble ( pvalStr ) );
+				try 
+				{
+					double v = Double.parseDouble ( pvalStr );
+
+					// TODO: We need fixes to be able to accommodate bigger numbers in Oracle
+					if ( Math.abs ( v ) < 10E125d )
+						dataItem = new NumberItem ( Double.parseDouble ( pvalStr ) );
 				}
 				catch ( NumberFormatException nex ) {
 					// Just ignore all in case of problems

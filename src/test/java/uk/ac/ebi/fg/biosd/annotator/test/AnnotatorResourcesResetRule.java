@@ -17,6 +17,6 @@ public class AnnotatorResourcesResetRule extends ExternalResource
 {
 	@Override
 	protected void before () throws Throwable {
-		AnnotatorResources.reset ();
+		AnnotatorResources.getInstance ().reset ();
 	}
 }

@@ -12,6 +12,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
 import org.joda.time.DateTime;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -87,4 +88,32 @@ public class DataItemTest
 		ts.commit ();
 	}
 	
+	/**
+	 * TODO: See {@link DataItemDAO}.
+	 */
+	@Test 
+	@Ignore ( "Need some fixes, see DataItemDAO" )
+	@SuppressWarnings ( "unchecked" )
+	public void testExtremesPersistence ()
+	{
+		NumberItem n1 = new NumberItem ( 9.1E136, "9.1E136" );
+				
+		EntityManager em = emProvider.getEntityManager ();
+		DataItemDAO dao = new DataItemDAO ( em );
+				
+		EntityTransaction ts = em.getTransaction ();
+		ts.begin ();
+		dao.create ( n1 );
+		ts.commit ();
+		
+		dao.setEntityManager ( em = emProvider.newEntityManager () );
+		List<DataItem> dbItems = em.createQuery ( "from DataItem" ).getResultList ();
+		assertEquals ( "DataItems reloading fails!", 1, dbItems.size () );
+		
+		// Clean-up
+		ts = em.getTransaction ();
+		ts.begin ();
+		for ( DataItem di: dbItems ) dao.delete ( di );
+		ts.commit ();
+	}
 }
