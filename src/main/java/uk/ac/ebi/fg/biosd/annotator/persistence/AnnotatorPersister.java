@@ -1,10 +1,8 @@
 package uk.ac.ebi.fg.biosd.annotator.persistence;
 
-import java.sql.Connection;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
@@ -38,9 +36,9 @@ import com.google.common.collect.Table;
  */
 public class AnnotatorPersister
 {
-	public static final String LOCK_TIMEOUT_PROP = "uk.ac.ebi.debug.lock_timeout";
+	public static final String LOCK_TIMEOUT_PROP = "uk.ac.ebi.fg.biosd.annotator.lock_timeout";
 	
-	private EntityManager entityManager = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+	private EntityManager entityManager = null;
 	@SuppressWarnings ( "rawtypes" )
 	private Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 	
@@ -52,23 +50,16 @@ public class AnnotatorPersister
 	 */
 	public long persist ()
 	{
-		try
-		{
-			log.info ( StringUtils.center ( " Persisting annotations gathered so far, please wait... ", 110, "-" ) );
-			
-			long ct = 0;
-			
-			ct = persistEntities ( DataItem.class );
-			ct += persistEntities ( ComputedOntoTerm.class );
-			ct += persistEntities ( ResolvedOntoTermAnnotation.class );
-			ct += persistEntities ( ExpPropValAnnotation.class );
-			
-			return ct;
-		}
-		finally {
-			if ( this.entityManager.isOpen () ) this.entityManager.close ();
-		}
+		log.info ( StringUtils.center ( " Persisting annotations gathered so far, please wait... ", 90, "-" ) );
 		
+		long ct = 0;
+		
+		ct = persistEntities ( DataItem.class );
+		ct += persistEntities ( ComputedOntoTerm.class );
+		ct += persistEntities ( ResolvedOntoTermAnnotation.class );
+		ct += persistEntities ( ExpPropValAnnotation.class );
+		
+		return ct;
 	}
 
 	/**
@@ -91,11 +82,16 @@ public class AnnotatorPersister
 		.execute ( new Runnable() {
 			@Override
 			public void run ()
-			{
-				lock ();
-				EntityTransaction tx = entityManager.getTransaction ();
+			{				
+				EntityTransaction tx = null;
 				try
 				{
+					// We noticed inter-process synch problems (during LSF running), so we prefer to get a new EM each time
+					entityManager = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+					tx = entityManager.getTransaction ();
+
+					lock ();
+					
 					tx.begin ();
 					int ct = 0;
 
@@ -126,11 +122,13 @@ public class AnnotatorPersister
 				}
 				finally
 				{
-					if ( tx.isActive () )
+					if ( tx != null && tx.isActive () )
 						// Well, it shouldn't be, probably there's an error and hence let's rollback
 						tx.rollback ();
 					
 					unlock ();
+					
+					if ( entityManager != null && entityManager.isOpen () ) entityManager.close ();
 				}		
 			
 			} // run ()
@@ -141,59 +139,81 @@ public class AnnotatorPersister
 		
 	} // persistEntities
 
-	/**
-	 * Invoked by {@link #persistEntities(Class)}. Implements a custom DB-level lock, to be used to isolate the persistence
+	/** 
+	 * <p>Invoked by {@link #persistEntities(Class)}. Implements a custom DB-level lock, to be used to isolate the persistence
 	 * of the {@link AnnotatorResources#getStore() annotator store}. This is necessary to coordinate multiple annotation
 	 * processes, running in separated JVMs (we use the LSF cluster). Transactions are not enough for this, because 
-	 * our transactions are too long and end up to cause timeout errors to waiting processes. Optimistic locking is 
-	 * not good either, because the persistence of most objects we deal with require {@link Connection#TRANSACTION_SERIALIZABLE}, 
-	 * (to prevent <a href = "https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html">phantom reads</a>),
-	 * which doesn't easily play with optimistic locking. 
+	 * our transactions are too long and end up to cause timeout errors to waiting processes (mainly due to optimistic
+	 * locking).</p>
+	 * 
+	 * <p>Regarding the details on how the locking is implemented, we use the {@link Lock} entity. Usually the LSF invoking
+	 * scripts call {@link AnnotateCmd} with the --unlock option, which causes {@link #forceUnlock()} and hence {@link #unlock()}
+	 * to empty the Lock table and refill it with a single record, having status = 0 (unlocked). When {@link #lock()} is 
+	 * invoked, it checks if such record has status = 0, or its {@link Lock#getTimestamp() timestamp} is expired (see
+	 * {@link #LOCK_TIMEOUT_PROP}, if yes, it overwrites the record with 1 + current time. From now on, any other invocation
+	 * of {@link #lock()} will wait for such record to become 0 again, or to expire. Note that, when Lock is empty, we
+	 * assume that we are running in single-node mode (no LSF), so this locking is obtained immediately, a 0-status
+	 * lock record is created at the end, by unlock. Also note that it might occasionally happen that two processes
+	 * get a lock at the same time, if the current active lock is expired. We prefer to risk this with a timeout, rather 
+	 * than blocking everything because of some interrupted process. Set a reasonable timeout to minimise collisions 
+	 * (default is 30min)</p>
+	 * 
+	 * <p>Note that {@link #lock()} and {@link #unlock()} assumes {@link #entityManager} is already created.</p>
 	 * 
 	 */
 	private void lock ()
 	{
+		EntityTransaction tx = null;
+		
 		try
 		{
 			// Wait a random time, to minimise collisions and unnecessary attempts to write
 			// on an already-locked table (seems to happen without exceptions, due to optimistic locking
 			//
 			Thread.sleep ( RandomUtils.nextLong ( 0, 2001 ) );
+			long timeout = 1000 * Long.valueOf ( System.getProperty ( LOCK_TIMEOUT_PROP, "" + 30 * 60 ) );
 			
-			Map<String, Object> dbprops = this.entityManager.getEntityManagerFactory ().getProperties ();
-			
-			String driverName = StringUtils.trimToEmpty ( 
-				(String) dbprops.get ( "hibernate.connection.driver_class" ) );
-			
-			String sqlSerialize = 
-				driverName.contains ( ".h2." ) ? "SET LOCK_MODE = 1"
-				: driverName.contains ( "Oracle" ) ? "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE"
-				: null;
-			
-			if ( sqlSerialize == null ) throw new RuntimeException ( 
-				"Internal error: I don't know how to set serializable isolation level for '" + driverName + "'"
-			);
-			
-			EntityTransaction tx = this.entityManager.getTransaction ();
+			tx = this.entityManager.getTransaction ();
+
+			Lock lockrec = null;
 			
 			while ( true )
 			{
 				tx.begin ();
-
-				this.entityManager.createNativeQuery ( sqlSerialize ).executeUpdate ();
 				
+				// One record is prepared by the LSF-launching script (-k option).
 				@SuppressWarnings ( "unchecked" )
-				List<Object> lockrec = this.entityManager.createNativeQuery ( 
-					"SELECT id FROM fann_save_lock FOR UPDATE" 
+				List<Lock> lockrecs = this.entityManager.createNativeQuery ( 
+					"SELECT * FROM fann_save_lock ORDER BY lock_ts DESC FOR UPDATE", Lock.class 
 				).getResultList ();
 				
-				if ( lockrec.size () == 0 ) break;
-
+				// No locking, might happen when LSF has never been run, we (hopefully) are running a single process 
+				// so locking isn't even needed.
+				if ( lockrecs.size () == 0 ) break;
+				
+				lockrec = lockrecs.get ( 0 ); 
+				
+				// The lock is free if the existing record has 0 status, or if it's expired
+				// This means two processes might write this record twice and have a lock both. This is the more unlikely
+				// the higher the timeout, but with high timeouts you risk to hang the whole system, so we've a default
+				// of 30 mins.
+				if ( lockrec.getStatus () == 0 || System.currentTimeMillis () > lockrec.getTimestamp ().getTime () + timeout )
+					break;
+				
 				tx.rollback ();
-				Thread.sleep ( 3000 );
+				// Again, wait a random time, to avoid concurrent locking of expired locks
+				Thread.sleep ( RandomUtils.nextLong ( 3000, 6001 ) );
 			}
 			
-			this.entityManager.createNativeQuery ( "INSERT INTO fann_save_lock VALUES ( 1 )" ).executeUpdate ();
+			// In LSF mode (-k option), an empty record is prepared in the table. If it's not here,
+			// assume we're not working in multi-process mode, no lock is needed.
+			//
+			if ( lockrec != null ) 
+			{
+				lockrec.setStatus ( 1 );
+				lockrec.setTimestamp ( new Date () );
+				this.entityManager.merge ( lockrec );
+			}
 			tx.commit ();
 		}
 		catch ( InterruptedException ex )
@@ -202,6 +222,9 @@ public class AnnotatorPersister
 				"Internal error while trying to get a process lock for saving annotations: " + ex.getMessage (), 
 			ex );
 		}
+		finally {
+			if ( tx != null && tx.isActive () ) tx.rollback ();
+		}
 	}
 	
 	/**
@@ -209,23 +232,42 @@ public class AnnotatorPersister
 	 */
 	private void unlock () 
 	{
-		EntityTransaction tx = this.entityManager.getTransaction ();
-		tx.begin ();
-		this.entityManager.createNativeQuery ( "DELETE FROM fann_save_lock" ).executeUpdate ();
-		Lock newLockRec = new Lock ();
-		newLockRec.setStatus ( 0 );
-		newLockRec.setTimestamp ( new Date () );
-		this.entityManager.persist ( newLockRec );
-		tx.commit ();
+		EntityTransaction tx = null;
+		try
+		{
+			tx = this.entityManager.getTransaction ();
+			tx.begin ();
+			// Usually it's only one, but just in case
+			this.entityManager.createNativeQuery ( "DELETE FROM fann_save_lock" ).executeUpdate ();
+			Lock newLockRec = new Lock ();
+			newLockRec.setStatus ( 0 );
+			newLockRec.setTimestamp ( new Date () );
+			this.entityManager.persist ( newLockRec );
+			tx.commit ();
+		}
+		finally {
+			if ( tx != null && tx.isActive () ) tx.rollback ();
+		}
 	}
 	
 	/**
-	 * Used in tests and in a {@link AnnotateCmd command line} option. Removes {@link #lock() DB locks} left over 
-	 * (e.g. by system crashes). Obviously, you need to know what you're doing, when using this option.
+	 * <p>Used in tests and in a {@link AnnotateCmd command line} option. Removes {@link #lock() DB locks} left over 
+	 * (e.g. by system crashes). Obviously, you need to know what you're doing, when using this option.</p>
+	 * 
+	 * This creates an {@link #entityManager} for the {@link #unlock()} operation, and closes it at the end.
 	 * 
 	 */
 	public void forceUnlock ()
 	{
-		this.unlock ();
+		try {
+			if ( this.entityManager == null ) 
+				this.entityManager = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+
+			this.unlock ();
+		}
+		finally {
+			if ( entityManager != null && entityManager.isOpen () ) entityManager.close ();
+		}
 	}
+
 }
