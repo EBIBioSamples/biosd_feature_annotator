@@ -20,6 +20,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
+import uk.ac.ebi.fg.core_model.resources.Const;
 import uk.ac.ebi.utils.regex.RegEx;
 
 /**
@@ -140,7 +141,7 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 	}
 
 	@Id
-	@Column ( length = 2000, name = "term_uri" )
+	@Column ( length = Const.COL_LENGTH_URIS, name = "term_uri" )
 	@Override
 	public String getOntoTermUri () {
 		return super.getOntoTermUri ();
