@@ -11,6 +11,7 @@ import javax.persistence.Table;
 import org.apache.commons.lang3.StringUtils;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.core_model.resources.Const;
 
 /**
  * A model class for feature annotations. This top-level class essentially stores provenance information, together
@@ -60,7 +61,7 @@ public abstract class FeatureAnnotation
 		this.sourceText = sourceText;
 	}
 
-
+	@Column ( length = Const.COL_LENGTH_M )
   public String getType() {
     return type;
   }
@@ -72,6 +73,7 @@ public abstract class FeatureAnnotation
   /**
    * A person or a software component that generated this annotation. 
    */
+	@Column ( length = Const.COL_LENGTH_M )
   public String getProvenance ()
 	{
 		return provenance;
@@ -115,6 +117,7 @@ public abstract class FeatureAnnotation
 	/**
 	 * Notes that can possibly be shown to the end-user.
 	 */
+	@Column ( length = Const.COL_LENGTH_XL )
 	public String getNotes ()
 	{
 		return notes;
@@ -129,7 +132,7 @@ public abstract class FeatureAnnotation
 	 * Notes that are technical and are not supposed to be understood by the end user, e.g., computational conditions
 	 * stored by the tool that computed this annotation.
 	 */
-	@Column ( name = "internal_notes" )
+	@Column ( name = "internal_notes", length = Const.COL_LENGTH_XL )
 	public String getInternalNotes ()
 	{
 		return internalNotes;
