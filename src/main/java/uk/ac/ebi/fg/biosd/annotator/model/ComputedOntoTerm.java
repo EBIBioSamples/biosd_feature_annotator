@@ -9,6 +9,7 @@ import javax.persistence.Index;
 import javax.persistence.Table;
 
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
+import uk.ac.ebi.fg.core_model.resources.Const;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 
 /**
@@ -46,7 +47,7 @@ public class ComputedOntoTerm
 
 
 	@Id
-	@Column ( length = 2000 )
+	@Column ( length = Const.COL_LENGTH_URIS )
 	public String getUri ()
 	{
 		return uri;
@@ -57,6 +58,7 @@ public class ComputedOntoTerm
 		this.uri = uri;
 	}
 	
+	@Column ( length = Const.COL_LENGTH_M )
 	public String getLabel ()
 	{
 		return label;
