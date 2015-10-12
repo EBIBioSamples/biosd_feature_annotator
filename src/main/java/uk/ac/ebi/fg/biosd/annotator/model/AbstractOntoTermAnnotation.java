@@ -9,6 +9,7 @@ import javax.persistence.MappedSuperclass;
 
 import org.apache.commons.lang3.StringUtils;
 
+import uk.ac.ebi.fg.core_model.resources.Const;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 
 
@@ -40,7 +41,7 @@ public abstract class AbstractOntoTermAnnotation extends FeatureAnnotation
 		super ( sourceText );
 	}
 
-	@Column ( length = 2000, name = "term_uri" )
+	@Column ( length = Const.COL_LENGTH_URIS, name = "term_uri" )
 	public String getOntoTermUri ()
 	{
 		return ontoTermUri;
