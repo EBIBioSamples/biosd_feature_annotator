@@ -1,23 +1,13 @@
 package uk.ac.ebi.fg.biosd.annotator.persistence.dao;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
-import org.hibernate.SQLQuery;
 import org.hibernate.Session;
 import org.hibernate.annotations.QueryHints;
-import org.hibernate.type.BigDecimalType;
-import org.hibernate.type.DoubleType;
-import org.hibernate.type.ObjectType;
-import org.hibernate.type.Type;
 
-import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.DateItem;
 import uk.ac.ebi.fg.biosd.annotator.model.DateRangeItem;
