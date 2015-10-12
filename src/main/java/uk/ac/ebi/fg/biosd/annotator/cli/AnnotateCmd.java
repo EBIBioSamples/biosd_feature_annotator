@@ -101,7 +101,7 @@ public class AnnotateCmd
 		  	
 		  	log.info ( StringUtils.center ( String.format ( 
 		  		" Removing annotator entities older than %d day(s), please wait... ", age 
-		  	), 110, "-" ));
+		  	), 90, "-" ));
 		  	int nitems = purger.purgeOlderThan ( age );
 		  	log.info ( "older annotator entries purged, {} item(s) removed", nitems ); 
 		  	return;
@@ -110,9 +110,9 @@ public class AnnotateCmd
 		  // Reset locks
 		  if ( cli.hasOption ( "unlock" ) )
 		  {
-				log.info ( StringUtils.center ( " Forcibly removing annotator lock flags from the database ", 120, '-' ));
-		  	int result = new AnnotatorPersister ().forceUnlock ();
-		  	log.info ( "done, {} record(s) removed", result );
+				log.info ( StringUtils.center ( " Forcibly removing annotator lock flags from the database ", 90, '-' ));
+		  	new AnnotatorPersister ().forceUnlock ();
+		  	log.info ( "done" );
 		  	return;
 		  }
 		  
@@ -311,7 +311,9 @@ public class AnnotateCmd
 		out.println ();
 		// TODO: the same for ZOOMA
 		out.println ( "  OPTS=\"$OPTS -D" + BioportalWebServiceUtils.STATS_SAMPLING_TIME_PROP_NAME + "=<ms>\": period for bioportal for reporting statistics" );
-		
+
+		out.println ( "  OPTS=\"$OPTS -D" + AnnotatorPersister.LOCK_TIMEOUT_PROP + "=<s>\": timeout for LSF saving lock record (see -k, default is 30min)." );
+
 		out.println ( "\n\n" );
 		
 		exitCode = 128;
