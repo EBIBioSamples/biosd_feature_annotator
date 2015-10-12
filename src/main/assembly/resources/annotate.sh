@@ -10,7 +10,7 @@ fi
 
 # These are passed to the JVM. they're appended, so that you can predefine it from the shell
 # My Laptop OPTS="$OPTS -Xms2G -Xmx4G -XX:PermSize=128m -XX:MaxPermSize=256m"
-OPTS="$OPTS -Xms12G -Xmx24G -XX:PermSize=512m -XX:MaxPermSize=1G"
+OPTS="$OPTS -Xms10G -Xmx20G -XX:PermSize=512m -XX:MaxPermSize=1G"
 
 # We always work with universal text encoding.
 OPTS="$OPTS -Dfile.encoding=UTF-8"
