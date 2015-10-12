@@ -140,8 +140,7 @@ public class NumericalDataAnnotator
 					double v = Double.parseDouble ( pvalStr );
 
 					// TODO: We need fixes to be able to accommodate bigger numbers in Oracle
-					if ( Math.abs ( v ) < 10E125d )
-						dataItem = new NumberItem ( Double.parseDouble ( pvalStr ) );
+					if ( Math.abs ( v ) < 10E125d ) dataItem = new NumberItem ( v );
 				}
 				catch ( NumberFormatException nex ) {
 					// Just ignore all in case of problems
