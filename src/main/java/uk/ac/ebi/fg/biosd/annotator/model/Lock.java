@@ -6,10 +6,11 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
 
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
+import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
 
 /**
  * This is used to have a DB table where to store a saving lock @see {@link AnnotatorPersister} for details.
@@ -20,12 +21,11 @@ import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
  */
 @Entity
 @Table ( name = TABLE_PREFIX + "save_lock" )
-public class Lock
+public class Lock extends Identifiable
 {
 	private int status = 0;
 	private Date timestamp = null;
-
-	@Id
+	
 	public int getStatus ()
 	{
 		return status;
@@ -36,7 +36,7 @@ public class Lock
 		this.status = status;
 	}
 
-	@Column ( name = "lock_ts" )
+	@Column ( name = "lock_ts" ) @NotNull
 	public Date getTimestamp ()
 	{
 		return timestamp;
