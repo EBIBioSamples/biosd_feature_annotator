@@ -109,7 +109,7 @@ public class ExpPropValAnnotation extends AbstractOntoTermAnnotation
 		public int hashCode () 
 		{
 			int result = this.getSourceText () == null ? 0 : this.sourceText.hashCode ();
-			result = 31 * result + this.getOntoTermUri () == null ? 0 : this.ontoTermUri.hashCode ();
+			result = 31 * result + ( this.getOntoTermUri () == null ? 0 : this.ontoTermUri.hashCode () );
 			return result;
 		}
 		

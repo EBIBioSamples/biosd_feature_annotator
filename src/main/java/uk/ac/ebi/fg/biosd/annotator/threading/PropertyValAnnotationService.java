@@ -3,9 +3,7 @@ package uk.ac.ebi.fg.biosd.annotator.threading;
 import java.io.InputStream;
 
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceException;
 
-import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
 
