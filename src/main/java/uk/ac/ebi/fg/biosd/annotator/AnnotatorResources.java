@@ -52,7 +52,6 @@ public class AnnotatorResources
 		
 	private AnnotatorResources () 
 	{
-		((StatsZOOMASearchFilter) this.zoomaClient).setThrottleMode ( true );
 		pvAnnMgr = new PropertyValAnnotationManager ( this.zoomaClient );
 	}
 

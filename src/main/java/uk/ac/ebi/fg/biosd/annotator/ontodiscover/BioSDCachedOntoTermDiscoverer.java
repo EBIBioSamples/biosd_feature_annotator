@@ -10,7 +10,7 @@ import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntoTermDiscoveryCache;
 import uk.ac.ebi.onto_discovery.api.OntologyDiscoveryException;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
-import au.com.bytecode.opencsv.CSVReader;
+import com.opencsv.CSVReader;;
 
 /**
  * An adapter of {@link CachedOntoTermDiscoverer} to the special cases we have in BioSD.
