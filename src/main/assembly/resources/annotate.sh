@@ -15,11 +15,12 @@ OPTS="$OPTS -Xms10G -Xmx20G -XX:PermSize=512m -XX:MaxPermSize=1G"
 # We always work with universal text encoding.
 OPTS="$OPTS -Dfile.encoding=UTF-8"
 
-# Monitoring with jvisualvm (end-user doesn't usually need this)
-#OPTS="$OPTS 
-# -Dcom.sun.management.jmxremote.port=5010
-# -Dcom.sun.management.jmxremote.authenticate=false
-# -Dcom.sun.management.jmxremote.ssl=false"
+# Monitoring with jconsole or jvisualvm. We keep this open, cause sometimes processes look stuck
+# and it's useful to inspect the JVM to see what's going on
+OPTS="$OPTS 
+ -Dcom.sun.management.jmxremote.port=5010
+ -Dcom.sun.management.jmxremote.authenticate=false
+ -Dcom.sun.management.jmxremote.ssl=false"
        
 # Used for invoking a command in debug mode (end user doesn't usually need this)
 #OPTS="$OPTS -Xdebug -Xnoagent"
