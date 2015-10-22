@@ -305,15 +305,11 @@ public class AnnotateCmd
 		PrintWriter pw = new PrintWriter ( out, true );
 		helpFormatter.printOptions ( pw, 100, getOptions (), 2, 4 );
 		
-		out.println ( "\nEnvironment:" );
-		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationService.MAX_THREAD_PROP + "=<no>\": max number of threads that can be used" );
+		out.println ( "\nRelevant Environment Variables:" );
+		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationService.MAX_THREAD_PROP + "=<num>\": max number of threads that can be used" );
 		out.println ( "  (very important in LSF mode)" );
 		out.println ();
-		// TODO: the same for ZOOMA
-		out.println ( "  OPTS=\"$OPTS -D" + BioportalWebServiceUtils.STATS_SAMPLING_TIME_PROP_NAME + "=<ms>\": period for bioportal for reporting statistics" );
-
 		out.println ( "  OPTS=\"$OPTS -D" + AnnotatorPersister.LOCK_TIMEOUT_PROP + "=<s>\": timeout for LSF saving lock record (see -k, default is 30min)." );
-
 		out.println ( "\n\n" );
 		
 		exitCode = 128;

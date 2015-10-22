@@ -5,12 +5,12 @@
 # 
 ols=$1 # 'zooma' or 'bioportal'
 if [ "$ols" == "zooma" ]; then
-  search_str='ZOOMA Statistics, searchZOOMA'
+  search_str='ZOOMA Statistics'
 else
   search_str='BioPortal Statistics'
 fi
   
-printf "speed\tfail rate\tcalls\tfails\n"
+printf "speed (calls/min)\tfail rate\tcalls\tfails\n"
 grep "${search_str}" logs/*.log \
 | sed -r s/'.*throughput.* ([0-9]+) calls.*failed.* ([0-9,\.]+) .*'/'\1;\2'/ \
 |(
