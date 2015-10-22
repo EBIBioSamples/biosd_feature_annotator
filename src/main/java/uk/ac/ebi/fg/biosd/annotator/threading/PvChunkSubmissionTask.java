@@ -60,6 +60,15 @@ class PvChunkSubmissionTask extends AnnotatorTask
 						 || RandomUtils.nextDouble (0d, 1d) <= this.service.randomSelectionQuota )
 					this.service.submit ( pvs.get ( i ) );
 		}
+		catch ( Throwable ex ) 
+		{
+			// TODO: proper exit code
+			log.error ( String.format ( 
+				"Error while submitting pv-chunk %d - %d: %s: ", this.offset, this.offset + this.limit, ex.getMessage () ), 
+				ex 
+			);
+			exitCode = 1;
+		}
 		finally {
 			if ( em.isOpen () ) em.close ();
 		}		

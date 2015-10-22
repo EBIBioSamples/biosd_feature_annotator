@@ -38,7 +38,7 @@ class PropertyValAnnotationTask extends AnnotatorTask
 			PropertyValAnnotationManager pvAnnMgr = AnnotatorResources.getInstance ().getPvAnnMgr ();
 			pvAnnMgr.annotate ( this.propertyValue );
 		}
-		catch ( Exception ex ) 
+		catch ( Throwable ex ) 
 		{
 			// TODO: proper exit code
 			log.error ( "Error while annotating property value #" + this.propertyValue + ": " + ex.getMessage (), ex );
