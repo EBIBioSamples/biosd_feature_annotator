@@ -116,7 +116,7 @@ public class AnnotatorPersister
 					}
 
 					tx.commit ();
-					log.info ( "done, {} total instances of {} committed", ct, type.getName () );
+					log.info ( "done, {} total instance(s) of {} committed", ct, type.getName () );
 					
 					result [ 0 ] = ct;
 				}
