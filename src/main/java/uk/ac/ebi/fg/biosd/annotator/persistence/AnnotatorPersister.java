@@ -37,8 +37,7 @@ import com.google.common.collect.Table;
 public class AnnotatorPersister
 {
 	public static final String LOCK_TIMEOUT_PROP = "uk.ac.ebi.fg.biosd.annotator.lock_timeout";
-	
-	private EntityManager entityManager = null;
+		
 	@SuppressWarnings ( "rawtypes" )
 	private Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 	
@@ -83,15 +82,17 @@ public class AnnotatorPersister
 			@Override
 			public void run ()
 			{				
+				EntityManager entityManager = null;
 				EntityTransaction tx = null;
 				try
 				{
 					// We noticed inter-process synch problems (during LSF running), so we prefer to get a new EM each time
 					entityManager = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+
+					lock ( entityManager );
+
 					tx = entityManager.getTransaction ();
 
-					lock ();
-					
 					tx.begin ();
 					int ct = 0;
 
@@ -125,10 +126,9 @@ public class AnnotatorPersister
 					if ( tx != null && tx.isActive () )
 						// Well, it shouldn't be, probably there's an error and hence let's rollback
 						tx.rollback ();
-					
-					unlock ();
-					
-					if ( entityManager != null && entityManager.isOpen () ) entityManager.close ();
+
+					if ( entityManager != null ) unlock ( entityManager );
+					if ( entityManager != null && entityManager.isOpen () ) entityManager.close (); 
 				}		
 			
 			} // run ()
@@ -161,7 +161,7 @@ public class AnnotatorPersister
 	 * <p>Note that {@link #lock()} and {@link #unlock()} assumes {@link #entityManager} is already created.</p>
 	 * 
 	 */
-	private void lock ()
+	private void lock ( EntityManager entityManager )
 	{
 		EntityTransaction tx = null;
 		
@@ -173,7 +173,7 @@ public class AnnotatorPersister
 			Thread.sleep ( RandomUtils.nextLong ( 0, 2001 ) );
 			long timeout = 1000 * Long.valueOf ( System.getProperty ( LOCK_TIMEOUT_PROP, "" + 30 * 60 ) );
 			
-			tx = this.entityManager.getTransaction ();
+			tx = entityManager.getTransaction ();
 
 			Lock lockrec = null;
 			
@@ -183,7 +183,7 @@ public class AnnotatorPersister
 				
 				// One record is prepared by the LSF-launching script (-k option).
 				@SuppressWarnings ( "unchecked" )
-				List<Lock> lockrecs = this.entityManager.createNativeQuery ( 
+				List<Lock> lockrecs = entityManager.createNativeQuery ( 
 					"SELECT * FROM fann_save_lock ORDER BY lock_ts DESC FOR UPDATE", Lock.class 
 				).getResultList ();
 				
@@ -212,7 +212,7 @@ public class AnnotatorPersister
 			{
 				lockrec.setStatus ( 1 );
 				lockrec.setTimestamp ( new Date () );
-				this.entityManager.merge ( lockrec );
+				entityManager.merge ( lockrec );
 			}
 			tx.commit ();
 		}
@@ -230,19 +230,19 @@ public class AnnotatorPersister
 	/**
 	 * @see #lock().
 	 */
-	private void unlock () 
+	private void unlock ( EntityManager entityManager ) 
 	{
 		EntityTransaction tx = null;
 		try
 		{
-			tx = this.entityManager.getTransaction ();
+			tx = entityManager.getTransaction ();
 			tx.begin ();
 			// Usually it's only one, but just in case
-			this.entityManager.createNativeQuery ( "DELETE FROM fann_save_lock" ).executeUpdate ();
+			entityManager.createNativeQuery ( "DELETE FROM fann_save_lock" ).executeUpdate ();
 			Lock newLockRec = new Lock ();
 			newLockRec.setStatus ( 0 );
 			newLockRec.setTimestamp ( new Date () );
-			this.entityManager.persist ( newLockRec );
+			entityManager.persist ( newLockRec );
 			tx.commit ();
 		}
 		finally {
@@ -259,14 +259,12 @@ public class AnnotatorPersister
 	 */
 	public void forceUnlock ()
 	{
+		EntityManager em = null;
 		try {
-			if ( this.entityManager == null ) 
-				this.entityManager = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-
-			this.unlock ();
+			this.unlock ( em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager () );
 		}
 		finally {
-			if ( entityManager != null && entityManager.isOpen () ) entityManager.close ();
+			if ( em != null && em.isOpen () ) em.close ();
 		}
 	}
 
