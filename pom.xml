@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
   <artifactId>biosd_feature_annotator</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   <name>BioSD Feature Annotator</name>
   <description>
   	Annotates sample and sample group characteristics, such as organisms or age, with ontology terms obtained via the
