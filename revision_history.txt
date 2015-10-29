@@ -1,2 +1,5 @@
-1.0-SNAPSHOT
-  - First dev release
+1.0.1-SNAPSHOT
+  - Next dev version
+
+1.0
+  - First release
