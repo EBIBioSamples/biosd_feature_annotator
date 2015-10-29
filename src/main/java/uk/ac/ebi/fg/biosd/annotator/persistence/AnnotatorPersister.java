@@ -171,7 +171,7 @@ public class AnnotatorPersister
 			// on an already-locked table (seems to happen without exceptions, due to optimistic locking
 			//
 			Thread.sleep ( RandomUtils.nextLong ( 0, 2001 ) );
-			long timeout = 1000 * Long.valueOf ( System.getProperty ( LOCK_TIMEOUT_PROP, "" + 30 * 60 ) );
+			long timeout = 1000 * Long.valueOf ( System.getProperty ( LOCK_TIMEOUT_PROP, "" + ( 60 * 60 ) ) );
 			
 			tx = entityManager.getTransaction ();
 
