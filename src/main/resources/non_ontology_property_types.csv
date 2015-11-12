@@ -1,4 +1,5 @@
 Type	Frequency
+sample accession
 synonym	1693457
 sample title	306944
 sample_title	292792
@@ -14,6 +15,9 @@ age	58862
 sampletab ftp location	52069
 individual	45844
 derived from	43065
+derived to
+child of
+parent of
 sample id	37449
 colection date	27641
 anonymized name	22323
@@ -151,6 +155,10 @@ longitude start	643
 peak list file uri	640
 rfs months	638
 sample name	
+group name
+sample group name
 sample description	
+group description
+sample group description
 pubmed id
 same as

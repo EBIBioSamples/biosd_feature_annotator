@@ -61,7 +61,7 @@ echo "Using additional command line arguments:" ${1+"$@"}
 chunkct=1
 for (( offset=0; offset<$pval_size; offset+=$PROPERTIES_PER_JOB ))
 do
-	bsub -J biosdann$chunkct -g /$LSF_GROUP -oo "./logs/biosdann_$chunkct".out -M 20000 \
+	bsub -J biosdann$chunkct -g /$LSF_GROUP -oo "./logs/biosdann_$chunkct".out -M 15000 \
 		./annotate.sh --offset $offset --limit $PROPERTIES_PER_JOB ${1+"$@"}
 	(( chunkct++ ))
 done
