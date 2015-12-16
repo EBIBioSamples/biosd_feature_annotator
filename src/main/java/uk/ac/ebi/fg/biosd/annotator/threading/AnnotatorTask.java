@@ -11,7 +11,7 @@ import uk.ac.ebi.utils.threading.BatchServiceTask;
  */
 public abstract class AnnotatorTask extends BatchServiceTask
 {
-	public AnnotatorTask ( String name ) {
+	protected AnnotatorTask ( String name ) {
 		super ( name );
 	}	
 }
