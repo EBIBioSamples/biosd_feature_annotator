@@ -2,6 +2,7 @@ package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +11,7 @@ import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntoTermDiscoveryCache;
 import uk.ac.ebi.onto_discovery.api.OntologyDiscoveryException;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
+
 import com.opencsv.CSVReader;;
 
 /**
@@ -79,6 +81,13 @@ public class BioSDCachedOntoTermDiscoverer extends CachedOntoTermDiscoverer
 	@Override
 	public List<DiscoveredTerm> getOntologyTerms ( String valueLabel, String typeLabel ) throws OntologyDiscoveryException
 	{
+		if ( "Å".equals ( valueLabel ) )
+			// This is never correctly mapped, by either ontology lookup, or text annotators, because UO has 'A' attached
+			// to UO_0000019, not the right symbol
+			return Arrays.asList ( new DiscoveredTerm ( 
+				"http://purl.obolibrary.org/obo/UO_0000019", 100d, "Å", "BioSD Feature Annotator" 
+			));
+			
 		if ( typeLabel != null && nonOntologyTypes.contains ( typeLabel.trim ().toLowerCase () ) )
 		{
 			valueLabel = typeLabel;
