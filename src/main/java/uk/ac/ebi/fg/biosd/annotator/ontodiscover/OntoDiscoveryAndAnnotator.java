@@ -50,8 +50,9 @@ public class OntoDiscoveryAndAnnotator
 
 		String pvalTypeLabel = pair.getLeft (), pvalLabel = pair.getRight ();
 		
-		if ( isNumberOrDate && pvalTypeLabel != null )
-			ontoTermDiscoverer.getOntologyTerms ( pvalTypeLabel, null );
+		if ( isNumberOrDate ) {
+			if ( pvalTypeLabel != null ) ontoTermDiscoverer.getOntologyTerms ( pvalTypeLabel, null );
+		}
 		else
 			ontoTermDiscoverer.getOntologyTerms ( pvalLabel, pvalTypeLabel );
 	}

@@ -157,7 +157,7 @@ public class BioSDOntoDiscoveringCacheTest
 	{
 		// Create the property
 		//
-		String value = "bla bla bla 123", type = "foo type";
+		String value = "ghjgdfjh vfhvf4ui", type = "welnfkjwbf wgeuy32eghv";
 
 		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( type );
 		ExperimentalPropertyValue<ExperimentalPropertyType> pval 

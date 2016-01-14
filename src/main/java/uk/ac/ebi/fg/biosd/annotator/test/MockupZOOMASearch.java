@@ -50,7 +50,9 @@ public class MockupZOOMASearch extends AbstractZOOMASearch
 				ArrayList<URI> uris = new ArrayList<URI> ();
 				uris.add ( new URI ( uri ) );
 				result.put ( 
-					(AnnotationSummary) new SimpleAnnotationSummary ( "fooAnn1", "Specie", "Homo Sapiens", uris, null, 100.0f ),
+					(AnnotationSummary) new SimpleAnnotationSummary ( 
+						"fooId1", null, "Specie", "Homo Sapiens", uris, null, 100f, null 
+					),
 					100.0f
 				);
 			}

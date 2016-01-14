@@ -16,8 +16,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,7 @@ import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
+import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
@@ -48,8 +50,10 @@ import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
  */
 public class AnnotatorAccessorTest
 {
+	@Rule
+	public TestRule resResetRule = new AnnotatorResourcesResetRule ();
+
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
-	
 	
 	@Test
 	public void testAll ()
@@ -74,7 +78,10 @@ public class AnnotatorAccessorTest
 		annMgr.annotate ( pval );
 		annMgr.annotate ( pvtemp );
 		new AnnotatorPersister ().persist ();
-		
+
+		// Do this in the unlikely case you first annotated, then use the access API. The annotator leaves around resources
+		// that the accessor shouldn't see.
+		AnnotatorResources.getInstance ().reset ();
 		
 		// ----------------> The meat, now we read it, this is the part up to the clients (e.g. X-S)
 		// 
@@ -130,6 +137,10 @@ public class AnnotatorAccessorTest
 		PropertyValAnnotationManager annMgr = AnnotatorResources.getInstance ().getPvAnnMgr ();
 		annMgr.annotate ( pv );
 		new AnnotatorPersister ().persist ();
+
+		// Do this in the unlikely case you first annotated, then use the access API. The annotator leaves around resources
+		// that the accessor shouldn't see.
+		AnnotatorResources.getInstance ().reset (); 
 		
 		
 		// Now we read it, this is the part up to the clients (e.g. X-S)
@@ -187,6 +198,10 @@ public class AnnotatorAccessorTest
 		ontoAnnotator.annotate ( pval );
 		new AnnotatorPersister ().persist ();
 		
+		// Do this in the unlikely case you first annotated, then use the access API. The annotator leaves around resources
+		// that the accessor shouldn't see.
+		AnnotatorResources.getInstance ().reset ();
+		
 
 		// Now we read it, this is the part up to the clients (e.g. X-S)
 		//
@@ -231,12 +246,6 @@ public class AnnotatorAccessorTest
 		ResolvedOntoTermAnnotation oeAnn = resolvedResult.getRight ();
 		log.info ( "ResolvedOntoTermAnnotation: {}", oeAnn );
 		assertEquals ( "Annotation and term have different URIs!", oeComp.getUri (), oeAnn.getOntoTermUri () );
-	}
-
-	@Before
-	public void initResources () 
-	{
-		AnnotatorResources.getInstance ().reset ();		
 	}
 	
 	@After
