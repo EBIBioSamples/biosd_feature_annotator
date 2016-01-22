@@ -83,6 +83,7 @@ public class AnnotatorAccessorTest
 		// that the accessor shouldn't see.
 		AnnotatorResources.getInstance ().reset ();
 		
+		
 		// ----------------> The meat, now we read it, this is the part up to the clients (e.g. X-S)
 		// 
 		

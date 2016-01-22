@@ -34,6 +34,8 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
 import uk.ac.ebi.fg.core_model.resources.Resources;
+import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
+import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
@@ -50,10 +52,12 @@ import com.google.common.collect.Table;
  */
 public class NumericalDataAnnotatorTest
 {
+	private AbstractZOOMASearch zoomaClient = new ZOOMASearchClient ();
+	
 	private NumericalDataAnnotator numAnn = new NumericalDataAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-					new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch ( new ZOOMASearchClient () ), 50f ),
+					new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch ( zoomaClient ) ),
 					new BioSDOntoDiscoveringCache ()
 				),
 				new OntoTermDiscoveryStoreCache ()
@@ -61,6 +65,10 @@ public class NumericalDataAnnotatorTest
 		);
 		
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
+	
+	public NumericalDataAnnotatorTest () {
+		this.zoomaClient.setMinConfidence ( Confidence.MEDIUM );
+	}
 	
 	@Before
 	public void initResources () {
@@ -89,7 +97,9 @@ public class NumericalDataAnnotatorTest
 		assertNotNull ( "No data-item found in memory store!", dataItem );
 		
 		// Unit annotation
-		List<DiscoveredTerm> uterms = (List<DiscoveredTerm>) store.get ( DiscoveredTerm.class, ExpPropValAnnotation.getPvalText ( null, unit.getTermText () ) );
+		List<DiscoveredTerm> uterms = (List<DiscoveredTerm>) store.get ( 
+			DiscoveredTerm.class, ExpPropValAnnotation.getPvalText ( "Unit", unit.getTermText () ) 
+		);
 		
 		assertNotNull ( "Unit not annotated!", uterms );
 		assertTrue ( "Unit not annotated!", uterms.size () > 0 );

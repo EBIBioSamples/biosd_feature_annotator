@@ -98,6 +98,7 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 		if ( offset == null ) offset = 0;
 		if ( limit == null ) limit = this.getPropValCount ();
 		
+		// Half of the CPUs used to scroll the chunks, all the rest used to process single properties
 		int chunkSize = (int) Math.ceil ( limit / ( Runtime.getRuntime().availableProcessors() / 2d ) );
 		if ( chunkSize == 0 ) chunkSize = limit;
 

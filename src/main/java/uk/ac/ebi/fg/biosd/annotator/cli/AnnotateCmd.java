@@ -18,7 +18,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.bioportal.webservice.utils.BioportalWebServiceUtils;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;

@@ -12,7 +12,7 @@ import uk.ac.ebi.onto_discovery.api.OntoTermDiscoveryCache;
 import uk.ac.ebi.onto_discovery.api.OntologyDiscoveryException;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 
-import com.opencsv.CSVReader;;
+import com.opencsv.CSVReader;
 
 /**
  * An adapter of {@link CachedOntoTermDiscoverer} to the special cases we have in BioSD.
@@ -84,6 +84,7 @@ public class BioSDCachedOntoTermDiscoverer extends CachedOntoTermDiscoverer
 		if ( "Å".equals ( valueLabel ) )
 			// This is never correctly mapped, by either ontology lookup, or text annotators, because UO has 'A' attached
 			// to UO_0000019, not the right symbol
+			// TODO: this is now fixed, but apparently the BP API isn't catching it, check again in future.
 			return Arrays.asList ( new DiscoveredTerm ( 
 				"http://purl.obolibrary.org/obo/UO_0000019", 100d, "Å", "BioSD Feature Annotator" 
 			));

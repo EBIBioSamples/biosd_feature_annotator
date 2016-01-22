@@ -1,6 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.datadiscover;
 
 import java.text.ParseException;
+import java.util.Calendar;
 import java.util.Date;
 
 import org.apache.commons.lang3.StringUtils;
@@ -36,16 +37,16 @@ public class NumericalDataAnnotator
 {
 	public static final String ANNOTATION_TYPE_MARKER = "Computed Numerical Data";
 	
-	private final OntologyTermDiscoverer ontoTermDiscoverer;
-	private final OntoResolverAndAnnotator ontoTermResolver;
+	private final OntologyTermDiscoverer unitOntoDiscoverer;
+	private final OntoResolverAndAnnotator unitOntoResolver;
 	
 	/**
-	 * @param ontoTermDiscoverer will be used to annotate a property value unit.
+	 * @param unitOntoDiscoverer will be used to annotate a property value unit.
 	 */
 	public NumericalDataAnnotator ( OntologyTermDiscoverer ontoTermDiscoverer )
 	{
-		this.ontoTermResolver = new OntoResolverAndAnnotator ();
-		this.ontoTermDiscoverer = ontoTermDiscoverer;
+		this.unitOntoResolver = new OntoResolverAndAnnotator ();
+		this.unitOntoDiscoverer = ontoTermDiscoverer;
 	}
 
 
@@ -72,15 +73,15 @@ public class NumericalDataAnnotator
 		
 		OntologyEntry uoe = u.getOntologyTerms ().size () == 1 ? u.getSingleOntologyTerm () : null;
 					
-		if ( uoe == null || !ontoTermResolver.annotate ( u ) )
+		if ( uoe == null || !unitOntoResolver.annotate ( u ) )
 		{
 			// No explicit and valid OE associated to the Unit, so use ZOOMA
 			String unitLabel =  StringUtils.trimToNull ( u.getTermText () );
-			
+						
 			// This are the ontology terms associated to the property value by ZOOMA
 			// Only UO terms will be returned here
 			// The invocation saves the terms into memory, for later persistence, and that's all we need here.
-			ontoTermDiscoverer.getOntologyTerms ( unitLabel, null );
+			unitOntoDiscoverer.getOntologyTerms ( unitLabel, "Unit" );
 		}
 	} // annotateUnit ()
 		
@@ -134,7 +135,8 @@ public class NumericalDataAnnotator
 			} // if there are chunks
 			
 			// Is it a single number?
-			else if ( NumberUtils.isNumber ( pvalStr ) ) 
+			else if ( NumberUtils.isNumber ( pvalStr ) )
+			{
 				try 
 				{
 					double v = Double.parseDouble ( pvalStr );
@@ -144,22 +146,35 @@ public class NumericalDataAnnotator
 				}
 				catch ( NumberFormatException nex ) {
 					// Just ignore all in case of problems
+				}
 			}
-	
-			else if ( pval.getUnit () != null )
+			else if ( pval.getUnit () == null )
 			{
 				// Or maybe a single date?
+				
+				Date date = null;
+				
 				// TODO: factorise these constants
 				try {
-					dataItem = new DateItem ( DateUtils.parseDate ( pvalStr, 
+					date = DateUtils.parseDate ( pvalStr, 
 						"dd'/'MM'/'yyyy", "dd'/'MM'/'yyyy HH:mm:ss", "dd'/'MM'/'yyyy HH:mm", 
 						"dd'-'MM'-'yyyy", "dd'-'MM'-'yyyy HH:mm:ss", "dd'-'MM'-'yyyy HH:mm",
 						"yyyyMMdd", "yyyyMMdd'-'HHmmss", "yyyyMMdd'-'HHmm"  
-					));
+					);
 				}
 				catch ( ParseException dex ) {
 					// Just ignore all in case of problems
 				}
+				
+				if ( date != null )
+				{
+					Calendar cal = DateUtils.toCalendar ( date );
+					int year = cal.get ( Calendar.YEAR );
+					if ( ( year >= -15402 && year <= 9999 ) )
+						// This is an Oracle limitation
+						dataItem = new DateItem ( date );
+				}
+
 			}
 			
 			if ( dataItem == null ) return false; 

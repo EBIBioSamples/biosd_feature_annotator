@@ -1,5 +1,6 @@
 package uk.ac.ebi.fg.biosd.annotator.persistence;
 
+import static org.apache.commons.lang3.StringUtils.startsWith;
 import static uk.ac.ebi.fg.biosd.annotator.model.AbstractOntoTermAnnotation.NULL_TERM_URI;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.Session;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.model.AbstractOntoTermAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.DateItem;
@@ -79,9 +81,48 @@ public class AnnotatorAccessor
 		
 		return result;
 	}
+		
+	/**
+	 * TODO: comment me!
+	 */
+	public List<AbstractOntoTermAnnotation> getAllOntoAnns ( ExperimentalPropertyValue<?> pv )
+	{
+		List<AbstractOntoTermAnnotation> result = new ArrayList<> ();
+		
+		// The discovered terms
+		List<ExpPropValAnnotation> pvanns = this.getExpPropValAnnotations ( pv );
+		if ( pvanns != null ) result.addAll ( pvanns );
+		
+		// The explicitly-provided terms
+		for ( OntologyEntry oe: pv.getOntologyTerms () )
+		{
+			Pair<ComputedOntoTerm, ResolvedOntoTermAnnotation> oepair = this.getResolvedOntoTerm ( oe );
+			ResolvedOntoTermAnnotation oeann = null;
+			
+			if ( oepair != null ) 
+				oeann = oepair.getRight ();
+			else 
+			{
+				// Let's add the term itself
+				String oeUri = oe.getAcc ();
+				if ( startsWith ( oeUri, "http://" ) || startsWith ( oeUri, "https://" ) ) {
+					oeann = new ResolvedOntoTermAnnotation ( oe );
+					oeann.setOntoTermUri ( oeUri );
+				}
+			}
+
+			if ( oeann == null ) continue;
+			
+			oeann.setScore ( 100d );
+			result.add ( oeann );
+		}
+
+		return result;
+	}
+
 	
 	/**
-	 * Gets the {@link OntologyEntry} that is available for the unit, wether it was explicitly given by the submitter, 
+	 * Gets the {@link OntologyEntry} that is available for the unit, whether it was explicitly given by the submitter, 
 	 * or resolved/discovered via NumericalDataAnnotator.  
 	 * 
 	 * @param u
@@ -95,7 +136,10 @@ public class AnnotatorAccessor
 		if ( uoe != null ) return getResolvedOntoTermAsOntologyEntry ( uoe );
 		
 		List<OntologyEntry> oes = getExpPropValAnnotatationsAsOntologyEntries ( 
-			new ExperimentalPropertyValue<ExperimentalPropertyType> ( u.getTermText (), null ) 
+			new ExperimentalPropertyValue<ExperimentalPropertyType> ( 
+				u.getTermText (),
+				new ExperimentalPropertyType ( "Unit" ) 
+			) 
 		);
 
 		return oes == null || oes.isEmpty () ? null : oes.iterator ().next ();
@@ -125,10 +169,7 @@ public class AnnotatorAccessor
 			store.put ( DataItem.class, pvstr, dataItem );
 		}
 		
-		if ( dataItem == NULL_DATA_ITEM ) 
-			return null;
-		
-		return dataItem;
+		return dataItem == NULL_DATA_ITEM ? null : dataItem;
 	}
 
 	
@@ -211,7 +252,7 @@ public class AnnotatorAccessor
 				// ontology entry
 				oeann = new ResolvedOntoTermAnnotation ( oekey );
 			
-			store.put ( ExpPropValAnnotation.class, oekey, oeann );
+			store.put ( ResolvedOntoTermAnnotation.class, oekey, oeann );
 		}
 		
 		String oeComputedUri = oeann.getOntoTermUri ();

@@ -3,6 +3,7 @@ package uk.ac.ebi.fg.biosd.annotator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
@@ -22,14 +23,14 @@ import com.google.common.collect.Tables;
 public class AnnotatorResources
 {
 	/**
-	 * Property values or types longer than this lenght shouldn't be analysed
+	 * Property values or types longer than this length shouldn't be analysed
 	 */
 	public static final int MAX_STRING_LEN = 150;
 	
-	@SuppressWarnings ( "rawtypes" )
 	// This seems to be the only and absurd way to tell Google Collections that I want a damn efficiently-synchronised 
 	// Table. ConcurrentHashMap is better than synchronising on the whole table object, synchronisation on 
 	// single key values doesn't work.
+	@SuppressWarnings ( "rawtypes" )
 	private final Table<Class, String, Object> store = Tables.newCustomTable 
 	( 
 		new ConcurrentHashMap<Class, Map<String, Object>>(),
@@ -40,9 +41,6 @@ public class AnnotatorResources
 		}
 	);
 	
-	
-	// HashBasedTable.create ();	
-	
 	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
 
@@ -52,7 +50,8 @@ public class AnnotatorResources
 		
 	private AnnotatorResources () 
 	{
-		pvAnnMgr = new PropertyValAnnotationManager ( this.zoomaClient );
+		this.zoomaClient.setMinConfidence ( Confidence.GOOD );
+		this.pvAnnMgr = new PropertyValAnnotationManager ( this.zoomaClient );
 	}
 
 	public static AnnotatorResources getInstance ()

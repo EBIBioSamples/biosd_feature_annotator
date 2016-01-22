@@ -26,6 +26,8 @@ import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
+import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
+import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
@@ -53,8 +55,11 @@ public class BioSDOntoDiscoveringCacheTest
 		AnnotatorResources.getInstance ().reset ();
 
 		biosdCache = new BioSDOntoDiscoveringCache ();
-		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMASearchClient () );
-		zoomaDiscoverer.setZoomaThresholdScore ( 54.0f );
+		
+		AbstractZOOMASearch zoomaClient = new ZOOMASearchClient ();
+		zoomaClient.setMinConfidence ( Confidence.fromScore ( 54d ) );
+		
+		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
 
 		// We need both caches, because only OntoTermDiscoveryStoreCache will persist the disvovered terms
 		ontoTermDisvoverer = new CachedOntoTermDiscoverer (  

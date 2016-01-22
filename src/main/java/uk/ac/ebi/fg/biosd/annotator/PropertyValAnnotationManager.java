@@ -33,7 +33,7 @@ public class PropertyValAnnotationManager
 	 */
 	public final static String PROVENANCE_MARKER = "BioSD Feature Annotation Tool";
 	
-	PropertyValAnnotationManager ( float zoomaThresholdScore, AbstractZOOMASearch zoomaClient )
+	PropertyValAnnotationManager ( AbstractZOOMASearch zoomaClient )
 	{
 		ontoResolver = new OntoResolverAndAnnotator ();
 		
@@ -41,8 +41,7 @@ public class PropertyValAnnotationManager
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
 					new ZoomaOntoTermDiscoverer ( 
-						// unit annotations tend to have lower score
-						new ZOOMAUnitSearch ( zoomaClient ), zoomaThresholdScore - 10
+						new ZOOMAUnitSearch ( zoomaClient )
 					),
 					new BioSDOntoDiscoveringCache ()
 				),
@@ -53,7 +52,7 @@ public class PropertyValAnnotationManager
 		ontoDiscoverer = new OntoDiscoveryAndAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-					new ZoomaOntoTermDiscoverer ( zoomaClient, zoomaThresholdScore ),
+					new ZoomaOntoTermDiscoverer ( zoomaClient ),
 					new BioSDOntoDiscoveringCache ()
 				),
 				new OntoTermDiscoveryStoreCache ()
@@ -61,13 +60,6 @@ public class PropertyValAnnotationManager
 		);
 	}
 
-	/**
-	 * Defaults to a score threshold of 80.
-	 */
-	PropertyValAnnotationManager ( AbstractZOOMASearch annRes )
-	{
-		this ( 80f, annRes );
-	}
 
 	/**
 	 * Call different types of annotators and link the computed results to the property value. 
@@ -77,6 +69,5 @@ public class PropertyValAnnotationManager
 		boolean isNumberOrDate = numAnnotator.annotate ( pv );
 		ontoDiscoverer.annotate ( pv, isNumberOrDate );
 		ontoResolver.annotate ( pv );
-	}
-	
+	}	
 }
