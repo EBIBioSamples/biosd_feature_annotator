@@ -1,5 +1,7 @@
 1.0.1-SNAPSHOT
   - Next dev version
+  - Bugfixing
+  - Alignment to the new version of ZOOMA
 
 1.0
   - First release

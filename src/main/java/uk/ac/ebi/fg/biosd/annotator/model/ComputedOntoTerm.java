@@ -58,7 +58,7 @@ public class ComputedOntoTerm
 		this.uri = uri;
 	}
 	
-	@Column ( length = Const.COL_LENGTH_M )
+	@Column ( length = Const.COL_LENGTH_L )
 	public String getLabel ()
 	{
 		return label;

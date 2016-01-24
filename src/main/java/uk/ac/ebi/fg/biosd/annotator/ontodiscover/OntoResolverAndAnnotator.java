@@ -131,6 +131,8 @@ public class OntoResolverAndAnnotator
 	public OntologyClass getOntoTermUriFromBioportal ( String srcAcc, String acc )
 	{
 		// Currently Bioportal doesn't allow searches based on URI only
+		// TODO: indeed, we now have some 'ontology guessing' code in the BP client, but 
+		// some testing is needed.
 		if ( srcAcc == null ) return null; 
 		
 		// Normalise the accession into a format that can be adapted to the onto-service
@@ -140,8 +142,14 @@ public class OntoResolverAndAnnotator
 		if ( idx != -1 ) accNum = acc.substring ( idx + 1 ); 
 		
 		OntologyClass result = null;
-		String[] testAccs = new String[] { 
-			acc,	// Try this anyway, cause sometimes we might have NCBI_9096 within EFO as ontology
+		String[] testAccs = new String[] 
+		{
+			// Try this anyway, cause sometimes we might have things like: 
+			// NCBI_9096 within EFO as ontology
+			// Straight URIs, which are resolvable
+			//
+			acc,	
+		
 			accNum,
 			srcAcc + "_" + accNum, 
 			srcAcc.toUpperCase () + "_" + accNum, 
