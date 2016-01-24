@@ -15,8 +15,7 @@ OPTS="$OPTS -Xms10G -Xmx15G -XX:PermSize=512m -XX:MaxPermSize=1G"
 # We always work with universal text encoding.
 OPTS="$OPTS -Dfile.encoding=UTF-8"
 
-# Monitoring with jconsole or jvisualvm. We keep this open, cause sometimes processes look stuck
-# and it's useful to inspect the JVM to see what's going on
+# Monitoring with jconsole or jvisualvm.
 #OPTS="$OPTS 
 # -Dcom.sun.management.jmxremote.port=5010
 # -Dcom.sun.management.jmxremote.authenticate=false
