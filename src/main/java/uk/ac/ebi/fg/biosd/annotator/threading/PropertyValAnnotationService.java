@@ -46,17 +46,16 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	public PropertyValAnnotationService ()
 	{
 		super ();
-		// super ( 1, null ); //DEBUG
+		// super ( 1, null ); // DEBUG
 		// Sometimes I set it to null for debugging purposes
 		if ( this.poolSizeTuner != null ) 
 		{
 			this.poolSizeTuner.setPeriodMSecs ( (int) 5*60*1000 );
 			// TODO: document this
-			this.poolSizeTuner.setMaxThreads ( Integer.parseInt ( System.getProperty ( 
-				MAX_THREAD_PROP, "250" ) ) 
-			);
-			this.poolSizeTuner.setMinThreads ( 5 );
-			this.poolSizeTuner.setMaxThreadIncr ( this.poolSizeTuner.getMaxThreads () / 4 );
+			int maxThreads = Integer.parseInt ( System.getProperty ( MAX_THREAD_PROP, "250" ) );
+			this.poolSizeTuner.setMinThreads ( Math.min ( maxThreads, Runtime.getRuntime().availableProcessors() ) );
+			this.poolSizeTuner.setMaxThreads ( maxThreads	);
+			this.poolSizeTuner.setMaxThreadIncr ( Math.max ( 5, this.poolSizeTuner.getMaxThreads () / 4 ) );
 			this.poolSizeTuner.setMinThreadIncr ( 5 );
 		}
 		
@@ -99,7 +98,7 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 		if ( limit == null ) limit = this.getPropValCount ();
 		
 		// Half of the CPUs used to scroll the chunks, all the rest used to process single properties
-		int chunkSize = (int) Math.ceil ( limit / ( Runtime.getRuntime().availableProcessors() / 2d ) );
+		int chunkSize = (int) Math.ceil ( limit / ( this.poolSizeTuner.getMinThreads () / 2d ) );
 		if ( chunkSize == 0 ) chunkSize = limit;
 
 		for ( int ichunk = 0; ichunk < limit; ichunk += chunkSize )
