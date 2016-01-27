@@ -14,10 +14,6 @@ import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
-import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
-import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
-import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer.DiscoveredTerm;
 import uk.ac.ebi.utils.time.XStopWatch;
 
@@ -44,12 +40,9 @@ public class OntoTermDiscoveryStoreCacheTest
 	@SuppressWarnings ( { "rawtypes", "unchecked" } )
 	public void testBasics ()
 	{
-		AbstractZOOMASearch zoomaClient = new ZOOMASearchClient ();
-		zoomaClient.setMinConfidence ( Confidence.fromScore ( 54d ) );
-
 		OntoDiscoveryAndAnnotator ontoDiscoverer = new OntoDiscoveryAndAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
-				new ZoomaOntoTermDiscoverer ( zoomaClient ),
+				BioSDOntoDiscoveringCacheTest.newBaseDiscoverer (),
 				new OntoTermDiscoveryStoreCache ()
 			)
 		);

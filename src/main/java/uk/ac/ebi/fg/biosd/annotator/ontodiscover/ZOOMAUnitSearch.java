@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorAccessor;
 import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction;
 import uk.ac.ebi.fgpt.zooma.model.Property;
@@ -46,6 +48,9 @@ public class ZOOMAUnitSearch extends ZOOMASearchFilter
 		{
 			Collection<URI> uris = ann.getSemanticTags ();
 			if ( uris.size () != 1 ) continue;
+			
+			URI uri = uris.iterator ().next ();
+			if ( !StringUtils.startsWith ( uri.toASCIIString (), "http://purl.obolibrary.org/obo/UO_" ) ) continue;
 			
 			if ( bestResult == null || ann.getConfidence ().getScore () > bestResult.getConfidence ().getScore () )
 				bestResult = ann;

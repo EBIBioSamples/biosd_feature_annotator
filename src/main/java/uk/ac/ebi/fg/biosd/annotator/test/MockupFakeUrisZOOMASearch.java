@@ -3,32 +3,27 @@ package uk.ac.ebi.fg.biosd.annotator.test;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import org.apache.commons.codec.digest.DigestUtils;
 
 import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction;
 import uk.ac.ebi.fgpt.zooma.model.Property;
 import uk.ac.ebi.fgpt.zooma.model.SimpleAnnotationPrediction;
+import uk.ac.ebi.fgpt.zooma.model.TypedProperty;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 
 /**
- * Returns constant URIs to predefined labels. I use this to test when I don't have Internet. 
+ * 
+ * A stupid {@link AbstractZOOMASearch ZOOMA client}, which returns a fake URI, built using the textual input.
+ * Used for tests.
  *
  * @author brandizi
- * <dl><dt>Date:</dt><dd>26 Mar 2015</dd>
+ * <dl><dt>Date:</dt><dd>26 Jan 2016</dd></dl>
  *
  */
-public class MockupZOOMASearch extends AbstractZOOMASearch
+public class MockupFakeUrisZOOMASearch extends AbstractZOOMASearch
 {
-	@SuppressWarnings ( "serial" )
-	Map<String, String> lookup = new HashMap<String, String> ()
-	{{
-		put ( "homo sapiens", "http://purl.obolibrary.org/obo/NCBITaxon_9606" );
-		put ( "kg", "http://purl.obolibrary.org/obo/UO_0000009" );
-		put ( "mus musculus", "http://purl.obolibrary.org/obo/NCBITaxon_10090" );
-	}};
-	
 	
 	@Override
 	public List<AnnotationPrediction> annotate ( Property property )
@@ -37,9 +32,10 @@ public class MockupZOOMASearch extends AbstractZOOMASearch
 		{
 			List<AnnotationPrediction> result = new ArrayList<> ();
 			String pval = property.getPropertyValue ();
-			String uri = lookup.get ( pval.toLowerCase () );
+			String ptype = property instanceof TypedProperty ? ((TypedProperty) property).getPropertyType () : "";
+			String uri = "http://www.somewhere.net/foo/term#" + DigestUtils.md5Hex ( ptype + pval );
 			
-			if ( uri != null ) result.add ( new SimpleAnnotationPrediction ( 
+			result.add ( new SimpleAnnotationPrediction ( 
 				null, AnnotationPrediction.Confidence.HIGH, null, property, null, new URI [] { new URI ( uri ) } 
 			)); 
 			

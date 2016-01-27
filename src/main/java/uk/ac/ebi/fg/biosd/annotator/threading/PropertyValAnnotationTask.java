@@ -42,7 +42,7 @@ class PropertyValAnnotationTask extends AnnotatorTask
 		{
 			// TODO: proper exit code
 			log.error ( "Error while annotating property value #" + this.propertyValue + ": " + ex.getMessage (), ex );
-			exitCode = 1;
+			this.exitCode = 1;
 		}
 	}
 

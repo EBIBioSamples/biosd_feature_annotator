@@ -67,7 +67,7 @@ class PvChunkSubmissionTask extends AnnotatorTask
 				"Error while submitting pv-chunk %d - %d: %s: ", this.offset, this.offset + this.limit, ex.getMessage () ), 
 				ex 
 			);
-			exitCode = 1;
+			this.exitCode = 1;
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();

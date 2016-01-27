@@ -36,7 +36,7 @@ import com.google.common.collect.Table;
  */
 public class AnnotatorPersister
 {
-	public static final String LOCK_TIMEOUT_PROP = "uk.ac.ebi.fg.biosd.annotator.lock_timeout";
+	public static final String LOCK_TIMEOUT_PROP = AnnotatorResources.PROP_NAME_PREFIX + "lockTimeout";
 		
 	@SuppressWarnings ( "rawtypes" )
 	private Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();

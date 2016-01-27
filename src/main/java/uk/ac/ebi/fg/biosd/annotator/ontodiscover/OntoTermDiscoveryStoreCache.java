@@ -1,5 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.ontodiscover;
 
+import static java.lang.System.getProperty;
+
 import java.util.Date;
 import java.util.List;
 
@@ -22,7 +24,6 @@ import com.google.common.collect.Table;
  */
 public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 {
-	public static final String ANNOTATION_TYPE_MARKER = "Computed Annotation, via ZOOMA";
 
 	@Override
 	public List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> dterms ) 
@@ -41,7 +42,7 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 			// Store an annotation that traces the fact there's nothing for this key
 			ExpPropValAnnotation pvann = new ExpPropValAnnotation ( pvkey );
 			pvann.setOntoTermUri ( ExpPropValAnnotation.NULL_TERM_URI );
-			pvann.setType ( ANNOTATION_TYPE_MARKER );
+			pvann.setType ( getTypeMarker () );
 			pvann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
 			pvann.setTimestamp ( new Date () );
 			store.put ( ExpPropValAnnotation.class, pvkey, pvann ); 
@@ -49,13 +50,15 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 			return CachedOntoTermDiscoverer.NULL_RESULT;
 		}
 		
+		String typeMarker = getTypeMarker ();
+		
 		// Else, store an annotation for each found term
 		for ( DiscoveredTerm dterm: dterms )
 		{
 			String uri = dterm.getIri ();
 			
 			ExpPropValAnnotation pvann = new ExpPropValAnnotation ( pvkey );
-			pvann.setType ( ANNOTATION_TYPE_MARKER );
+			pvann.setType ( typeMarker );
 			pvann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
 			pvann.setOntoTermUri ( uri );
 			pvann.setScore ( dterm.getScore () ); 
@@ -69,8 +72,7 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 
 	@SuppressWarnings ( { "rawtypes", "unchecked" } )
 	@Override
-	public List<DiscoveredTerm> getOntologyTerms ( String valueLabel, String typeLabel )
-		throws OntologyDiscoveryException
+	public List<DiscoveredTerm> getOntologyTerms ( String valueLabel, String typeLabel ) throws OntologyDiscoveryException
 	{
 		String pvkey = ExpPropValAnnotation.getPvalText ( typeLabel, valueLabel );
 		if ( pvkey == null ) return CachedOntoTermDiscoverer.NULL_RESULT;
@@ -79,4 +81,9 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 		return (List<DiscoveredTerm>) store.get ( DiscoveredTerm.class, pvkey );
 	}
 
+	public static String getTypeMarker ()
+	{
+		return 
+			"Computed Annotation, via " + getProperty ( PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME, "ZOOMA" );
+	}
 }

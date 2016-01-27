@@ -19,13 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermDiscoveryStoreCache;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.persistence.dao.DataItemDAO;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
@@ -35,10 +32,6 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.expgraph.properties.UnitDimension;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
-import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
-import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
-import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
-import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer.DiscoveredTerm;
 
 import com.google.common.collect.Table;
@@ -52,22 +45,26 @@ import com.google.common.collect.Table;
  */
 public class NumericalDataAnnotatorTest
 {
-	private AbstractZOOMASearch zoomaClient = new ZOOMASearchClient ();
+	private NumericalDataAnnotator numAnn;
 	
-	private NumericalDataAnnotator numAnn = new NumericalDataAnnotator (
-			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
-				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-					new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch ( zoomaClient ) ),
-					new BioSDOntoDiscoveringCache ()
-				),
-				new OntoTermDiscoveryStoreCache ()
-			)
-		);
-		
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
+
 	
-	public NumericalDataAnnotatorTest () {
-		this.zoomaClient.setMinConfidence ( Confidence.MEDIUM );
+	private class MyPvMgr extends PropertyValAnnotationManager
+	{
+		protected MyPvMgr ( AnnotatorResources resources )
+		{
+			super ( resources );
+			numAnn = this.numAnnotator;
+		}
+	}
+	
+	
+	public NumericalDataAnnotatorTest () 
+	{
+		AnnotatorResources res = AnnotatorResources.getInstance ();
+		res.getZoomaClient ().setMinConfidence ( Confidence.MEDIUM );
+		new MyPvMgr ( res );
 	}
 	
 	@Before
@@ -84,7 +81,7 @@ public class NumericalDataAnnotatorTest
 		//
 		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( "Weight" );
 		ExperimentalPropertyValue<ExperimentalPropertyType> pval = new ExperimentalPropertyValue<> ( "70", ptype );
-		Unit unit = new Unit ( "Kg", new UnitDimension ( "weight" ) );
+		Unit unit = new Unit ( "kg", new UnitDimension ( "weight" ) );
 		pval.setUnit ( unit );
 		
 		// Annotate

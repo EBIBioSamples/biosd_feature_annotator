@@ -39,7 +39,7 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	 * This is very important when running the annotator against the cluster, since the default value of 100
 	 * leads us to running out of Oracle connections.
 	 */
-	public static final String MAX_THREAD_PROP = "uk.ac.ebi.fg.biosd.annotator.maxThreads";
+	public static final String MAX_THREAD_PROP = AnnotatorResources.PROP_NAME_PREFIX + "maxThreads";
 	
 	double randomSelectionQuota = 1.0;
 		
@@ -53,10 +53,12 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 			this.poolSizeTuner.setPeriodMSecs ( (int) 5*60*1000 );
 			// TODO: document this
 			int maxThreads = Integer.parseInt ( System.getProperty ( MAX_THREAD_PROP, "250" ) );
-			this.poolSizeTuner.setMinThreads ( Math.min ( maxThreads, Runtime.getRuntime().availableProcessors() ) );
+			int minThreads = Math.min ( maxThreads, Runtime.getRuntime().availableProcessors() );
+			this.poolSizeTuner.setMinThreads ( minThreads );
 			this.poolSizeTuner.setMaxThreads ( maxThreads	);
 			this.poolSizeTuner.setMaxThreadIncr ( Math.max ( 5, this.poolSizeTuner.getMaxThreads () / 4 ) );
 			this.poolSizeTuner.setMinThreadIncr ( 5 );
+			this.setThreadPoolSize ( minThreads );
 		}
 		
 		this.setSubmissionMsgLogLevel ( Level.DEBUG );
@@ -70,21 +72,34 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	 */
 	public void submit ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
 	{
-		// We need to force eager mode, we're about to close the session
-		Hibernate.initialize ( pv.getType () );
-		Hibernate.initialize ( pv.getTermText () );
-		Hibernate.initialize ( pv.getOntologyTerms () );
-
-		Unit u;
-		Hibernate.initialize ( u = pv.getUnit () );
-		if ( u != null ) 
+		try
 		{
-			Hibernate.initialize ( u.getOntologyTerms () );
-			Hibernate.initialize ( u.getTermText () );
-			Hibernate.initialize ( u.getDimension () );
+			// We need to force eager mode, we're about to close the session
+			Hibernate.initialize ( pv.getType () );
+			Hibernate.initialize ( pv.getTermText () );
+			Hibernate.initialize ( pv.getOntologyTerms () );
+	
+			Unit u;
+			Hibernate.initialize ( u = pv.getUnit () );
+			if ( u != null ) 
+			{
+				Hibernate.initialize ( u.getOntologyTerms () );
+				Hibernate.initialize ( u.getTermText () );
+				Hibernate.initialize ( u.getDimension () );
+			}
+			
+			super.submit ( new PropertyValAnnotationTask ( pv ) );
 		}
-		
-		super.submit ( new PropertyValAnnotationTask ( pv ) );
+		catch ( Throwable ex ) 
+		{			
+			log.error ( String.format ( 
+				"Error while submitting property %s: %s, ignoring this property", pv, ex.getMessage () ), 
+				ex 
+			);
+			
+			// TODO: proper exit code
+			lastExitCode = 1;
+		}
 	}
 
 	/**

@@ -3,6 +3,7 @@ package uk.ac.ebi.fg.biosd.annotator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
@@ -27,6 +28,18 @@ public class AnnotatorResources
 	 */
 	public static final int MAX_STRING_LEN = 150;
 	
+	/**
+	 * All the JAva properties for this application are prefixed with this.
+	 */
+	public static final String PROP_NAME_PREFIX = "uk.ac.ebi.fg.biosd.annotator.";
+	
+	
+	/**
+	 * Affects certain particularly slow functions (e.g., Unit Ontology fetching is skipped when this is tru).
+	 */
+	public static final String FAST_MODE_DEBUG_PROP_NAME = PROP_NAME_PREFIX + "debug.fast_mode";
+
+	
 	// This seems to be the only and absurd way to tell Google Collections that I want a damn efficiently-synchronised 
 	// Table. ConcurrentHashMap is better than synchronising on the whole table object, synchronisation on 
 	// single key values doesn't work.
@@ -43,15 +56,20 @@ public class AnnotatorResources
 	
 	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
+	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupFakeUrisZOOMASearch () );
+	private final BioportalClient bioportalClient = new BioportalClient ( AnnotatorResources.BIOPORTAL_API_KEY );
+  private final PropertyValAnnotationManager pvAnnMgr = new PropertyValAnnotationManager ( this );
 
-	private final PropertyValAnnotationManager pvAnnMgr;
+	/**
+	 * We use this here and in tests. Should you need it, please Get your own key from Bioportal, do not use this one.
+	 */
+	public final static String BIOPORTAL_API_KEY = "07732278-7854-4c4f-8af1-7a80a1ffc1bb";
 	
 	private static AnnotatorResources instance = new AnnotatorResources ();
 		
 	private AnnotatorResources () 
 	{
 		this.zoomaClient.setMinConfidence ( Confidence.GOOD );
-		this.pvAnnMgr = new PropertyValAnnotationManager ( this.zoomaClient );
 	}
 
 	public static AnnotatorResources getInstance ()
@@ -78,11 +96,22 @@ public class AnnotatorResources
 	}
 	
 	/**
-	 * The common ZOOMA client used to perform ontology annotations over sample property values.
+	 * The common ZOOMA client possibly used to perform ontology annotations over sample property values.
+	 * The usage of this depends on {@link PropertyValAnnotationManager#ONTO_DISCOVERER_PROP_NAME}.
 	 */
 	public AbstractZOOMASearch getZoomaClient ()
 	{
 		return zoomaClient;
+	}
+	
+	
+	/**
+	 * The common Bioportal client possibly used to perform ontology annotations over sample property values.
+	 * The usage of this depends on {@link PropertyValAnnotationManager#ONTO_DISCOVERER_PROP_NAME}.
+	 */
+	public BioportalClient getBioportalClient ()
+	{
+		return bioportalClient;
 	}
 
 	/**

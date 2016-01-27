@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
@@ -305,6 +306,8 @@ public class AnnotateCmd
 		helpFormatter.printOptions ( pw, 100, getOptions (), 2, 4 );
 		
 		out.println ( "\nRelevant Environment Variables:" );
+		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME + "=<zooma|bioportal>\": which text/ontology annotator to use" );
+		out.println ();
 		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationService.MAX_THREAD_PROP + "=<num>\": max number of threads that can be used" );
 		out.println ( "  (very important in LSF mode)" );
 		out.println ();

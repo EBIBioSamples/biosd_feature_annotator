@@ -4,6 +4,8 @@ import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager.BIOPORTAL_ONTOLOGIES;
+import static uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME;
 
 import java.util.Date;
 import java.util.List;
@@ -18,6 +20,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
@@ -26,13 +29,13 @@ import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
-import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.ZOOMASearchClient;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer.DiscoveredTerm;
+import uk.ac.ebi.onto_discovery.bioportal.BioportalOntoTermDiscoverer;
 import uk.ac.ebi.utils.time.XStopWatch;
 
 /**
@@ -55,15 +58,10 @@ public class BioSDOntoDiscoveringCacheTest
 		AnnotatorResources.getInstance ().reset ();
 
 		biosdCache = new BioSDOntoDiscoveringCache ();
-		
-		AbstractZOOMASearch zoomaClient = new ZOOMASearchClient ();
-		zoomaClient.setMinConfidence ( Confidence.fromScore ( 54d ) );
-		
-		ZoomaOntoTermDiscoverer zoomaDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
 
 		// We need both caches, because only OntoTermDiscoveryStoreCache will persist the disvovered terms
 		ontoTermDisvoverer = new CachedOntoTermDiscoverer (  
-			new CachedOntoTermDiscoverer ( zoomaDiscoverer, biosdCache ),
+			new CachedOntoTermDiscoverer ( newBaseDiscoverer (), biosdCache ),
 			new OntoTermDiscoveryStoreCache ()
 		);
 	}
@@ -72,6 +70,34 @@ public class BioSDOntoDiscoveringCacheTest
 	public void cleanUp ()
 	{
 		new Purger ().purge ( new DateTime ().minusMinutes ( 1 ).toDate (), new Date() );
+	}
+	
+	/**
+	 * Instantiates a {@link OntologyTermDiscoverer}, based on {@link #ONTO_DISCOVERER_PROP_NAME}. This is needed by
+	 * some tests.
+	 */
+	public static OntologyTermDiscoverer newBaseDiscoverer ()
+	{
+		OntologyTermDiscoverer baseDiscoverer = null;
+		String ontoDiscovererProp = System.getProperty ( ONTO_DISCOVERER_PROP_NAME, "zooma" );
+		
+		if ( "zooma".equalsIgnoreCase ( ontoDiscovererProp ) )
+		{
+			AbstractZOOMASearch zoomaClient = new ZOOMASearchClient ();
+			//zoomaClient.setMinConfidence ( Confidence.fromScore ( 54d ) );
+			baseDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
+		}
+		else if ( "bioportal".equalsIgnoreCase ( ontoDiscovererProp ) )
+		{
+			BioportalClient bpclient = AnnotatorResources.getInstance ().getBioportalClient ();
+			baseDiscoverer = new BioportalOntoTermDiscoverer ( bpclient );
+			((BioportalOntoTermDiscoverer) baseDiscoverer).setPreferredOntologies ( BIOPORTAL_ONTOLOGIES );
+		}
+		else throw new IllegalArgumentException ( String.format ( 
+			"Bad value '%s' for the property '%s'", ontoDiscovererProp, ONTO_DISCOVERER_PROP_NAME 
+		));		
+		
+		return baseDiscoverer;
 	}
 	
 	
@@ -125,7 +151,7 @@ public class BioSDOntoDiscoveringCacheTest
 			assertNotNull ( format ( "PV annotation not saved for %s:%s!", pvkey, uri ), pvanndb );
 			assertEquals (
 				format ( "Wrong annotation type for %s:%s!", pvkey, uri ),
-				OntoTermDiscoveryStoreCache.ANNOTATION_TYPE_MARKER, pvanndb.getType ()
+				OntoTermDiscoveryStoreCache.getTypeMarker (), pvanndb.getType ()
 			);
 			assertEquals ( 
 				format ( "Wrong annotation provenance for %s:%s!", pvkey, uri ),

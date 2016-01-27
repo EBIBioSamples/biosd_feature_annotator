@@ -70,7 +70,7 @@ public class AnnotatorAccessorTest
 		// A numeric value with a unit
 		ExperimentalPropertyValue<ExperimentalPropertyType> pvtemp = 
 			new ExperimentalPropertyValue<ExperimentalPropertyType> ( "120", new ExperimentalPropertyType ( "Treatment Temperature" ) );
-		pvtemp.setUnit ( new Unit ( "Degree Celsius", new UnitDimension ( "Temperature" ) ) );
+		pvtemp.setUnit ( new Unit ( "degree Celsius", new UnitDimension ( "Temperature" ) ) );
 		
 		// This is the annotation creation part, normally done by the annotator, during its periodic scheduled run
 		// Keep going down
@@ -163,7 +163,7 @@ public class AnnotatorAccessorTest
 			// confidence score
 			// You can get them from ExpPropValAnnotation
 			log.info ( String.format ( "Retrieved annotation for '%s': <%s>, score: %f", 
-				ann.getSourceText (), ann.getOntoTermUri (), ObjectUtils.defaultIfNull ( ann.getScore (), 0 ) 
+				ann.getSourceText (), ann.getOntoTermUri (), ObjectUtils.defaultIfNull ( ann.getScore (), 0d ) 
 			));
 			
 			// And, if you don't care about all those details, you can get a traditional BioSD model representation

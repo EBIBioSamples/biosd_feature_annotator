@@ -35,12 +35,6 @@ public class OntoResolverAndAnnotator
 {
 	public final static String ANNOTATION_TYPE_MARKER = "Computed from original annotation, via Bioportal";
 	
-	/**
-	 * We use this here and in tests. Should you need it, please Get your own key from Bioportal, do not use this one.
-	 */
-	public final static String BIOPORTAL_API_KEY = "07732278-7854-4c4f-8af1-7a80a1ffc1bb";
-	
-	private final BioportalClient bioportalClient = new BioportalClient ( BIOPORTAL_API_KEY );
 	private final Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
 	static {
@@ -159,12 +153,14 @@ public class OntoResolverAndAnnotator
 			srcAcc.toLowerCase () + ":" + accNum					
 		};
 			
+		BioportalClient bpcli = AnnotatorResources.getInstance ().getBioportalClient ();
+		
 		try
 		{
 			// Try out different combinations for the term accession, this is because the end users suck at using proper
 			// term accessions and these are the variants they most frequently bother us with.
 			for ( String testAcc: testAccs )
-				if ( ( result = this.bioportalClient.getOntologyClass ( srcAcc.toUpperCase (), testAcc ) ) != null ) break;
+				if ( ( result = bpcli.getOntologyClass ( srcAcc.toUpperCase (), testAcc ) ) != null ) break;
 		} 
 		catch ( OntologyServiceException ex ) 
 		{
