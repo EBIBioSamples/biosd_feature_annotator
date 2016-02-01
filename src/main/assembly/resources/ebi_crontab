@@ -1,0 +1,17 @@
+JAVA_HOME=/nfs/research2/software/Linux_x86_64/opt/stow/jdk1.7.0_55
+
+BSD_DIR=/ebi/microarray/home/biosamples
+#Cannot use nested variables in crontab e.g. DEV_DIR=$BSD_DIR/dev
+DEV_DIR=/ebi/microarray/home/biosamples/dev
+TEST_DIR=/ebi/microarray/home/biosamples/test
+PROD_DIR=/ebi/microarray/home/biosamples/production
+
+# min   hour    mday    month   wday    command
+
+# Cleanup dangling objects in the DB, left behing by the unloader
+# Once a day, overnight
+00			15			*/3 		*				*				$DEV_DIR/biosd_feature_annotator/cron_purge.sh &>$DEV_DIR/biosd_feature_annotator/logs/purge.out
+00			16			*				*				*				$DEV_DIR/biosd_feature_annotator/annotate_lsf.sh &>$DEV_DIR/biosd_feature_annotator/logs/ann_lsf.out
+
+# Don't remove, it's to remind that crontab needs at least an empty line after the last one.
+#
