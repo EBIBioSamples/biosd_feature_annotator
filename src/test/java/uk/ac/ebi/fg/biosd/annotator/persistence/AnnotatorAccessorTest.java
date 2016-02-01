@@ -88,6 +88,12 @@ public class AnnotatorAccessorTest
 		// 
 		
 		// This is the usual EMF configured by the BioSD loader (via hibernate.properties)
+		//
+		// ---> DO NOT BYPASS THIS WHEN GETTING THE ENTITY MANAGER! <----
+		//
+		// The Resources class gets proper instrumentation from the BioSD stack, including the packages across several 
+		// .jars that needs to be scanned in order to see all the necessary ORM entites.
+		//
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 		
 		// This is the facade to get all info stored by the annotator
