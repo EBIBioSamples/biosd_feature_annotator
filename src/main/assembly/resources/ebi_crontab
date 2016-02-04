@@ -1,4 +1,5 @@
-# BioSample Database periodic tasks
+# BioSample Database periodic tasks for the BioSD Feature Annotator
+# This is usually installed on orange.ebi.ac.uk (please update this info when necessary)
 #
 
 PATH=/net/isilon4/research/software/Linux_x86_64/opt/stow/jdk1.7.0_45/bin:/ebi/lsf/ebi/ppm/9.1/bin:/ebi/lsf/ebi/ppm/9.1/linux2.6-glibc2.3-x86_64/bin:/ebi/lsf/ebi/9.1/linux2.6-glibc2.3-x86_64/etc:/ebi/lsf/ebi/9.1/linux2.6-glibc2.3-x86_64/bin:/usr/kerberos/bin:/usr/bin:/bin:/usr/local/bin:/bin:/usr/bin:/homes/bsd-svc/bin:/homes/brandizi/local/bin
