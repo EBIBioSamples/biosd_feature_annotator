@@ -1,3 +1,12 @@
+# BioSample Database periodic tasks
+#
+
+PATH=/net/isilon4/research/software/Linux_x86_64/opt/stow/jdk1.7.0_45/bin:/ebi/lsf/ebi/ppm/9.1/bin:/ebi/lsf/ebi/ppm/9.1/linux2.6-glibc2.3-x86_64/bin:/ebi/lsf/ebi/9.1/linux2.6-glibc2.3-x86_64/etc:/ebi/lsf/ebi/9.1/linux2.6-glibc2.3-x86_64/bin:/usr/kerberos/bin:/usr/bin:/bin:/usr/local/bin:/bin:/usr/bin:/homes/bsd-svc/bin:/homes/brandizi/local/bin
+
+LSF_ENVDIR=/ebi/lsf/ebi/conf
+LSF_SERVERDIR=/ebi/lsf/ebi/9.1/linux2.6-glibc2.3-x86_64/etc
+
+# JAVA_HOME=/ebi/research/software/Linux_x86_64/opt/java/jdk1.7.0_03
 JAVA_HOME=/nfs/research2/software/Linux_x86_64/opt/stow/jdk1.7.0_55
 
 BSD_DIR=/ebi/microarray/home/biosamples
@@ -8,10 +17,14 @@ PROD_DIR=/ebi/microarray/home/biosamples/production
 
 # min   hour    mday    month   wday    command
 
-# Cleanup dangling objects in the DB, left behing by the unloader
-# Once a day, overnight
-00			15			*/3 		*				*				$DEV_DIR/biosd_feature_annotator/cron_purge.sh &>$DEV_DIR/biosd_feature_annotator/logs/purge.out
-00			16			*				*				*				$DEV_DIR/biosd_feature_annotator/annotate_lsf.sh &>$DEV_DIR/biosd_feature_annotator/logs/ann_lsf.out
+# Ontology/numerical annotations (https://github.com/EBIBioSamples/biosd_feature_annotator)
+# 
+00			11			* 			*				Fri			$DEV_DIR/sw/biosd_feature_annotator/cron_purge.sh &>$DEV_DIR/sw/biosd_feature_annotator/logs/purge.out
+00			12			*				*				Fri			$DEV_DIR/sw/biosd_feature_annotator/annotate_lsf.sh &>$DEV_DIR/sw/biosd_feature_annotator/logs/ann_lsf.out
+00			11			*	 			*				Sat			$TEST_DIR/sw/biosd_feature_annotator/cron_purge.sh &>$TEST_DIR/sw/biosd_feature_annotator/logs/purge.out
+00			12			*				*				Sat			$TEST_DIR/sw/biosd_feature_annotator/annotate_lsf.sh &>$TEST_DIR/sw/biosd_feature_annotator/logs/ann_lsf.out
+00			11			*	 			*				Sun			$PROD_DIR/sw/biosd_feature_annotator/cron_purge.sh &>$PROD_DIR/sw/biosd_feature_annotator/logs/purge.out
+00			12			*				*				Sun			$PROD_DIR/sw/biosd_feature_annotator/annotate_lsf.sh &>$PROD_DIR/sw/biosd_feature_annotator/logs/ann_lsf.out
 
 # Don't remove, it's to remind that crontab needs at least an empty line after the last one.
 #
