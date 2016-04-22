@@ -1,6 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.purge;
 
 import java.util.Date;
+import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -19,7 +20,12 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
+import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
+import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
+import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
 
 /**
  * Manages the purging of annotations.
@@ -32,7 +38,7 @@ public class Purger
 {
 	private double deletionRate = 1.0;
 	private EntityManager entityManager;
-	
+
 	private Logger log = LoggerFactory.getLogger ( this.getClass () );
 
 	public int purgeOlderThan ( Date endTime )
@@ -44,15 +50,57 @@ public class Purger
 	{
 		return purgeOlderThan ( new DateTime ().minusDays ( daysAgo ).toDate () );
 	}
-	
-	
-	public int purge ( Date startTime, Date endTime ) 
+
+	public int purgePVAnnotations(ExperimentalPropertyValue<ExperimentalPropertyType> pv){
+		String sourceText = null;
+		String type = pv.getType().getTermText();
+		if (type != null && !type.equals("")){
+			sourceText = type + "|" + pv.getTermText();
+		}
+		if (sourceText != null) {
+			return this.purgePVAnn(sourceText);
+		}
+		return 0;
+	}
+	public int purgeResolvedOntTerms(FreeTextTerm term){
+
+		int purged = 0;
+		Set<OntologyEntry> oes = term.getOntologyTerms ();
+		if ( oes == null ) {
+			return 0;
+		} else {
+			String sourceText = null;
+			String acc;
+			String ontologyPrefix;
+			for (OntologyEntry oe : oes){
+				sourceText = null;
+				acc = null;
+				ontologyPrefix = null;
+
+				acc = oe.getAcc();
+				ReferenceSource source = oe.getSource();
+				ontologyPrefix = source.getAcc();
+				if (ontologyPrefix == null){
+					ontologyPrefix = source.getName();
+				}
+				sourceText = ontologyPrefix + "|" + acc;
+			}
+			if (sourceText != null){
+				purged += this.purgeResOntTerms(sourceText);
+			}
+		}
+
+		return purged;
+	}
+
+
+	public int purge ( Date startTime, Date endTime )
 	{
 		try
 		{
 			EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
 			this.entityManager = emf.createEntityManager ();
-			
+
 			return this.purgeDataItems ( startTime, endTime )
 				+ this.purgeResolvedOntoTerms ( startTime, endTime )
 				+ this.purgePvAnnotations ( startTime, endTime );
@@ -63,8 +111,38 @@ public class Purger
 				this.entityManager.close ();
 		}
 	}
+
+	private int purgePVAnn(String sourceText){
+		try
+		{
+			EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+			this.entityManager = emf.createEntityManager ();
+
+			return this.purgePvAnnotations ( sourceText );
+		}
+		finally
+		{
+			if ( this.entityManager != null && this.entityManager.isOpen () )
+				this.entityManager.close ();
+		}
+	}
+
+	private int purgeResOntTerms(String sourceText){
+		try
+		{
+			EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+			this.entityManager = emf.createEntityManager ();
+
+			return this.purgeResolvedOntoTerms ( sourceText );
+		}
+		finally
+		{
+			if ( this.entityManager != null && this.entityManager.isOpen () )
+				this.entityManager.close ();
+		}
+	}
 	
-	
+
 	private int purgeDataItems ( Date startTime, Date endTime )
 	{
 		String hql= "FROM DataItem ann WHERE\n"
@@ -113,8 +191,38 @@ public class Purger
 		log.info ( "done, {} records deleted", result );
 		return result;
 
-	}	
-	
+	}
+
+	/**
+	 * Removes {@link ResolvedOntoTermAnnotation} and cascades to associated {@link ComputedOntoTerm}s.
+	 */
+	private int purgeResolvedOntoTerms ( String sourceText )
+	{
+		// TODO: first remove ResolvedOntoTermAnnotation instances
+		// Then search for ComputedOntoTerm not having their URI in ResolvedOntoTermAnnotation
+		// Hope it's fast enough...
+
+		String hql= "FROM ResolvedOntoTermAnnotation ann WHERE\n"
+				+ "source_text = :sourceText\n";
+
+		Session session = (Session) this.entityManager.getDelegate ();
+
+		Query q = session.createQuery ( hql )
+				.setParameter("sourceText", sourceText);
+
+		log.info ( "purging verified ontology term annotations" );
+		int result = purgeEntities ( q );
+
+		hql = "FROM ComputedOntoTerm WHERE uri NOT IN ( SELECT ontoTermUri FROM ResolvedOntoTermAnnotation )";
+		q = session.createQuery ( hql );
+
+		log.info ( "purging verified ontology terms" );
+		result += purgeEntities ( q, false );
+		log.info ( "done, {} records deleted", result );
+		return result;
+
+	}
+
 	/**
 	 *  Purges {@link ExpPropValAnnotation}.
 	 */
@@ -137,6 +245,25 @@ public class Purger
 	}
 
 	/**
+	 *  Purges {@link ExpPropValAnnotation}.
+	 */
+	private int purgePvAnnotations ( String sourceText) {
+		String hql = "FROM ExpPropValAnnotation ann WHERE\n"
+				+ "source_text = :sourceText\n";
+
+		Session session = (Session) this.entityManager.getDelegate();
+
+		Query q = session.createQuery(hql)
+				.setParameter("sourceText", sourceText);
+
+		log.info("purging sample property annotations");
+		int result = purgeEntities(q);
+		log.info("done, {} records deleted", result);
+		return result;
+	}
+
+
+	/**
 	 * doRandomDeletes = true
 	 */
 	private int purgeEntities ( Query qry ) {
@@ -151,7 +278,7 @@ public class Purger
 	private int purgeEntities ( Query qry, boolean doRandomDeletes )
 	{
 		int result = 0;
-				
+
 		EntityTransaction tx = this.entityManager.getTransaction ();
 		tx.begin ();
 		
@@ -164,7 +291,7 @@ public class Purger
 		for ( ScrollableResults annRs = qry.scroll ( ScrollMode.FORWARD_ONLY ); annRs.next (); )
 		{
 			// Randomly skip a number of them
-			if ( doRandomDeletes && RandomUtils.nextDouble ( 0, 1.0 ) >= deletionRate ) continue;
+			//if ( doRandomDeletes && RandomUtils.nextDouble ( 0, 1.0 ) >= deletionRate ) continue;
 			
 			Object entity = annRs.get ( 0 );
 			this.entityManager.remove ( entity );

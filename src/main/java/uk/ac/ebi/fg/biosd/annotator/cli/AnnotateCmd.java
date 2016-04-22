@@ -64,7 +64,7 @@ public class AnnotateCmd
 			// Check argument consistency.
 			int xopts = 0;
 			if ( cli.hasOption ( "help" ) )
-				xopts = 2;
+				xopts = 3;
 			else 
 			{
 				if ( cli.hasOption ( "submission" ) || cli.hasOption ( "sampletab" ) ) xopts++;
@@ -81,7 +81,7 @@ public class AnnotateCmd
 				}
 			}
 			
-			if ( xopts > 1 ) 
+			if ( xopts > 2 )
 			{
 				printUsage ();
 				return;
@@ -128,8 +128,10 @@ public class AnnotateCmd
 				annService = null; // Skip the saving job.
 		  	return;
 		  }
-		  
-		  
+
+			//Purge before running annotator
+			Boolean purgeFirst = cli.hasOption("first-purge");
+
 		  // This is the real annotation job
 		  //
 
@@ -158,7 +160,8 @@ public class AnnotateCmd
 				String limitStr = cli.getOptionValue ( "limit" );
 				annService.submit ( 
 					offsetStr == null ? null : Integer.valueOf ( offsetStr ), 
-					limitStr == null ? null : Integer.valueOf ( limitStr ) 
+					limitStr == null ? null : Integer.valueOf ( limitStr ) ,
+						purgeFirst
 				);
 			}			
 		}
@@ -210,7 +213,7 @@ public class AnnotateCmd
 		Options opts = new Options ();
 
 		opts.addOption ( OptionBuilder
-			.withDescription ( "annotates all the sample (group) properties related to a given submission" )
+			.withDescription ( "annotates all the sample (group) properties related to a given submission. WARNING!!!: Purges the annotated attribute values before re-annotating them" )
 			.withLongOpt ( "submission" )
 			.withArgName ( "accession" )
 			.hasArg ()
@@ -286,7 +289,13 @@ public class AnnotateCmd
 			.withLongOpt ( "help" )
 			.create ( 'h' )
 		);
-		
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "Purges the values that are already annotated before running the annotator" )
+				.withLongOpt ( "first-purge" )
+				.create ("fp")
+		);
+
 		return opts;		
 	}
 	

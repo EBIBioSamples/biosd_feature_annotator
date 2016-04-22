@@ -8,6 +8,7 @@ import javax.persistence.Query;
 import org.apache.commons.lang3.RandomUtils;
 import org.hibernate.jpa.QueryHints;
 
+import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
@@ -24,20 +25,22 @@ class PvChunkSubmissionTask extends AnnotatorTask
 {
 	private final int offset, limit;
 	private final PropertyValAnnotationService service;
+	private boolean purgeFirst;
 	
-	public PvChunkSubmissionTask ( PropertyValAnnotationService service, int offset, int limit )
+	public PvChunkSubmissionTask ( PropertyValAnnotationService service, int offset, int limit , boolean purgeFirst)
 	{
 		super ( "PVCHUNK:" + offset + "-" + ( offset + limit - 1 ) );
 		this.offset = offset;
 		this.limit = limit;
 		this.service = service;
+		this.purgeFirst = purgeFirst;
 	}
 
 	@Override
 	public void run ()
 	{
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		
+
 		try 
 		{
 			String hql = "FROM ExperimentalPropertyValue";
@@ -54,11 +57,16 @@ class PvChunkSubmissionTask extends AnnotatorTask
 				(List<ExperimentalPropertyValue<ExperimentalPropertyType>>) q.getResultList ();
 			
 			int npvs = pvs.size ();
-			
-			for ( int i = 0;  i < npvs; i++ )
-				if ( this.service.randomSelectionQuota == 1d 
-						 || RandomUtils.nextDouble (0d, 1d) <= this.service.randomSelectionQuota )
-					this.service.submit ( pvs.get ( i ) );
+			for ( int i = 0;  i < npvs; i++ ) {
+				if(purgeFirst){
+					Purger purger = new Purger();
+					purger.purgePVAnnotations(pvs.get(i));
+					purger.purgeResolvedOntTerms(pvs.get(i));
+				}
+				if (this.service.randomSelectionQuota == 1d
+						|| RandomUtils.nextDouble(0d, 1d) <= this.service.randomSelectionQuota)
+					this.service.submit(pvs.get(i));
+			}
 		}
 		catch ( Throwable ex ) 
 		{
@@ -71,7 +79,7 @@ class PvChunkSubmissionTask extends AnnotatorTask
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();
-		}		
+		}
 	}
 
 }
