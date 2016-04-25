@@ -1,16 +1,15 @@
 package uk.ac.ebi.fg.biosd.annotator.olsclient.client;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.model.OntologyClass;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.model.TextAnnotation;
 
 import static junit.framework.Assert.*;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
-import uk.ac.ebi.bioportal.webservice.model.TextAnnotation;
 
 /**
  * Created by olgavrou on 21/04/2016.
@@ -65,7 +64,7 @@ public class OLSClientTest {
     @Test
     public void testGetTextAnnotations(){
 
-        TextAnnotation tas = olsClient.getTextAnnotations ( "homo sapiens", null );
+        TextAnnotation tas = olsClient.getTextAnnotations ( "homo sapiens" );
         assertNotNull ( "No text annotation from OLS annotator!", tas );
 
         boolean found = false;
@@ -75,7 +74,7 @@ public class OLSClientTest {
 
         assertTrue ( "the text annotator doesn't return NCBITaxon_9606!", found );
 
-        tas = olsClient.getTextAnnotations ( "mus musculus", null);
+        tas = olsClient.getTextAnnotations ( "mus musculus");
         assertNotNull ( "No text annotation from OLS annotator!", tas );
 
         found = false;
@@ -84,7 +83,7 @@ public class OLSClientTest {
 
         assertTrue ( "the text annotator doesn't return NCBITaxon_10090!", found );
 
-        tas = olsClient.getTextAnnotations ( "jibberish", null);
+        tas = olsClient.getTextAnnotations ( "jibberish");
         assertNull ( "Found jibberish match!", tas );
     }
 

@@ -1,7 +1,6 @@
 package uk.ac.ebi.fg.biosd.annotator.olsclient.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

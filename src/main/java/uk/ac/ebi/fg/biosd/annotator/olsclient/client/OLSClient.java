@@ -1,15 +1,13 @@
 package uk.ac.ebi.fg.biosd.annotator.olsclient.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import uk.ac.ebi.bioportal.webservice.model.ClassRef;
-import uk.ac.ebi.bioportal.webservice.model.TextAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.model.ClassRef;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.model.OntologyClass;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.model.TextAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.utils.OLSResponseParser;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.utils.OLSWebServiceUtils;
 
@@ -63,7 +61,7 @@ public class OLSClient {
         return null;
     }
 
-    public TextAnnotation getTextAnnotations ( String textValue, String textType){
+    public TextAnnotation getTextAnnotations ( String textValue){
 
         OLSWebServiceUtils olsWebServiceUtils = new OLSWebServiceUtils();
 
