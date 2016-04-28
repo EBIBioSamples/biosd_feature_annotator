@@ -11,6 +11,8 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntoTermDiscoveryMemCache;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 
+import java.util.List;
+
 /**
  * Discovers ontology terms associated to {@link ExperimentalPropertyValue sample property values}, using
  * and {@link OntologyTermDiscoverer}, such as {@link ZoomaOntoTermDiscoverer}.
@@ -40,7 +42,7 @@ public class OntoDiscoveryAndAnnotator
 	/**
 	 * Annotates the pval with discoveries made via {@link OntologyTermDiscoverer}. This causes the results to be 
 	 * scored onto {@link AnnotatorResources#getStore()}.
-	 */
+	 *//*
 	public void annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pval, boolean isNumberOrDate )
 	{
 		if ( pval == null ) return;
@@ -55,6 +57,29 @@ public class OntoDiscoveryAndAnnotator
 		}
 		else
 			ontoTermDiscoverer.getOntologyTerms ( pvalLabel, pvalTypeLabel );
+	}*/
+
+	public boolean tryToAnnotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pval, boolean isNumberOrDate )
+	{
+		if ( pval == null ) return false;
+
+		Pair<String, String> pair = ExpPropValAnnotation.getTypeAndVal ( pval );
+		if ( pair == null ) return false;
+		String pvalTypeLabel = pair.getLeft (), pvalLabel = pair.getRight ();
+
+		if ( isNumberOrDate ) {
+			if ( pvalTypeLabel != null ) {
+				List terms = ontoTermDiscoverer.getOntologyTerms(pvalTypeLabel, null);
+				if (terms == null) return false;
+				if (terms.size() != 0) return true;
+			}
+		}
+		else {
+			List terms =  ontoTermDiscoverer.getOntologyTerms(pvalLabel, pvalTypeLabel);
+			if (terms == null) return false;
+			if (terms.size() != 0) return true;
+		}
+		return false;
 	}
 
 }

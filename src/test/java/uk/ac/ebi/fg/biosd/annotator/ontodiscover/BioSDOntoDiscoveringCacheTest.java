@@ -4,7 +4,6 @@ import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager.BIOPORTAL_ONTOLOGIES;
 import static uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME;
 
 import java.util.Date;
@@ -12,6 +11,7 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Query;
 
 import org.joda.time.DateTime;
 import org.junit.After;
@@ -20,10 +20,11 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.ontodiscovery.OLSOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
@@ -35,7 +36,6 @@ import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer.DiscoveredTerm;
-import uk.ac.ebi.onto_discovery.bioportal.BioportalOntoTermDiscoverer;
 import uk.ac.ebi.utils.time.XStopWatch;
 
 /**
@@ -62,7 +62,7 @@ public class BioSDOntoDiscoveringCacheTest
 		// We need both caches, because only OntoTermDiscoveryStoreCache will persist the disvovered terms
 		ontoTermDisvoverer = new CachedOntoTermDiscoverer (  
 			new CachedOntoTermDiscoverer ( newBaseDiscoverer (), biosdCache ),
-			new OntoTermDiscoveryStoreCache ()
+			new OntoTermDiscoveryStoreCache ("")
 		);
 	}
 	
@@ -87,11 +87,10 @@ public class BioSDOntoDiscoveringCacheTest
 			//zoomaClient.setMinConfidence ( Confidence.fromScore ( 54d ) );
 			baseDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
 		}
-		else if ( "bioportal".equalsIgnoreCase ( ontoDiscovererProp ) )
+		else if ( "ols".equalsIgnoreCase ( ontoDiscovererProp ) )
 		{
-			BioportalClient bpclient = AnnotatorResources.getInstance ().getBioportalClient ();
-			baseDiscoverer = new BioportalOntoTermDiscoverer ( bpclient );
-			((BioportalOntoTermDiscoverer) baseDiscoverer).setPreferredOntologies ( BIOPORTAL_ONTOLOGIES );
+			OLSClient olsClient = AnnotatorResources.getInstance ().getOLSClient ();
+			baseDiscoverer = new OLSOntoTermDiscoverer( olsClient );
 		}
 		else throw new IllegalArgumentException ( String.format ( 
 			"Bad value '%s' for the property '%s'", ontoDiscovererProp, ONTO_DISCOVERER_PROP_NAME 
@@ -151,7 +150,7 @@ public class BioSDOntoDiscoveringCacheTest
 			assertNotNull ( format ( "PV annotation not saved for %s:%s!", pvkey, uri ), pvanndb );
 			assertEquals (
 				format ( "Wrong annotation type for %s:%s!", pvkey, uri ),
-				OntoTermDiscoveryStoreCache.getTypeMarker (), pvanndb.getType ()
+				new OntoTermDiscoveryStoreCache("").getTypeMarker (), pvanndb.getType ()
 			);
 			assertEquals ( 
 				format ( "Wrong annotation provenance for %s:%s!", pvkey, uri ),
@@ -206,10 +205,11 @@ public class BioSDOntoDiscoveringCacheTest
 		String pvkey = ExpPropValAnnotation.getPvalText ( pval );
 
 		// TODO: we need to move this on some DAO or alike
-		List<ExpPropValAnnotation> dbanns = em.createQuery ( 
-			"FROM ExpPropValAnnotation pvann WHERE sourceText = :sourceText" 
+		Query query = em.createQuery (
+				"FROM ExpPropValAnnotation pvann WHERE sourceText = :sourceText"
 		)
-		.setParameter ( "sourceText", pvkey )
+				.setParameter ( "sourceText", pvkey );
+		List<ExpPropValAnnotation> dbanns = query
 		.getResultList ();
 
 		assertEquals ( "Wrong size for saved terms!", 1, dbanns.size () );

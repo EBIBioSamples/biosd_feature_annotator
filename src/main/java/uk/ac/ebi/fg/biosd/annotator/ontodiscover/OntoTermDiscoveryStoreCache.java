@@ -8,6 +8,7 @@ import java.util.List;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.ontodiscovery.OLSOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntoTermDiscoveryCache;
 import uk.ac.ebi.onto_discovery.api.OntologyDiscoveryException;
@@ -25,8 +26,15 @@ import com.google.common.collect.Table;
 public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 {
 
+	private String calledWith;
+
+	public OntoTermDiscoveryStoreCache(String calledWith) {
+		this.calledWith = calledWith;
+	}
+
+
 	@Override
-	public List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> dterms ) 
+	public List<DiscoveredTerm> save ( String valueLabel, String typeLabel, List<DiscoveredTerm> dterms )
 		throws OntologyDiscoveryException
 	{
 		String pvkey = ExpPropValAnnotation.getPvalText ( typeLabel, valueLabel );
@@ -78,12 +86,14 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 		if ( pvkey == null ) return CachedOntoTermDiscoverer.NULL_RESULT;
 		
 		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
-		return (List<DiscoveredTerm>) store.get ( DiscoveredTerm.class, pvkey );
+		List<DiscoveredTerm> dt = (List<DiscoveredTerm>) store.get ( DiscoveredTerm.class, pvkey );
+		return  dt;
 	}
 
-	public static String getTypeMarker ()
+	public String getTypeMarker()
 	{
+
 		return 
-			"Computed Annotation, via " + getProperty ( PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME, "ZOOMA" );
+			"Computed Annotation, via " + this.calledWith; //getProperty ( PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME, "ZOOMA" );
 	}
 }

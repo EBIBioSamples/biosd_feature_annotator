@@ -55,7 +55,7 @@ public class NumericalDataAnnotatorTest
 		protected MyPvMgr ( AnnotatorResources resources )
 		{
 			super ( resources );
-			numAnn = this.numAnnotator;
+			numAnn = this.ZoomaNumAnnotator;
 		}
 	}
 	

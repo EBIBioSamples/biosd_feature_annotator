@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.model.ClassRef;
-import uk.ac.ebi.fg.biosd.annotator.olsclient.model.OntologyClass;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.model.TextAnnotation;
 import uk.ac.ebi.onto_discovery.api.OntologyDiscoveryException;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
@@ -26,6 +25,16 @@ public class OLSOntoTermDiscoverer extends OntologyTermDiscoverer {
 
 
     private Logger log = LoggerFactory.getLogger ( this.getClass () );
+
+
+    public OLSOntoTermDiscoverer() {
+        this (new OLSClient());
+    }
+
+    public OLSOntoTermDiscoverer(OLSClient olsClient) {
+        this.olsClient = olsClient;
+    }
+
     @Override
     public List<DiscoveredTerm> getOntologyTerms(String valueLabel, String typeLabel) throws OntologyDiscoveryException {
         if ( (valueLabel = StringUtils.trimToNull ( valueLabel )) == null ) return NULL_RESULT;
@@ -38,6 +47,8 @@ public class OLSOntoTermDiscoverer extends OntologyTermDiscoverer {
     }
 
     public List<DiscoveredTerm> getOntologyTermsFromOLS(String text) throws OntologyDiscoveryException {
+        List<DiscoveredTerm> result = new ArrayList<>();
+
         try
         {
             TextAnnotation textAnnotation;
@@ -45,13 +56,11 @@ public class OLSOntoTermDiscoverer extends OntologyTermDiscoverer {
             textAnnotation = olsClient.getTextAnnotations ( text );
 
             // Collect the results
-            //
+            // we only return one result from OLS but we give it back as a List since that is the way it is implemented
 
             if ( textAnnotation == null ) return NULL_RESULT;
 
             Set<String> visitedIris = new HashSet<>();
-
-            List<DiscoveredTerm> result = new ArrayList<>();
 
             ClassRef classRef = textAnnotation.getAnnotatedClass ();
             if ( classRef == null ) return NULL_RESULT;
@@ -61,13 +70,13 @@ public class OLSOntoTermDiscoverer extends OntologyTermDiscoverer {
             String classLabel = null;
 
 
-            OntologyClass ontoClass = olsClient.getOntologyClass ( classRef.getOntologyAcronym (), classIri );
+       /*     OntologyClass ontoClass = olsClient.getOntologyClass ( classRef.getOntologyAcronym (), classIri );
             if ( ontoClass != null ) {
                 classLabel = ontoClass.getPreferredLabel();
-            }
+            }*/
 
 
-            result.add ( new DiscoveredTerm ( classIri, (Double) null, classLabel, "OLS Annotator" ) );
+            result.add ( new DiscoveredTerm ( classIri, (Double) null, null, "OLS Annotator" ) );
 
 
             if ( result.size () == 0 ) return NULL_RESULT;
@@ -79,8 +88,8 @@ public class OLSOntoTermDiscoverer extends OntologyTermDiscoverer {
                     "Error while invoking OLS for '%s': %s. Returning null", text, ex.getMessage ()
             ));
             if ( log.isDebugEnabled () ) log.debug ( "Underline exception is:", ex );
-            return null;
         }
+        return result;
     }
 
     public OLSClient getOlsClient() {

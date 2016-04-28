@@ -140,28 +140,13 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	 * 
 	 */
 	@SuppressWarnings ( "unchecked" )
-	public void submitMSI (MSI msi )
+	public void submitMSI ( ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues, String msi )
 	{
-		log.info ( "Submission '{}', annotating {} sample groups", msi.getAcc (), msi.getSampleGroups ().size () );
-
-		Purger purger = new Purger();
-
-		for (BioSampleGroup sg : msi.getSampleGroups()) {
-			for (BioSample smp : sg.getSamples())
-				for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
-					purger.purgePVAnnotations(pv);
-					purger.purgeResolvedOntTerms(pv);
+				for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : propertyValues) {
 					submit(pv);
 				}
-		}
+		log.info ( "Submission complete for Submission {}", msi );
 
-		log.info("Submission '{}', annotating {} samples", msi.getAcc(), msi.getSamples().size());
-		for (BioSample smp : msi.getSamples())
-			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
-				purger.purgePVAnnotations(pv);
-				purger.purgeResolvedOntTerms(pv);
-				submit(pv);
-			}
 	}
 
 	public ArrayList getPropertyValuesOfMSI(MSI msi){
@@ -174,7 +159,6 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 				}
 		}
 
-		log.info("Submission '{}', annotating {} samples", msi.getAcc(), msi.getSamples().size());
 		for (BioSample smp : msi.getSamples())
 			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
 				propertyValues.add(pv);
@@ -184,18 +168,31 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	}
 
 	/**
-	 * Invokes {@link #submitMSI(MSI)}, after accession-based lookup. Exception is thrown if the accession doesn't
+	 * Invokes {@link #submitMSI(propertyValues)}, after accession-based lookup. Exception is thrown if the accession doesn't
 	 * exist.
 	 */
-	public void submitMSI ( String msiAcc )
-	{
+	public void  submitMSI ( String msiAcc )
+	{//hey
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 		try
 		{
 			AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
 			MSI msi = dao.find ( msiAcc );
 			if ( msi == null ) throw new RuntimeException ( "Cannot find submission '" + msiAcc + "'" );
-			submitMSI ( msi );
+
+			//first purge all the existing property annotations for this submission
+			//its cleaner this way, and avoids deletion and re annotation of a attribute on one submission
+			ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues = getPropertyValuesOfMSI(msi);
+
+			Purger purger = new Purger();
+			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : propertyValues) {
+				purger.purgePVAnnotations(pv);
+				purger.purgeResolvedOntTerms(pv);
+			}
+
+			log.info ( "Submission '{}', annotating {} samples and sample groups",  msiAcc, msi.getSampleGroups().size() + msi.getSamples().size() );
+
+			submitMSI ( propertyValues , msiAcc);
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();

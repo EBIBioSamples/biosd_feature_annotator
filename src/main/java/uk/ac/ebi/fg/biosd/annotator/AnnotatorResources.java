@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
 import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
@@ -57,7 +58,8 @@ public class AnnotatorResources
 	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupFakeUrisZOOMASearch () );
-	private final BioportalClient bioportalClient = new BioportalClient ( AnnotatorResources.BIOPORTAL_API_KEY );
+	//private final BioportalClient bioportalClient = new BioportalClient ( AnnotatorResources.BIOPORTAL_API_KEY );
+	private final OLSClient olsClient = new OLSClient();
   private final PropertyValAnnotationManager pvAnnMgr = new PropertyValAnnotationManager ( this );
 
 	/**
@@ -69,7 +71,7 @@ public class AnnotatorResources
 		
 	private AnnotatorResources () 
 	{
-		this.zoomaClient.setMinConfidence ( Confidence.GOOD );
+		this.zoomaClient.setMinConfidence ( Confidence.HIGH );
 	}
 
 	public static AnnotatorResources getInstance ()
@@ -106,13 +108,14 @@ public class AnnotatorResources
 	
 	
 	/**
-	 * The common Bioportal client possibly used to perform ontology annotations over sample property values.
+	 * The common OLS client possibly used to perform ontology annotations over sample property values.
 	 * The usage of this depends on {@link PropertyValAnnotationManager#ONTO_DISCOVERER_PROP_NAME}.
 	 */
-	public BioportalClient getBioportalClient ()
+	public OLSClient getOLSClient ()
 	{
-		return bioportalClient;
+		return olsClient;
 	}
+
 
 	/**
 	 * This resets the common resources used by the annotator and provided by this singleton, the main one being
