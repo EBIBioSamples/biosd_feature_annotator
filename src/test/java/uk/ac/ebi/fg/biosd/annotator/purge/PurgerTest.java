@@ -18,6 +18,7 @@ import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
 import uk.ac.ebi.fg.biosd.sampletab.loader.Loader;
 import uk.ac.ebi.fg.biosd.sampletab.persistence.Persister;
+import uk.ac.ebi.fg.biosd.sampletab.persistence.Unloader;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
@@ -140,6 +141,12 @@ public class PurgerTest {
                 }
 
             }
+
+        // Remove the submission
+        //
+        Unloader unloader = new Unloader ();
+        unloader.setDoPurge ( true );
+        unloader.unload ( msi );
 
         }
 
