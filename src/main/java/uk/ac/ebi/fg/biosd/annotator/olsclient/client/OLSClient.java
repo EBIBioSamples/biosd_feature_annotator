@@ -15,7 +15,7 @@ import uk.ac.ebi.fg.biosd.annotator.olsclient.utils.OLSWebServiceUtils;
  * Created by olgavrou on 19/04/2016.
  */
 public class OLSClient {
-    String olsLocation = "http://www.ebi.ac.uk/ols/beta";
+    String olsLocation;
 
     public OLSClient ()  { this ( (String) null ); }
 
@@ -24,6 +24,11 @@ public class OLSClient {
     public OLSClient(String olsLocation) {
         if (olsLocation != null) {
             this.olsLocation = olsLocation;
+        } else {
+            this.olsLocation = System.getProperty ( "ols.client" );
+            if (this.olsLocation == null){
+                throw new RuntimeException ( "OLS Location not found in properties" );
+            }
         }
     }
 

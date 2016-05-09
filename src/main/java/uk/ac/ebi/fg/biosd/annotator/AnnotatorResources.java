@@ -1,9 +1,10 @@
 package uk.ac.ebi.fg.biosd.annotator;
 
+import java.io.IOException;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
 import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
@@ -55,12 +56,12 @@ public class AnnotatorResources
 		}
 	);
 	
-	private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
+	private final AbstractZOOMASearch zoomaClient;
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
 	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupFakeUrisZOOMASearch () );
 	//private final BioportalClient bioportalClient = new BioportalClient ( AnnotatorResources.BIOPORTAL_API_KEY );
-	private final OLSClient olsClient = new OLSClient();
-  private final PropertyValAnnotationManager pvAnnMgr = new PropertyValAnnotationManager ( this );
+	private final OLSClient olsClient;
+  	private final PropertyValAnnotationManager pvAnnMgr;
 
 	/**
 	 * We use this here and in tests. Should you need it, please Get your own key from Bioportal, do not use this one.
@@ -71,6 +72,20 @@ public class AnnotatorResources
 		
 	private AnnotatorResources () 
 	{
+		//Set general System properties
+		Properties properties = new Properties( System.getProperties() );
+		try {
+			properties.load ( getClass () .getClassLoader ().getResourceAsStream ("annotator.properties"));
+		} catch (IOException e) {
+			//handle differently if annotation properties are not vital to running the annotator
+			throw new RuntimeException ( "Annotator Properties not found" );
+		}
+		System.setProperties ( properties );
+
+		this.zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
+		this.olsClient = new OLSClient ();
+		this.pvAnnMgr = new PropertyValAnnotationManager ( this );
+
 		this.zoomaClient.setMinConfidence ( Confidence.HIGH );
 	}
 
