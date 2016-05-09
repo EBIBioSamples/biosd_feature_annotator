@@ -124,10 +124,9 @@ public class PropertyValAnnotationManager
 	public void textAnnotation(ExperimentalPropertyValue<ExperimentalPropertyType> pv){
 		boolean isNumberOrDate = ZoomaNumAnnotator.annotate ( pv );
 		if (! zoomaOntoDiscoverer.tryToAnnotate ( pv, isNumberOrDate )){ //if none where annotated from zooma, look into ols
-			 isNumberOrDate = OLSNumAnnotator.annotate ( pv );
-		olsOntoDiscoverer.tryToAnnotate(pv, isNumberOrDate);
+			isNumberOrDate = OLSNumAnnotator.annotate ( pv );
+			olsOntoDiscoverer.tryToAnnotate(pv, isNumberOrDate);
 		}
-
 	}
 
 	/*
