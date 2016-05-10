@@ -3,7 +3,9 @@ package uk.ac.ebi.fg.biosd.annotator.olsclient.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import uk.ac.ebi.fg.biosd.annotator.olsclient.model.ClassRef;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.model.OntologyClass;
@@ -55,7 +57,7 @@ public class OLSClient {
 
 
         for (String acc : tryAccessions){
-            String response = olsWebServiceUtils.getOntologyClass(olsLocation, correctOntAcronym, acc, true);
+            String response = olsWebServiceUtils.getOntologyClass(olsLocation, correctOntAcronym, acc, null, true);
             if (response != null){
                 OntologyClass ontologyClass = buildOntologyClass(response);
                 if (ontologyClass != null){
@@ -70,11 +72,15 @@ public class OLSClient {
 
         OLSWebServiceUtils olsWebServiceUtils = new OLSWebServiceUtils();
 
+        Map<String, String> params = new HashMap<>();
+        //search only in label and synonym fields
+        params.put("queryFields" ,"label,synonym");
+
         ArrayList<String> responses = new ArrayList<>();
-        responses.add(olsWebServiceUtils.getOntologyClass(olsLocation, "efo", textValue, true)); //first search in efo for exact match
-        responses.add(olsWebServiceUtils.getOntologyClass(olsLocation, null, textValue, true)); //then search in all ontologies for exact match
-        responses.add(olsWebServiceUtils.getOntologyClass(olsLocation, "efo", textValue, false)); // search in efo for loose match
-        responses.add(olsWebServiceUtils.getOntologyClass(olsLocation, null, textValue, false)); // search in all ontologies for loose match
+        responses.add(olsWebServiceUtils.getOntologyClass(olsLocation, "efo", textValue, params, true)); //first search in efo for exact match
+        responses.add(olsWebServiceUtils.getOntologyClass(olsLocation, null, textValue, params, true)); //then search in all ontologies for exact match
+        //responses.add(olsWebServiceUtils.getOntologyClass(olsLocation, "efo", textValue, params, false)); // search in efo for loose match
+        //responses.add(olsWebServiceUtils.getOntologyClass(olsLocation, null, textValue, params, false)); // search in all ontologies for loose match
 
 
         OntologyClass ontologyClass = null;

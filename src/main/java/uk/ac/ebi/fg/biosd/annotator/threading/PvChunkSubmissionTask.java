@@ -57,9 +57,9 @@ class PvChunkSubmissionTask extends AnnotatorTask
 				(List<ExperimentalPropertyValue<ExperimentalPropertyType>>) q.getResultList ();
 			
 			int npvs = pvs.size ();
+			Purger purger = new Purger();
 			for ( int i = 0;  i < npvs; i++ ) {
 				if(purgeFirst){
-					Purger purger = new Purger();
 					purger.purgePVAnnotations(pvs.get(i));
 					purger.purgeResolvedOntTerms(pvs.get(i));
 				}

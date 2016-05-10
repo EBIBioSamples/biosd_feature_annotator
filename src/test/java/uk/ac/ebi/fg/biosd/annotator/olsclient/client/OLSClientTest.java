@@ -5,6 +5,9 @@ import org.junit.Test;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.model.OntologyClass;
 import uk.ac.ebi.fg.biosd.annotator.olsclient.model.TextAnnotation;
 
+import java.io.IOException;
+import java.util.Properties;
+
 import static junit.framework.Assert.*;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
@@ -19,6 +22,16 @@ public class OLSClientTest {
     private OLSClient olsClient;
     @Before
     public void setup() {
+        //Set general System properties
+        Properties properties = new Properties( System.getProperties() );
+        try {
+            properties.load ( getClass () .getClassLoader ().getResourceAsStream ("annotator.properties"));
+        } catch (IOException e) {
+            //handle differently if annotation properties are not vital to running the annotator
+            throw new RuntimeException ( "Annotator Properties not found" );
+        }
+        System.setProperties ( properties );
+
         this.olsClient = new OLSClient();
     }
 

@@ -54,10 +54,10 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 				Object expPropValAnnObject = store.get(ExpPropValAnnotation.class, pvkey);
 
 				if (expPropValAnnObject != null) {
-				ExpPropValAnnotation expPropValAnnotation = (ExpPropValAnnotation) expPropValAnnObject;
-				if (expPropValAnnotation != null && expPropValAnnotation.getOntoTermUri().equals(ExpPropValAnnotation.NULL_TERM_URI)) {
-					store.remove(ExpPropValAnnotation.class, pvkey);
-				}
+					ExpPropValAnnotation expPropValAnnotation = (ExpPropValAnnotation) expPropValAnnObject;
+					if (expPropValAnnotation != null && expPropValAnnotation.getOntoTermUri().equals(ExpPropValAnnotation.NULL_TERM_URI)) {
+						store.remove(ExpPropValAnnotation.class, pvkey);
+					}
 				}
 			}
 		}

@@ -48,15 +48,18 @@ public class OLSWebServiceUtils {
     @accession: accession will be the general query we will search for
     returns: the json response
      */
-    public String getOntologyClass(String olsLocation, String ontologyPrefix, String q, boolean exact) {
+    public String getOntologyClass(String olsLocation, String ontologyPrefix, String q, Map<String, String> params, boolean exact) {
 
         String response = null;
-        Map<String, String> params = new HashMap<>();
+        Map<String, String> parameters = new HashMap<>();
+        if (params != null){
+            parameters.putAll(params);
+        }
         if (ontologyPrefix != null) {
-            params.put("ontology", ontologyPrefix.toLowerCase());
+            parameters.put("ontology", ontologyPrefix.toLowerCase());
         }
 
-        response = searchOLS(olsLocation, q, params, exact);
+        response = searchOLS(olsLocation, q, parameters, exact);
 
         return response;
     }

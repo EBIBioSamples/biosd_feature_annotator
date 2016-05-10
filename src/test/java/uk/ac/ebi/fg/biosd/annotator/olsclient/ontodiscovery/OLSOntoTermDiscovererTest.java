@@ -4,7 +4,9 @@ import org.junit.Before;
 import org.junit.Test;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 
 import static junit.framework.Assert.*;
 
@@ -18,6 +20,16 @@ public class OLSOntoTermDiscovererTest {
 
     @Before
     public void setup(){
+        //Set general System properties
+        Properties properties = new Properties( System.getProperties() );
+        try {
+            properties.load ( getClass () .getClassLoader ().getResourceAsStream ("annotator.properties"));
+        } catch (IOException e) {
+            //handle differently if annotation properties are not vital to running the annotator
+            throw new RuntimeException ( "Annotator Properties not found" );
+        }
+        System.setProperties ( properties );
+
         this.discoverer = new OLSOntoTermDiscoverer();
     }
     @Test
