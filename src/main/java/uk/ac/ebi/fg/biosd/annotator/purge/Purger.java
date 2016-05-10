@@ -211,7 +211,7 @@ public class Purger
 				.setParameter("sourceText", sourceText);
 
 		log.info ( "purging verified ontology term annotations" );
-		int result = purgeEntities ( q );
+		int result = purgeEntities ( q , false );
 
 		hql = "FROM ComputedOntoTerm WHERE uri NOT IN ( SELECT ontoTermUri FROM ResolvedOntoTermAnnotation )";
 		q = session.createQuery ( hql );
@@ -257,7 +257,7 @@ public class Purger
 				.setParameter("sourceText", sourceText);
 
 		log.info("purging sample property annotations");
-		int result = purgeEntities(q);
+		int result = purgeEntities ( q, false );
 		log.info("done, {} records deleted", result);
 		return result;
 	}
@@ -291,7 +291,7 @@ public class Purger
 		for ( ScrollableResults annRs = qry.scroll ( ScrollMode.FORWARD_ONLY ); annRs.next (); )
 		{
 			// Randomly skip a number of them
-			//if ( doRandomDeletes && RandomUtils.nextDouble ( 0, 1.0 ) >= deletionRate ) continue;
+			if ( doRandomDeletes && RandomUtils.nextDouble ( 0, 1.0 ) >= deletionRate ) continue;
 			
 			Object entity = annRs.get ( 0 );
 			this.entityManager.remove ( entity );
