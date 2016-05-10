@@ -2,9 +2,8 @@ package uk.ac.ebi.fg.biosd.annotator.cli;
 
 import static java.lang.System.out;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.PrintWriter;
+import java.io.*;
+import java.util.Scanner;
 
 import javax.persistence.EntityManagerFactory;
 
@@ -135,12 +134,39 @@ public class AnnotateCmd
 		  // This is the real annotation job
 		  //
 
-		  // Per submission accession invocation
+			// Per submission accession stats
+			String msiAccsStats = cli.getOptionValue ( "submissionStats" );
+			if ( msiAccsStats != null )
+			{
+				String dirLocation = cli.getOptionValue("dirLocation");
+				if (dirLocation == null){
+					throw new FileNotFoundException("Need to set file location, (i.e. path/filename) for the stats to be stored in");
+				}
+
+				Scanner scanner = new Scanner(new File(msiAccsStats));
+				String line;
+
+				while (scanner.hasNextLine()){
+					line = scanner.nextLine();
+					annService.printAllOntologyEntriesForMSI(line, dirLocation);
+				}
+				scanner.close();
+				//for ( String msiAcc: msiAccessions ) {
+				//	annService.printAllOntologyEntriesForMSI(msiAcc, dirLocation);
+				//}
+
+				exitCode = 127;
+				System.exit(exitCode);
+			}
+
+
+			// Per submission accession invocation
 			String msiAccs[] = cli.getOptionValues ( "submission" );
 			if ( msiAccs != null )
 			{
-				for ( String msiAcc: msiAccs )
-					annService.submitMSI ( msiAcc );
+				for ( String msiAcc: msiAccs ) {
+					annService.submitMSI(msiAcc);
+				}
 			}
 
 			// Per submission file invocation
@@ -187,7 +213,13 @@ public class AnnotateCmd
 	 */
 	private static void terminationHandler ()
 	{
-		if ( getExitCode () == 128 ) return; // --help opion
+		if ( getExitCode () == 128 ) return; // --help option
+		if ( getExitCode () == 127 ) { // --get stats option
+			annService.waitAllFinished (false);
+			EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+			if ( emf != null && emf.isOpen () ) emf.close ();
+			return;
+		}
 
 		if ( annService != null ) 
 		{
@@ -296,6 +328,22 @@ public class AnnotateCmd
 				.create ("fp")
 		);
 
+		opts.addOption ( OptionBuilder
+				.withDescription ( "To be used with -dirLocation. Given a file with submission accessions (one on each line), prints the existing sample (group) ontology annotations related to a given submission. Produces one file for each accession named: Acc_<submission_accession>" )
+				.withLongOpt ( "submissionStats" )
+				.withArgName ( "accessionStats" )
+				.hasArg ()
+				.create ("ss")
+		);
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "To be used with -submissionStats. The directory location (path) for the submission stat files to be stored in." )
+				.withLongOpt ( "dirLocation" )
+				.withArgName ( "dirLocation" )
+				.hasArg ()
+				.create ("dl")
+		);
+
 		return opts;		
 	}
 	
@@ -304,7 +352,7 @@ public class AnnotateCmd
 		out.println ();
 
 		out.println ( "\n\n *** BioSD Feature Annotator ***" );
-		out.println ( "\nAnnotates biosample attributes with ontology references (computed via ZOOMA and Bioportal) and numeric structures." );
+		out.println ( "\nAnnotates biosample attributes with ontology references (computed via ZOOMA and OLS) and numeric structures." );
 		
 		out.println ( "\nSyntax:" );
 		out.println ( "\n\tannotate.sh [options]" );		
@@ -315,8 +363,8 @@ public class AnnotateCmd
 		helpFormatter.printOptions ( pw, 100, getOptions (), 2, 4 );
 		
 		out.println ( "\nRelevant Environment Variables:" );
-		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME + "=<zooma|bioportal>\": which text/ontology annotator to use" );
-		out.println ();
+		//out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME + "=<zooma|bioportal>\": which text/ontology annotator to use" );
+		//out.println ();
 		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationService.MAX_THREAD_PROP + "=<num>\": max number of threads that can be used" );
 		out.println ( "  (very important in LSF mode)" );
 		out.println ();

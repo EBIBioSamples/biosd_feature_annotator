@@ -1,21 +1,18 @@
 package uk.ac.ebi.fg.biosd.annotator.threading;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 
 import javax.persistence.EntityManager;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.Hibernate;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
-import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
-import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
+
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorAccessor;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
@@ -27,6 +24,7 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
+import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 import uk.ac.ebi.utils.threading.BatchService;
@@ -149,24 +147,6 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 
 	}
 
-	public ArrayList getPropertyValuesOfMSI(MSI msi){
-		ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues = new ArrayList<>();
-
-		for (BioSampleGroup sg : msi.getSampleGroups()) {
-			for (BioSample smp : sg.getSamples())
-				for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
-					propertyValues.add(pv);
-				}
-		}
-
-		for (BioSample smp : msi.getSamples())
-			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
-				propertyValues.add(pv);
-			}
-
-		return propertyValues;
-	}
-
 	/**
 	 * Invokes {@link #submitMSI(propertyValues)}, after accession-based lookup. Exception is thrown if the accession doesn't
 	 * exist.
@@ -222,6 +202,82 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 			throw new RuntimeException ( "Error reading SampleTab file: " + ex.getMessage (), ex );
 		}
 	}
+
+	public void printAllOntologyEntriesForMSI ( String msiAcc, String fileLocation) throws IOException {
+		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
+		File file = new File(fileLocation + "/Acc_" + msiAcc);
+		FileOutputStream outputStream = new FileOutputStream(file);
+
+		try
+		{
+			AnnotatorAccessor annotatorAccessor = new AnnotatorAccessor(em);
+
+			outputStream.write(msiAcc.getBytes());
+			outputStream.write("\n".getBytes());
+
+			AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
+
+			MSI msi = dao.find ( msiAcc );
+			if ( msi == null ) throw new RuntimeException ( "Cannot find submission '" + msiAcc + "'" );
+
+			ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues = getPropertyValuesOfMSI(msi);
+
+			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : propertyValues) {
+
+				if (!FileUtils.readFileToString(file).contains(pv.getTermText())) {
+
+					outputStream.write("\n".getBytes());
+					outputStream.write(("Property Value: " + pv.getTermText()).getBytes());
+					outputStream.write("\n".getBytes());
+
+					List<OntologyEntry> discovered = annotatorAccessor.getExpPropValAnnotatationsAsOntologyEntries(pv);
+					if (discovered != null && discovered.size() != 0) {
+						outputStream.write(("Discovered:".getBytes()));
+						outputStream.write("\n".getBytes());
+						for (OntologyEntry oe : discovered) {
+							outputStream.write((oe.getAcc().getBytes()));
+							outputStream.write("\n".getBytes());
+						}
+					}
+
+					List<OntologyEntry> resolved = new ArrayList<OntologyEntry>();
+					for (OntologyEntry oe : pv.getOntologyTerms())
+						resolved.add(annotatorAccessor.getResolvedOntoTermAsOntologyEntry(oe));
+
+					if (resolved != null && resolved.size() != 0) {
+						outputStream.write(("Resolved:".getBytes()));
+						outputStream.write("\n".getBytes());
+						for (OntologyEntry oe : resolved) {
+							outputStream.write((oe.getAcc().getBytes()));
+							outputStream.write("\n".getBytes());
+						}
+					}
+				}
+			}
+		}
+		finally {
+			if ( em.isOpen () ) em.close ();
+			if (outputStream != null) outputStream.close();
+		}
+	}
+
+	public ArrayList getPropertyValuesOfMSI(MSI msi){
+		ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues = new ArrayList<>();
+
+		for (BioSampleGroup sg : msi.getSampleGroups()) {
+			for (BioSample smp : sg.getSamples())
+				for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
+					propertyValues.add(pv);
+				}
+		}
+
+		for (BioSample smp : msi.getSamples())
+			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
+				propertyValues.add(pv);
+			}
+
+		return propertyValues;
+	}
 	
 	/**
 	 * Gets the number of properties in the BioSD database. To be used prior to {@link #submit(Integer, Integer)}.
@@ -274,7 +330,18 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	public void waitAllFinished ()
 	{
 		super.waitAllFinished ();
-		this.persist ();
+		this.waitAllFinished(true);
+	}
+
+	/**
+	 * Waits for all the tasks to finish and then {@link #persist()}s.
+	 */
+	public void waitAllFinished (boolean persist)
+	{
+		super.waitAllFinished ();
+		if (persist) {
+			this.persist();
+		}
 	}
 	
 	
