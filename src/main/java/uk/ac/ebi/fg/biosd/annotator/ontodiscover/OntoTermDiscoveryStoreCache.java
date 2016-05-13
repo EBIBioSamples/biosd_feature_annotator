@@ -39,61 +39,43 @@ public class OntoTermDiscoveryStoreCache extends OntoTermDiscoveryCache
 		
 		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
 
-		//If annotated already as a null object, remove the annotation
-		//if the new annotation is also null the end annotation will be an NullOntoTerm
-		Object termObject =  store.get(DiscoveredTerm.class, pvkey);
-		if (termObject != null) {
-			List termList = (List) termObject;
-			if (termList != null) { //the term already saved is null and we have a new one
-				if (termList.size() == 0) {
-					//remove the old one and continue
-					store.remove(DiscoveredTerm.class, pvkey);
-					//remove from pvanns
-				}
 
-				Object expPropValAnnObject = store.get(ExpPropValAnnotation.class, pvkey);
+		// This is needed by this cache and ignored during the persistence stage (ExpPropValAnnotation are considered instead)
+		if (!(getTypeMarker().toLowerCase().contains("zooma") && dterms.isEmpty())) {
 
-				if (expPropValAnnObject != null) {
-					ExpPropValAnnotation expPropValAnnotation = (ExpPropValAnnotation) expPropValAnnObject;
-					if (expPropValAnnotation != null && expPropValAnnotation.getOntoTermUri().equals(ExpPropValAnnotation.NULL_TERM_URI)) {
-						store.remove(ExpPropValAnnotation.class, pvkey);
-					}
-				}
+//			if (!getTypeMarker().toLowerCase().contains("zooma") && !dterms.isEmpty()) {
+			store.put(DiscoveredTerm.class, pvkey, dterms);
+
+			if (dterms.isEmpty()) {
+				// Store an annotation that traces the fact there's nothing for this key
+				ExpPropValAnnotation pvann = new ExpPropValAnnotation(pvkey);
+				pvann.setOntoTermUri(ExpPropValAnnotation.NULL_TERM_URI);
+				pvann.setType(getTypeMarker());
+				pvann.setProvenance(PropertyValAnnotationManager.PROVENANCE_MARKER);
+				pvann.setTimestamp(new Date());
+				store.put(ExpPropValAnnotation.class, pvkey, pvann);
+
+				return CachedOntoTermDiscoverer.NULL_RESULT;
+			}
+
+
+			String typeMarker = getTypeMarker();
+
+			// Else, store an annotation for each found term
+			for (DiscoveredTerm dterm : dterms) {
+				String uri = dterm.getIri();
+
+				ExpPropValAnnotation pvann = new ExpPropValAnnotation(pvkey);
+				pvann.setType(typeMarker);
+				pvann.setProvenance(PropertyValAnnotationManager.PROVENANCE_MARKER);
+				pvann.setOntoTermUri(uri);
+				pvann.setScore(dterm.getScore());
+				pvann.setTimestamp(new Date());
+
+				store.put(ExpPropValAnnotation.class, pvkey + ":" + uri, pvann);
 			}
 		}
 
-		// This is needed by this cache and ignored during the persistence stage (ExpPropValAnnotation are considered instead)
-		store.put ( DiscoveredTerm.class, pvkey, dterms );
-
-		if ( dterms.isEmpty () )
-		{
-			// Store an annotation that traces the fact there's nothing for this key
-			ExpPropValAnnotation pvann = new ExpPropValAnnotation ( pvkey );
-			pvann.setOntoTermUri ( ExpPropValAnnotation.NULL_TERM_URI );
-			pvann.setType ( getTypeMarker () );
-			pvann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
-			pvann.setTimestamp ( new Date () );
-			store.put ( ExpPropValAnnotation.class, pvkey, pvann ); 
-			
-			return CachedOntoTermDiscoverer.NULL_RESULT;
-		}
-
-		String typeMarker = getTypeMarker ();
-		
-		// Else, store an annotation for each found term
-		for ( DiscoveredTerm dterm: dterms )
-		{
-			String uri = dterm.getIri ();
-			
-			ExpPropValAnnotation pvann = new ExpPropValAnnotation ( pvkey );
-			pvann.setType ( typeMarker );
-			pvann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
-			pvann.setOntoTermUri ( uri );
-			pvann.setScore ( dterm.getScore () ); 
-			pvann.setTimestamp ( new Date () );
-
-			store.put ( ExpPropValAnnotation.class, pvkey + ":" + uri, pvann );
-		}
 		
 		return dterms;
 	}
