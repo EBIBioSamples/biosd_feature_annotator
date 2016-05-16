@@ -44,9 +44,9 @@ public class OLSWebServiceUtilsTest {
         Map<String, String> params = new HashMap<>();
         params.put("type","ontology");
 
-        String response = olsWebServiceUtils.searchOLS(olsLocation, "efo",params,true);
-        assertNotNull("Specified exact twice", olsWebServiceUtils.searchOLS(olsLocation, "efo",params,true));
-        assertNotNull("Specified exact twice", olsWebServiceUtils.searchOLS(olsLocation, "efo",params,true));
+        String response = olsWebServiceUtils.invokeOLS(olsLocation, "efo",params,true);
+        assertNotNull("Specified exact twice", olsWebServiceUtils.invokeOLS(olsLocation, "efo",params,true));
+        assertNotNull("Specified exact twice", olsWebServiceUtils.invokeOLS(olsLocation, "efo",params,true));
 
     }
 }

@@ -191,21 +191,30 @@ public class AnnotateCmd
 			String msiAccs = cli.getOptionValue ( "submission" );
 			if ( msiAccs != null )
 			{
-				Scanner scanner = new Scanner(new File(msiAccs));
-				String line;
+				try {
+					Scanner scanner = new Scanner(new File(msiAccs));
+					String line;
 
-				while (scanner.hasNextLine()) {
-					line = scanner.nextLine();
-				 	//annService.submit ( null, 1, line );
+					while (scanner.hasNextLine()) {
+						line = scanner.nextLine();
+						//annService.submit ( null, 1, line );
 
-			 		annService.submitMSI(line);
+						annService.submitMSI(line);
+					}
+
+					scanner.close();
+
+				} catch (FileNotFoundException e){
+					log.info("========== File not found, checking for directly submitted accessions ==========");
+					//not a file but maybe just accessions
+					String msiAccsesions[] = cli.getOptionValues ( "submission" );
+					for ( String msiAcc: msiAccsesions ) {
+						annService.submitMSI(msiAcc);
+					}
+					annService.submitMSI(msiAccs);
 				}
 
-				scanner.close();
 
-			//	for ( String msiAcc: msiAccs ) {
-		//			annService.submitMSI(msiAcc);
-	//			}
 			}
 
 			// Per submission file invocation
@@ -284,7 +293,7 @@ public class AnnotateCmd
 		Options opts = new Options ();
 
 		opts.addOption ( OptionBuilder
-			.withDescription ( "annotates all the sample (group) properties related to a given submission. WARNING!!!: Purges the annotated attribute values before re-annotating them" )
+			.withDescription ( "annotates all the sample (group) properties related to a given submission. WARNING!!!: Purges the annotated attribute values before re-annotating them. This could either be a file (path/filename) that contains the accessions you wish to annotate on each line, or the accession directly passed as an argument" )
 			.withLongOpt ( "submission" )
 			.withArgName ( "accession" )
 			.hasArg ()

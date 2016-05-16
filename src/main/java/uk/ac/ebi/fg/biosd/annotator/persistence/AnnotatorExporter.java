@@ -100,7 +100,7 @@ public class AnnotatorExporter {
         }
     }
 
-    public void printAllOntologyAnnotationsForMSI(String msiAcc, ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues ,String fileLocation) throws IOException {
+    public void printAllOntologyAnnotationsForMSI(String msiAcc, ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues, String fileLocation) throws IOException {
 
         EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
         AnnotatorAccessor annotatorAccessor = new AnnotatorAccessor(em);
@@ -110,10 +110,6 @@ public class AnnotatorExporter {
         try {
             outputStream.write(msiAcc.getBytes());
             outputStream.write("\n".getBytes());
-
-            AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
-            MSI msi = dao.find ( msiAcc );
-            if ( msi == null ) throw new RuntimeException ( "Cannot find submission '" + msiAcc + "'" );
 
             for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : propertyValues) {
 
