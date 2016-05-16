@@ -3,6 +3,7 @@ package uk.ac.ebi.fg.biosd.annotator.cli;
 import static java.lang.System.out;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 import javax.persistence.EntityManagerFactory;
@@ -17,10 +18,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorAccessor;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorExporter;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
+import uk.ac.ebi.fg.biosd.model.organizational.MSI;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 
 /**
@@ -42,6 +47,8 @@ public class AnnotateCmd
 	private static Logger log = LoggerFactory.getLogger ( AnnotateCmd.class );
 
 	private static PropertyValAnnotationService annService = null;
+
+	private static AnnotatorExporter annotatorExporter = null;
 	
 	public static void main ( String... args )
 	{
@@ -117,8 +124,10 @@ public class AnnotateCmd
 		  
 		  
 			
-		  annService = new PropertyValAnnotationService ();
-			
+		  	annService = new PropertyValAnnotationService ();
+
+			annotatorExporter = new AnnotatorExporter();
+
 			// Count experimental property values, invoked by the cluster-based command
 		  if ( cli.hasOption ( "property-count" ) )
 		  {
@@ -135,38 +144,68 @@ public class AnnotateCmd
 		  //
 
 			// Per submission accession stats
-			String msiAccsStats = cli.getOptionValue ( "submissionStats" );
+			String msiAccsStats = cli.getOptionValue ( "submissionAccessions" );
 			if ( msiAccsStats != null )
 			{
+				exitCode = 127;
+
 				String dirLocation = cli.getOptionValue("dirLocation");
 				if (dirLocation == null){
-					throw new FileNotFoundException("Need to set file location, (i.e. path/filename) for the stats to be stored in");
+					throw new FileNotFoundException("Need to set directory location, (i.e. path/directory) for the stats to be stored in");
 				}
+
 
 				Scanner scanner = new Scanner(new File(msiAccsStats));
 				String line;
 
-				while (scanner.hasNextLine()){
-					line = scanner.nextLine();
-					annService.printAllOntologyEntriesForMSI(line, dirLocation);
-				}
-				scanner.close();
-				//for ( String msiAcc: msiAccessions ) {
-				//	annService.printAllOntologyEntriesForMSI(msiAcc, dirLocation);
-				//}
+				try {
+					while (scanner.hasNextLine()) {
+						line = scanner.nextLine();
+						//property values for this sumbission accession
+						if (cli.hasOption("printAnnotations")) {
+							annotatorExporter.printAllOntologyAnnotationsForMSI(annService, line, dirLocation);
+						}
 
-				exitCode = 127;
+						if (cli.hasOption("compare")){
+							annotatorExporter.compareDiscoveredAndResolvedForMSI(annService, line, dirLocation);
+						}
+
+						if (!cli.hasOption("printAnnotations") && !cli.hasOption("compare")){
+							throw new RuntimeException("Need to specify if you want to print all annotations and/or compare discovered with resolved annotations");
+						}
+
+						//annotatorExporter.compareDiscoveredAndResolvedForMSI(line, propertyValues, dirLocation);
+					}
+				} catch (IOException e) {
+					throw new IOException("Problem while writing in file");
+				}
+				finally {
+					scanner.close();
+				}
+
 				System.exit(exitCode);
 			}
 
 
 			// Per submission accession invocation
-			String msiAccs[] = cli.getOptionValues ( "submission" );
+			String msiAccs = cli.getOptionValue ( "submission" );
 			if ( msiAccs != null )
 			{
-				for ( String msiAcc: msiAccs ) {
-					annService.submitMSI(msiAcc);
+				Scanner scanner = new Scanner(new File(msiAccs));
+				String line;
+
+				while (scanner.hasNextLine()) {
+					line = scanner.nextLine();
+				 	//annService.submit ( null, 1, line );
+
+			 		annService.submitMSI(line);
 				}
+
+				scanner.close();
+
+			//	for ( String msiAcc: msiAccs ) {
+		//			annService.submitMSI(msiAcc);
+	//			}
 			}
 
 			// Per submission file invocation
@@ -329,17 +368,27 @@ public class AnnotateCmd
 		);
 
 		opts.addOption ( OptionBuilder
-				.withDescription ( "To be used with -dirLocation. Given a file with submission accessions (one on each line), prints the existing sample (group) ontology annotations related to a given submission. Produces one file for each accession named: Acc_<submission_accession>" )
-				.withLongOpt ( "submissionStats" )
-				.withArgName ( "accessionStats" )
+				.withDescription ( "To be used with -dirLocation and (-compare and/or -printAnnotations). The file with submission accessions (one on each line), whose annotations we want to export." )
+				.withLongOpt ( "submissionAccessions" )
 				.hasArg ()
-				.create ("ss")
+				.create ("acc")
 		);
 
 		opts.addOption ( OptionBuilder
-				.withDescription ( "To be used with -submissionStats. The directory location (path) for the submission stat files to be stored in." )
+				.withDescription ( "To be used with -submissionAccessions and -dirLocation. \n Prints the property values and annotations if the discovered annotation differs from the resolved annotation. \n Stored in the file \"CompareResolvedWithDiscovered.txt\" in the directory specified. NOTE: Appends to file!" )
+				.withLongOpt ( "compare" )
+				.create ("c")
+		);
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "To be used with -submissionAccessions and -dirLocation. For each submission, a filed called Acc_<submission_accession> will be created in the directory specified, with all its annotations exported for each property value that belongs to this sumbission." )
+				.withLongOpt ( "printAnnotations" )
+				.create ("p")
+		);
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "To be used with -submissionAccessions. The directory location (path) for the submission stat files to be stored in." )
 				.withLongOpt ( "dirLocation" )
-				.withArgName ( "dirLocation" )
 				.hasArg ()
 				.create ("dl")
 		);
