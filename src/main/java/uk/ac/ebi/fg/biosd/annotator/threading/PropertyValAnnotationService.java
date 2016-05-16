@@ -5,14 +5,12 @@ import java.util.*;
 
 import javax.persistence.EntityManager;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 
-import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorAccessor;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
@@ -24,9 +22,7 @@ import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
 import uk.ac.ebi.fg.core_model.persistence.dao.hibernate.toplevel.AccessibleDAO;
 import uk.ac.ebi.fg.core_model.resources.Resources;
-import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.toplevel.Identifiable;
-import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
 import uk.ac.ebi.utils.threading.BatchService;
 import uk.org.lidalia.slf4jext.Level;
 
@@ -70,7 +66,7 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 		
 		this.setSubmissionMsgLogLevel ( Level.DEBUG );
 	}
-	
+
 	/**
 	 * This is to submit an {@link PropertyValAnnotationTask annotation task} about an {@link ExperimentalPropertyValue} 
 	 * with this {@link Identifiable#getId() id}. If {@link #getRandomSelectionQuota()} is &lt; 1, only the 
@@ -203,63 +199,6 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 		}
 	}
 
-	public void printAllOntologyEntriesForMSI ( String msiAcc, String fileLocation) throws IOException {
-		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
-		File file = new File(fileLocation + "/Acc_" + msiAcc);
-		FileOutputStream outputStream = new FileOutputStream(file);
-
-		try
-		{
-			AnnotatorAccessor annotatorAccessor = new AnnotatorAccessor(em);
-
-			outputStream.write(msiAcc.getBytes());
-			outputStream.write("\n".getBytes());
-
-			AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
-
-			MSI msi = dao.find ( msiAcc );
-			if ( msi == null ) throw new RuntimeException ( "Cannot find submission '" + msiAcc + "'" );
-
-			ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues = getPropertyValuesOfMSI(msi);
-
-			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : propertyValues) {
-
-				if (!FileUtils.readFileToString(file).contains(pv.getTermText())) {
-
-					outputStream.write("\n".getBytes());
-					outputStream.write(("Property Value: " + pv.getTermText()).getBytes());
-					outputStream.write("\n".getBytes());
-
-					List<OntologyEntry> discovered = annotatorAccessor.getExpPropValAnnotatationsAsOntologyEntries(pv);
-					if (discovered != null && discovered.size() != 0) {
-						outputStream.write(("Discovered:".getBytes()));
-						outputStream.write("\n".getBytes());
-						for (OntologyEntry oe : discovered) {
-							outputStream.write((oe.getAcc().getBytes()));
-							outputStream.write("\n".getBytes());
-						}
-					}
-
-					List<OntologyEntry> resolved = new ArrayList<OntologyEntry>();
-					for (OntologyEntry oe : pv.getOntologyTerms())
-						resolved.add(annotatorAccessor.getResolvedOntoTermAsOntologyEntry(oe));
-
-					if (resolved != null && resolved.size() != 0) {
-						outputStream.write(("Resolved:".getBytes()));
-						outputStream.write("\n".getBytes());
-						for (OntologyEntry oe : resolved) {
-							outputStream.write((oe.getAcc().getBytes()));
-							outputStream.write("\n".getBytes());
-						}
-					}
-				}
-			}
-		}
-		finally {
-			if ( em.isOpen () ) em.close ();
-			if (outputStream != null) outputStream.close();
-		}
-	}
 
 	public ArrayList getPropertyValuesOfMSI(MSI msi){
 		ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues = new ArrayList<>();
