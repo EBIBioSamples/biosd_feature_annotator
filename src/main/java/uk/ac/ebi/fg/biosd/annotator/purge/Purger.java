@@ -277,37 +277,41 @@ public class Purger
 	 */
 	private int purgeEntities ( Query qry, boolean doRandomDeletes )
 	{
-		int result = 0;
+		try {
+			int result = 0;
 
-		EntityTransaction tx = this.entityManager.getTransaction ();
-		tx.begin ();
-		
-		// TODO: needs hibernate.jdbc.batch_size
-		qry
-			.setReadOnly ( true )
-			.setFetchSize ( 10000 )
-			.setCacheMode ( CacheMode.IGNORE );
+			EntityTransaction tx = this.entityManager.getTransaction();
+			tx.begin();
 
-		for ( ScrollableResults annRs = qry.scroll ( ScrollMode.FORWARD_ONLY ); annRs.next (); )
-		{
-			// Randomly skip a number of them
-			if ( doRandomDeletes && RandomUtils.nextDouble ( 0, 1.0 ) >= deletionRate ) continue;
-			
-			Object entity = annRs.get ( 0 );
-			this.entityManager.remove ( entity );
-			
-			// Flush changes from time to time
-			if ( ++result % 10000 == 0 )
-			{
-				this.entityManager.flush ();
-				this.entityManager.clear ();
+			// TODO: needs hibernate.jdbc.batch_size
+			qry
+					.setReadOnly(true)
+					.setFetchSize(10000)
+					.setCacheMode(CacheMode.IGNORE);
+
+			for (ScrollableResults annRs = qry.scroll(ScrollMode.FORWARD_ONLY); annRs.next(); ) {
+				// Randomly skip a number of them
+				if (doRandomDeletes && RandomUtils.nextDouble(0, 1.0) >= deletionRate) continue;
+
+				Object entity = annRs.get(0);
+				this.entityManager.remove(entity);
+
+				// Flush changes from time to time
+				if (++result % 10000 == 0) {
+					this.entityManager.flush();
+					this.entityManager.clear();
+				}
+
+				if (result % 100000 == 0) log.info("{} entities processed", result);
 			}
-			
-			if ( result % 100000 == 0 ) log.info ( "{} entities processed", result );
+
+			tx.commit();
+			return result;
+		} catch (Exception e) {
+			log.debug("===================== EXCEPTION while purging for property query: " +  qry + " ========================");
+			log.debug(e.toString());
+			return 0;
 		}
-		
-		tx.commit ();
-		return result;
 	}
 	
 	
