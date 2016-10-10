@@ -43,7 +43,7 @@ public class OntoTermDiscoveryStoreCacheTest
 		OntoDiscoveryAndAnnotator ontoDiscoverer = new OntoDiscoveryAndAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				BioSDOntoDiscoveringCacheTest.newBaseDiscoverer (),
-				new OntoTermDiscoveryStoreCache ()
+				new OntoTermDiscoveryStoreCache ("")
 			)
 		);
 	
@@ -55,7 +55,7 @@ public class OntoTermDiscoveryStoreCacheTest
 
 		XStopWatch timer = new XStopWatch ();
 		timer.start ();
-		ontoDiscoverer.annotate ( pval, false );
+		ontoDiscoverer.tryToAnnotate ( pval, false );
 		timer.stop ();
 		
 		long firstCallTime = timer.getTime ();
@@ -75,7 +75,7 @@ public class OntoTermDiscoveryStoreCacheTest
 		// Verify the cache
 		timer.resumeOrStart ();
 		for ( int i = 0; i < 100; i++ )
-			ontoDiscoverer.annotate ( pval, false );
+			ontoDiscoverer.tryToAnnotate ( pval, false );
 		timer.stop ();
 		
 		double nextCallsTime = timer.getTime () / 100.0;

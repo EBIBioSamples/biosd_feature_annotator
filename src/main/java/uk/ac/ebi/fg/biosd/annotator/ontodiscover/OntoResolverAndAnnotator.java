@@ -7,14 +7,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
-import uk.ac.ebi.bioportal.webservice.exceptions.OntologyServiceException;
-import uk.ac.ebi.bioportal.webservice.model.OntologyClass;
-import uk.ac.ebi.bioportal.webservice.utils.BioportalWebServiceUtils;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.model.OntologyClass;
 import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
@@ -33,14 +31,14 @@ import com.google.common.collect.Table;
  */
 public class OntoResolverAndAnnotator
 {
-	public final static String ANNOTATION_TYPE_MARKER = "Computed from original annotation, via Bioportal";
+	public final static String ANNOTATION_TYPE_MARKER = "Computed from original annotation, via OLS";
 	
 	private final Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
-	static {
+	/*static {
 		BioportalWebServiceUtils.STATS_WRAPPER.setPopUpExceptions ( false );
 	}
-	
+	*/
 	
 	public OntoResolverAndAnnotator () {}
 	
@@ -60,7 +58,7 @@ public class OntoResolverAndAnnotator
 		return result;
 	} 
 	
-	
+
 	/**
 	 * @return true if the term is actually associated to another ontology term computed via ontology lookup.
 	 */
@@ -89,20 +87,21 @@ public class OntoResolverAndAnnotator
 			oeann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
 			oeann.setTimestamp ( new Date () );
 			
-			OntologyClass bpOntoTerm = getOntoTermUriFromBioportal ( srcAcc, acc );
+			//OntologyClass bpOntoTerm = getOntoTermUriFromBioportal ( srcAcc, acc );
 
+			OntologyClass olsOntoTerm = getOntoTermUriFromOLS(srcAcc, acc);
 			String uri = null;
 			
-			if ( bpOntoTerm != null )
+			if ( olsOntoTerm != null )
 			{
-				uri = bpOntoTerm.getIri ();
+				uri = olsOntoTerm.getIri ();
 
 				// Save in the memory store, for later persistence
 				// This ComputedOntoTerm might be already in the store, unless it's already there.
 				synchronized ( uri.intern () )
 				{
 					if ( !store.contains ( ComputedOntoTerm.class, uri ) )
-						store.put ( ComputedOntoTerm.class, uri, new ComputedOntoTerm ( uri, bpOntoTerm.getPreferredLabel () ) );
+						store.put ( ComputedOntoTerm.class, uri, new ComputedOntoTerm ( uri, olsOntoTerm.getPreferredLabel () ) );
 				}
 
 				// if Bioportal fails, this step is skipped, the annotation's URI will stay null and the annotation will tell 
@@ -117,11 +116,15 @@ public class OntoResolverAndAnnotator
 		} // synchronized ( oekey )
 		
 	} // resolveOntoTerms ( oe )
-	
-	
+
+	private OntologyClass getOntoTermUriFromOLS ( String srcAcc, String acc ){
+		OLSClient olsClient = AnnotatorResources.getInstance().getOLSClient();
+		return olsClient.getOntologyClass(srcAcc, acc);
+	}
+
 	/**
 	 * Uses {@link BioportalClient} to resolve an ontology term, specified via accession + ontology acronym.   
-	 */
+	 *//*
 	public OntologyClass getOntoTermUriFromBioportal ( String srcAcc, String acc )
 	{
 		// Currently Bioportal doesn't allow searches based on URI only
@@ -171,16 +174,16 @@ public class OntoResolverAndAnnotator
 		}
 
 		return result; 
-	}
+	}*/
 	
 	/** 
 	 * Used for debugging 
 	 */
-	private OntologyClass getMockupClass ( String srcAcc, String acc )
+	/*private OntologyClass getMockupClass ( String srcAcc, String acc )
 	{
 		if ( "EFO".equalsIgnoreCase (  srcAcc ) && "0000270".equals ( acc ) )
 			return new OntologyClass ( "http://www.ebi.ac.uk/efo/EFO_0000270" );
 		
 		return null;
-	}
+	}*/
 }

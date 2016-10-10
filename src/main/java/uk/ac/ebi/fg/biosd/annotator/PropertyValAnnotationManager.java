@@ -3,11 +3,11 @@ package uk.ac.ebi.fg.biosd.annotator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.bioportal.webservice.client.BioportalClient;
 import uk.ac.ebi.fg.biosd.annotator.datadiscover.NumericalDataAnnotator;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
+import uk.ac.ebi.fg.biosd.annotator.olsclient.ontodiscovery.OLSOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioportalUnitDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermDiscoveryStoreCache;
@@ -19,7 +19,6 @@ import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.ontodiscover.ZoomaOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.CachedOntoTermDiscoverer;
 import uk.ac.ebi.onto_discovery.api.OntologyTermDiscoverer;
-import uk.ac.ebi.onto_discovery.bioportal.BioportalOntoTermDiscoverer;
 
 /**
  * Coordinates the task of computing several annotations for a single {@link ExperimentalPropertyValue}, including
@@ -51,9 +50,12 @@ public class PropertyValAnnotationManager
 	 */
 	public final static String PROVENANCE_MARKER = "BioSD Feature Annotation Tool";
 	
-	protected final NumericalDataAnnotator numAnnotator;
+	protected final NumericalDataAnnotator ZoomaNumAnnotator;
+	protected final NumericalDataAnnotator OLSNumAnnotator;
 	protected final OntoResolverAndAnnotator ontoResolver;
-	protected final OntoDiscoveryAndAnnotator ontoDiscoverer;
+	protected final OntoDiscoveryAndAnnotator zoomaOntoDiscoverer;
+	protected final OntoDiscoveryAndAnnotator olsOntoDiscoverer;
+
 
 	protected Logger log = LoggerFactory.getLogger ( this.getClass () );
 	
@@ -62,58 +64,84 @@ public class PropertyValAnnotationManager
 	{
 		ontoResolver = new OntoResolverAndAnnotator ();
 		
-		OntologyTermDiscoverer baseDiscoverer = null, unitBaseDiscoverer = null;
+		OntologyTermDiscoverer zoomaBaseDiscoverer = null, zoomaUnitBaseDiscoverer = null;
+		OntologyTermDiscoverer olsBaseDiscoverer = null, olsUnitBaseDiscoverer = null;
 
-		String ontoDiscovererProp = System.getProperty ( ONTO_DISCOVERER_PROP_NAME, "zooma" );
-		
-		if ( "zooma".equalsIgnoreCase ( ontoDiscovererProp ) )
-		{
-			AbstractZOOMASearch zoomaClient = resources.getZoomaClient (); 
-			baseDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
-			unitBaseDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch (	zoomaClient	) );
-		}
-		else if ( "bioportal".equalsIgnoreCase ( ontoDiscovererProp ) )
-		{
-			BioportalClient bpclient = resources.getBioportalClient ();
-			baseDiscoverer = new BioportalOntoTermDiscoverer ( bpclient );
-			((BioportalOntoTermDiscoverer) baseDiscoverer).setPreferredOntologies ( BIOPORTAL_ONTOLOGIES );
-			unitBaseDiscoverer = new BioportalUnitDiscoverer (  bpclient );
-		}
-		else throw new IllegalArgumentException ( String.format ( 
-			"Bad value '%s' for the property '%s'", ontoDiscovererProp, ONTO_DISCOVERER_PROP_NAME 
-		));
-		
-		log.info ( "Ontology Discoverer set to {}", ontoDiscovererProp );
-		
-		numAnnotator = new NumericalDataAnnotator (
+
+		AbstractZOOMASearch zoomaClient = resources.getZoomaClient ();
+		zoomaBaseDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
+		zoomaUnitBaseDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch (	zoomaClient	) );
+
+		OLSClient olsClient = resources.getOLSClient ();
+		olsBaseDiscoverer = new OLSOntoTermDiscoverer( olsClient );
+
+		ZoomaNumAnnotator = new NumericalDataAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
-				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-					unitBaseDiscoverer,
+				new CachedOntoTermDiscoverer( // 2nd level, BioSD cache
+					zoomaUnitBaseDiscoverer,
 					new BioSDOntoDiscoveringCache ()
 				),
-				new OntoTermDiscoveryStoreCache ()
+				new OntoTermDiscoveryStoreCache ("ZOOMA")
 			)
 		);
-		
-		ontoDiscoverer = new OntoDiscoveryAndAnnotator (
+
+		OLSNumAnnotator = new NumericalDataAnnotator (
+				new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
+						new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
+								olsBaseDiscoverer,
+								new BioSDOntoDiscoveringCache ()
+						),
+						new OntoTermDiscoveryStoreCache ("OLS")
+				)
+		);
+
+		zoomaOntoDiscoverer = new OntoDiscoveryAndAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-					baseDiscoverer,
+					zoomaBaseDiscoverer,
 					new BioSDOntoDiscoveringCache ()
 				),
-				new OntoTermDiscoveryStoreCache ()
+				new OntoTermDiscoveryStoreCache ("ZOOMA")
 			)
+		);
+
+		olsOntoDiscoverer = new OntoDiscoveryAndAnnotator (
+				new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
+						new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
+								olsBaseDiscoverer,
+								new BioSDOntoDiscoveringCache ()
+						),
+						new OntoTermDiscoveryStoreCache ("OLS")
+				)
 		);
 	}
 
+	/*
+	Annotate attribute values (text)
+	First try with zooma, and if no HIGH hits returned then
+	try with OLS
+	 */
+	public void textAnnotation(ExperimentalPropertyValue<ExperimentalPropertyType> pv){
+		boolean isNumberOrDate = ZoomaNumAnnotator.annotate ( pv );
+		if (! zoomaOntoDiscoverer.tryToAnnotate ( pv, isNumberOrDate )){ //if none where annotated from zooma, look into ols
+			isNumberOrDate = OLSNumAnnotator.annotate ( pv );
+			olsOntoDiscoverer.tryToAnnotate(pv, isNumberOrDate);
+		}
+	}
+
+	/*
+	Resolve suggested ontology terms through OLS
+	 */
+	public void ontologyTermAnnotation(ExperimentalPropertyValue<ExperimentalPropertyType> pv){
+		ontoResolver.annotate ( pv );
+	}
 
 	/**
 	 * Call different types of annotators and link the computed results to the property value. 
 	 */
 	public void annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
 	{
-		boolean isNumberOrDate = numAnnotator.annotate ( pv );
-		ontoDiscoverer.annotate ( pv, isNumberOrDate );
-		ontoResolver.annotate ( pv );
-	}	
+		textAnnotation(pv);
+		ontologyTermAnnotation(pv);
+	}
 }

@@ -2,9 +2,9 @@ package uk.ac.ebi.fg.biosd.annotator.cli;
 
 import static java.lang.System.out;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.PrintWriter;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 import javax.persistence.EntityManagerFactory;
 
@@ -18,10 +18,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorAccessor;
+import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorExporter;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.threading.PropertyValAnnotationService;
+import uk.ac.ebi.fg.biosd.model.organizational.MSI;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
+import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.resources.Resources;
 
 /**
@@ -43,6 +47,8 @@ public class AnnotateCmd
 	private static Logger log = LoggerFactory.getLogger ( AnnotateCmd.class );
 
 	private static PropertyValAnnotationService annService = null;
+
+	private static AnnotatorExporter annotatorExporter = null;
 	
 	public static void main ( String... args )
 	{
@@ -64,7 +70,7 @@ public class AnnotateCmd
 			// Check argument consistency.
 			int xopts = 0;
 			if ( cli.hasOption ( "help" ) )
-				xopts = 2;
+				xopts = 3;
 			else 
 			{
 				if ( cli.hasOption ( "submission" ) || cli.hasOption ( "sampletab" ) ) xopts++;
@@ -81,7 +87,7 @@ public class AnnotateCmd
 				}
 			}
 			
-			if ( xopts > 1 ) 
+			if ( xopts > 2 )
 			{
 				printUsage ();
 				return;
@@ -118,8 +124,10 @@ public class AnnotateCmd
 		  
 		  
 			
-		  annService = new PropertyValAnnotationService ();
-			
+		  	annService = new PropertyValAnnotationService ();
+
+			annotatorExporter = new AnnotatorExporter();
+
 			// Count experimental property values, invoked by the cluster-based command
 		  if ( cli.hasOption ( "property-count" ) )
 		  {
@@ -128,17 +136,85 @@ public class AnnotateCmd
 				annService = null; // Skip the saving job.
 		  	return;
 		  }
-		  
-		  
+
+			//Purge before running annotator
+			Boolean purgeFirst = cli.hasOption("first-purge");
+
 		  // This is the real annotation job
 		  //
 
-		  // Per submission accession invocation
-			String msiAccs[] = cli.getOptionValues ( "submission" );
+			// Per submission accession stats
+			String msiAccsStats = cli.getOptionValue ( "submissionAccessions" );
+			if ( msiAccsStats != null )
+			{
+				exitCode = 127;
+
+				String dirLocation = cli.getOptionValue("dirLocation");
+				if (dirLocation == null){
+					throw new FileNotFoundException("Need to set directory location, (i.e. path/directory) for the stats to be stored in");
+				}
+
+
+				Scanner scanner = new Scanner(new File(msiAccsStats));
+				String line;
+
+				try {
+					while (scanner.hasNextLine()) {
+						line = scanner.nextLine();
+						//property values for this sumbission accession
+						if (cli.hasOption("printAnnotations")) {
+							annotatorExporter.printAllOntologyAnnotationsForMSI(annService, line, dirLocation);
+						}
+
+						if (cli.hasOption("compare")){
+							annotatorExporter.compareDiscoveredAndResolvedForMSI(annService, line, dirLocation);
+						}
+
+						if (!cli.hasOption("printAnnotations") && !cli.hasOption("compare")){
+							throw new RuntimeException("Need to specify if you want to print all annotations and/or compare discovered with resolved annotations");
+						}
+
+						//annotatorExporter.compareDiscoveredAndResolvedForMSI(line, propertyValues, dirLocation);
+					}
+				} catch (IOException e) {
+					throw new IOException("Problem while writing in file");
+				}
+				finally {
+					scanner.close();
+				}
+
+				System.exit(exitCode);
+			}
+
+
+			// Per submission accession invocation
+			String msiAccs = cli.getOptionValue ( "submission" );
 			if ( msiAccs != null )
 			{
-				for ( String msiAcc: msiAccs )
-					annService.submitMSI ( msiAcc );
+				try {
+					Scanner scanner = new Scanner(new File(msiAccs));
+					String line;
+
+					while (scanner.hasNextLine()) {
+						line = scanner.nextLine();
+						//annService.submit ( null, 1, line );
+
+						annService.submitMSI(line);
+					}
+
+					scanner.close();
+
+				} catch (FileNotFoundException e){
+					log.info("========== File not found, checking for directly submitted accessions ==========");
+					//not a file but maybe just accessions
+					String msiAccsesions[] = cli.getOptionValues ( "submission" );
+					for ( String msiAcc: msiAccsesions ) {
+						annService.submitMSI(msiAcc);
+					}
+					annService.submitMSI(msiAccs);
+				}
+
+
 			}
 
 			// Per submission file invocation
@@ -158,7 +234,8 @@ public class AnnotateCmd
 				String limitStr = cli.getOptionValue ( "limit" );
 				annService.submit ( 
 					offsetStr == null ? null : Integer.valueOf ( offsetStr ), 
-					limitStr == null ? null : Integer.valueOf ( limitStr ) 
+					limitStr == null ? null : Integer.valueOf ( limitStr ) ,
+						purgeFirst
 				);
 			}			
 		}
@@ -184,7 +261,13 @@ public class AnnotateCmd
 	 */
 	private static void terminationHandler ()
 	{
-		if ( getExitCode () == 128 ) return; // --help opion
+		if ( getExitCode () == 128 ) return; // --help option
+		if ( getExitCode () == 127 ) { // --get stats option
+			annService.waitAllFinished (false);
+			EntityManagerFactory emf = Resources.getInstance ().getEntityManagerFactory ();
+			if ( emf != null && emf.isOpen () ) emf.close ();
+			return;
+		}
 
 		if ( annService != null ) 
 		{
@@ -210,7 +293,7 @@ public class AnnotateCmd
 		Options opts = new Options ();
 
 		opts.addOption ( OptionBuilder
-			.withDescription ( "annotates all the sample (group) properties related to a given submission" )
+			.withDescription ( "annotates all the sample (group) properties related to a given submission. WARNING!!!: Purges the annotated attribute values before re-annotating them. This could either be a file (path/filename) that contains the accessions you wish to annotate on each line, or the accession directly passed as an argument" )
 			.withLongOpt ( "submission" )
 			.withArgName ( "accession" )
 			.hasArg ()
@@ -286,7 +369,39 @@ public class AnnotateCmd
 			.withLongOpt ( "help" )
 			.create ( 'h' )
 		);
-		
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "Purges the values that are already annotated before running the annotator" )
+				.withLongOpt ( "first-purge" )
+				.create ("fp")
+		);
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "To be used with -dirLocation and (-compare and/or -printAnnotations). The file with submission accessions (one on each line), whose annotations we want to export." )
+				.withLongOpt ( "submissionAccessions" )
+				.hasArg ()
+				.create ("acc")
+		);
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "To be used with -submissionAccessions and -dirLocation. \n Prints the property values and annotations if the discovered annotation differs from the resolved annotation. \n Stored in the file \"CompareResolvedWithDiscovered.txt\" in the directory specified. NOTE: Appends to file!" )
+				.withLongOpt ( "compare" )
+				.create ("c")
+		);
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "To be used with -submissionAccessions and -dirLocation. For each submission, a filed called Acc_<submission_accession> will be created in the directory specified, with all its annotations exported for each property value that belongs to this sumbission." )
+				.withLongOpt ( "printAnnotations" )
+				.create ("p")
+		);
+
+		opts.addOption ( OptionBuilder
+				.withDescription ( "To be used with -submissionAccessions. The directory location (path) for the submission stat files to be stored in." )
+				.withLongOpt ( "dirLocation" )
+				.hasArg ()
+				.create ("dl")
+		);
+
 		return opts;		
 	}
 	
@@ -295,7 +410,7 @@ public class AnnotateCmd
 		out.println ();
 
 		out.println ( "\n\n *** BioSD Feature Annotator ***" );
-		out.println ( "\nAnnotates biosample attributes with ontology references (computed via ZOOMA and Bioportal) and numeric structures." );
+		out.println ( "\nAnnotates biosample attributes with ontology references (computed via ZOOMA and OLS) and numeric structures." );
 		
 		out.println ( "\nSyntax:" );
 		out.println ( "\n\tannotate.sh [options]" );		
@@ -306,8 +421,8 @@ public class AnnotateCmd
 		helpFormatter.printOptions ( pw, 100, getOptions (), 2, 4 );
 		
 		out.println ( "\nRelevant Environment Variables:" );
-		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME + "=<zooma|bioportal>\": which text/ontology annotator to use" );
-		out.println ();
+		//out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationManager.ONTO_DISCOVERER_PROP_NAME + "=<zooma|bioportal>\": which text/ontology annotator to use" );
+		//out.println ();
 		out.println ( "  OPTS=\"$OPTS -D" + PropertyValAnnotationService.MAX_THREAD_PROP + "=<num>\": max number of threads that can be used" );
 		out.println ( "  (very important in LSF mode)" );
 		out.println ();

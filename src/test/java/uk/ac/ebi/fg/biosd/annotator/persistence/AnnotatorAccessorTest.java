@@ -63,15 +63,15 @@ public class AnnotatorAccessorTest
 		ExperimentalPropertyType ptype = new ExperimentalPropertyType ( "disease" );
 		ExperimentalPropertyValue<ExperimentalPropertyType> pval = new ExperimentalPropertyValue<> ( "asthma", ptype );
 		
-		ReferenceSource src = new ReferenceSource ( "MESH", null );
-		OntologyEntry oe = new OntologyEntry ( "D001249", src );
+		ReferenceSource src = new ReferenceSource ( "DOID", null );
+		OntologyEntry oe = new OntologyEntry ( "2841", src );
 		pval.addOntologyTerm ( oe );
 
 		// A numeric value with a unit
 		ExperimentalPropertyValue<ExperimentalPropertyType> pvtemp = 
 			new ExperimentalPropertyValue<ExperimentalPropertyType> ( "120", new ExperimentalPropertyType ( "Treatment Temperature" ) );
 		pvtemp.setUnit ( new Unit ( "degree Celsius", new UnitDimension ( "Temperature" ) ) );
-		
+
 		// This is the annotation creation part, normally done by the annotator, during its periodic scheduled run
 		// Keep going down
 		PropertyValAnnotationManager annMgr = AnnotatorResources.getInstance ().getPvAnnMgr ();
@@ -111,10 +111,10 @@ public class AnnotatorAccessorTest
 			foundZOOMA |= "http://www.ebi.ac.uk/efo/EFO_0000270".equals ( oeann.getAcc () );
 
 			// And the Bioportal-based resolver to get this from our initial annotation. The latter is replaced
-			foundResolved |= "http://purl.bioontology.org/ontology/MESH/D001249".equals ( oeann.getAcc () ); 
+			foundResolved |= "http://purl.obolibrary.org/obo/DOID_2841".equals ( oeann.getAcc () );
 		}
 		assertTrue ( "ZOOMA didnt't work!",  foundZOOMA );
-		assertTrue ( "Bioportal resolution didnt't work!",  foundResolved );
+		assertTrue ( "OLS resolution didnt't work!",  foundResolved );
 
 		
 		// Again, ontology entry for the unit, no matter if it comes from the original submission, or was annotated

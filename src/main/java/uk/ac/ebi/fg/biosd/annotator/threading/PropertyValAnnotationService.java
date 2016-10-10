@@ -1,6 +1,7 @@
 package uk.ac.ebi.fg.biosd.annotator.threading;
 
-import java.io.InputStream;
+import java.io.*;
+import java.util.*;
 
 import javax.persistence.EntityManager;
 
@@ -9,7 +10,9 @@ import org.hibernate.Hibernate;
 
 import uk.ac.ebi.arrayexpress2.magetab.exception.ParseException;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
+
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
+import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.model.expgraph.BioSample;
 import uk.ac.ebi.fg.biosd.model.organizational.BioSampleGroup;
 import uk.ac.ebi.fg.biosd.model.organizational.MSI;
@@ -63,7 +66,7 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 		
 		this.setSubmissionMsgLogLevel ( Level.DEBUG );
 	}
-	
+
 	/**
 	 * This is to submit an {@link PropertyValAnnotationTask annotation task} about an {@link ExperimentalPropertyValue} 
 	 * with this {@link Identifiable#getId() id}. If {@link #getRandomSelectionQuota()} is &lt; 1, only the 
@@ -107,7 +110,7 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	 * This is mainly used to split the property value set in chunks and pass them to LSF-based invocations.
 	 * 
 	 */
-	public void submit ( Integer offset, Integer limit )
+	public void submit ( Integer offset, Integer limit , boolean purgeFirst)
 	{
 		if ( offset == null ) offset = 0;
 		if ( limit == null ) limit = this.getPropValCount ();
@@ -117,12 +120,12 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 		if ( chunkSize == 0 ) chunkSize = limit;
 
 		for ( int ichunk = 0; ichunk < limit; ichunk += chunkSize )
-			super.submit ( new PvChunkSubmissionTask ( this, ichunk + offset, chunkSize ) );
+			super.submit ( new PvChunkSubmissionTask ( this, ichunk + offset, chunkSize, purgeFirst ) );
 	}
 
 	public void submitAll ()
 	{
-		submit ( null, null );
+		submit ( null, null , false);
 	}
 	
 	/**
@@ -131,35 +134,41 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	 * 
 	 */
 	@SuppressWarnings ( "unchecked" )
-	public void submitMSI ( MSI msi )
+	public void submitMSI ( ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues, String msi )
 	{
-		log.info ( "Submission '{}', annotating {} sample groups", msi.getAcc (), msi.getSampleGroups ().size () );
-		for ( BioSampleGroup sg: msi.getSampleGroups () )
-		{
-			for ( BioSample smp: sg.getSamples () )
-				for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: smp.getPropertyValues () )
-					submit ( pv );
-		}
+				for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : propertyValues) {
+					submit(pv);
+				}
+		log.info ( "Submission complete for Submission {}", msi );
 
-		log.info ( "Submission '{}', annotating {} samples", msi.getAcc (), msi.getSamples ().size () );
-		for ( BioSample smp: msi.getSamples () )
-			for ( ExperimentalPropertyValue<ExperimentalPropertyType> pv: smp.getPropertyValues () )
-				submit ( pv );
 	}
-	
+
 	/**
-	 * Invokes {@link #submitMSI(MSI)}, after accession-based lookup. Exception is thrown if the accession doesn't
+	 * Invokes {@link #submitMSI(propertyValues)}, after accession-based lookup. Exception is thrown if the accession doesn't
 	 * exist.
 	 */
-	public void submitMSI ( String msiAcc )
-	{
+	public void  submitMSI ( String msiAcc )
+	{//hey
 		EntityManager em = Resources.getInstance ().getEntityManagerFactory ().createEntityManager ();
 		try
 		{
 			AccessibleDAO<MSI> dao = new AccessibleDAO<> ( MSI.class, em );
 			MSI msi = dao.find ( msiAcc );
 			if ( msi == null ) throw new RuntimeException ( "Cannot find submission '" + msiAcc + "'" );
-			submitMSI ( msi );
+
+			//first purge all the existing property annotations for this submission
+			//its cleaner this way, and avoids deletion and re annotation of a attribute on one submission
+			ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues = getPropertyValuesOfMSI(msi);
+
+			Purger purger = new Purger();
+			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : propertyValues) {
+				purger.purgePVAnnotations(pv);
+				purger.purgeResolvedOntTerms(pv);
+			}
+
+			log.info ( "Submission '{}', annotating {} samples and sample groups",  msiAcc, msi.getSampleGroups().size() + msi.getSamples().size() );
+
+			submitMSI ( propertyValues , msiAcc);
 		}
 		finally {
 			if ( em.isOpen () ) em.close ();
@@ -190,7 +199,24 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 		}
 	}
 
-	
+
+	public ArrayList getPropertyValuesOfMSI(MSI msi){
+		ArrayList<ExperimentalPropertyValue<ExperimentalPropertyType>> propertyValues = new ArrayList<>();
+
+		for (BioSampleGroup sg : msi.getSampleGroups()) {
+			for (BioSample smp : sg.getSamples())
+				for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
+					propertyValues.add(pv);
+				}
+		}
+
+		for (BioSample smp : msi.getSamples())
+			for (ExperimentalPropertyValue<ExperimentalPropertyType> pv : smp.getPropertyValues()) {
+				propertyValues.add(pv);
+			}
+
+		return propertyValues;
+	}
 	
 	/**
 	 * Gets the number of properties in the BioSD database. To be used prior to {@link #submit(Integer, Integer)}.
@@ -243,7 +269,18 @@ public class PropertyValAnnotationService extends BatchService<AnnotatorTask>
 	public void waitAllFinished ()
 	{
 		super.waitAllFinished ();
-		this.persist ();
+		this.waitAllFinished(true);
+	}
+
+	/**
+	 * Waits for all the tasks to finish and then {@link #persist()}s.
+	 */
+	public void waitAllFinished (boolean persist)
+	{
+		super.waitAllFinished ();
+		if (persist) {
+			this.persist();
+		}
 	}
 	
 	
