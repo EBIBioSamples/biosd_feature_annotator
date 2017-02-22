@@ -49,10 +49,8 @@ public class PropertyValAnnotationManager
 	public final static String PROVENANCE_MARKER = "BioSD Feature Annotation Tool";
 	
 	protected final NumericalDataAnnotator ZoomaNumAnnotator;
-	protected final NumericalDataAnnotator OLSNumAnnotator;
 	protected final OntoResolverAndAnnotator ontoResolver;
 	protected final OntoDiscoveryAndAnnotator zoomaOntoDiscoverer;
-	protected final OntoDiscoveryAndAnnotator olsOntoDiscoverer;
 
 
 	protected Logger log = LoggerFactory.getLogger ( this.getClass () );
@@ -80,16 +78,6 @@ public class PropertyValAnnotationManager
 			)
 		);
 
-		OLSNumAnnotator = new NumericalDataAnnotator (
-				new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
-						new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-								olsBaseDiscoverer,
-								new BioSDOntoDiscoveringCache ()
-						),
-						new OntoTermDiscoveryStoreCache ("OLS")
-				)
-		);
-
 		zoomaOntoDiscoverer = new OntoDiscoveryAndAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
 				new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
@@ -98,16 +86,6 @@ public class PropertyValAnnotationManager
 				),
 				new OntoTermDiscoveryStoreCache ("ZOOMA")
 			)
-		);
-
-		olsOntoDiscoverer = new OntoDiscoveryAndAnnotator (
-				new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
-						new CachedOntoTermDiscoverer ( // 2nd level, BioSD cache
-								olsBaseDiscoverer,
-								new BioSDOntoDiscoveringCache ()
-						),
-						new OntoTermDiscoveryStoreCache ("OLS")
-				)
 		);
 	}
 
@@ -118,10 +96,7 @@ public class PropertyValAnnotationManager
 	 */
 	public void textAnnotation(ExperimentalPropertyValue<ExperimentalPropertyType> pv){
 		boolean isNumberOrDate = ZoomaNumAnnotator.annotate ( pv );
-		if (! zoomaOntoDiscoverer.tryToAnnotate ( pv, isNumberOrDate )){ //if none where annotated from zooma, look into ols
-			isNumberOrDate = OLSNumAnnotator.annotate ( pv );
-			olsOntoDiscoverer.tryToAnnotate(pv, isNumberOrDate);
-		}
+		zoomaOntoDiscoverer.tryToAnnotate ( pv, isNumberOrDate );
 	}
 
 	/*
