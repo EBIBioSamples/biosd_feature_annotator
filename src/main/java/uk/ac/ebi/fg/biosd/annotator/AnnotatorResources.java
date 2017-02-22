@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
 import uk.ac.ebi.fgpt.zooma.model.AnnotationPrediction.Confidence;
 import uk.ac.ebi.fgpt.zooma.search.AbstractZOOMASearch;
 import uk.ac.ebi.fgpt.zooma.search.StatsZOOMASearchFilter;
@@ -57,10 +56,7 @@ public class AnnotatorResources
 	);
 	
 	private final AbstractZOOMASearch zoomaClient;
-	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupZOOMASearch () );
-	//private final AbstractZOOMASearch zoomaClient = new StatsZOOMASearchFilter ( new MockupFakeUrisZOOMASearch () );
-	//private final BioportalClient bioportalClient = new BioportalClient ( AnnotatorResources.BIOPORTAL_API_KEY );
-	private final OLSClient olsClient;
+	
   	private final PropertyValAnnotationManager pvAnnMgr;
 
 	/**
@@ -83,7 +79,6 @@ public class AnnotatorResources
 		System.setProperties ( properties );
 
 		this.zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
-		this.olsClient = new OLSClient ();
 		this.pvAnnMgr = new PropertyValAnnotationManager ( this );
 
 		this.zoomaClient.setMinConfidence ( Confidence.HIGH );
@@ -121,16 +116,6 @@ public class AnnotatorResources
 		return zoomaClient;
 	}
 	
-	
-	/**
-	 * The common OLS client possibly used to perform ontology annotations over sample property values.
-	 * The usage of this depends on {@link PropertyValAnnotationManager#ONTO_DISCOVERER_PROP_NAME}.
-	 */
-	public OLSClient getOLSClient ()
-	{
-		return olsClient;
-	}
-
 
 	/**
 	 * This resets the common resources used by the annotator and provided by this singleton, the main one being

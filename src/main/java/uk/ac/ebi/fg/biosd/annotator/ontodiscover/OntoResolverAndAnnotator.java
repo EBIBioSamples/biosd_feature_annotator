@@ -11,8 +11,6 @@ import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ComputedOntoTerm;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
-import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
-import uk.ac.ebi.fg.biosd.annotator.olsclient.model.OntologyClass;
 import uk.ac.ebi.fg.core_model.terms.FreeTextTerm;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;
@@ -87,27 +85,9 @@ public class OntoResolverAndAnnotator
 			oeann.setProvenance ( PropertyValAnnotationManager.PROVENANCE_MARKER );
 			oeann.setTimestamp ( new Date () );
 			
-			//OntologyClass bpOntoTerm = getOntoTermUriFromBioportal ( srcAcc, acc );
 
-			OntologyClass olsOntoTerm = getOntoTermUriFromOLS(srcAcc, acc);
 			String uri = null;
 			
-			if ( olsOntoTerm != null )
-			{
-				uri = olsOntoTerm.getIri ();
-
-				// Save in the memory store, for later persistence
-				// This ComputedOntoTerm might be already in the store, unless it's already there.
-				synchronized ( uri.intern () )
-				{
-					if ( !store.contains ( ComputedOntoTerm.class, uri ) )
-						store.put ( ComputedOntoTerm.class, uri, new ComputedOntoTerm ( uri, olsOntoTerm.getPreferredLabel () ) );
-				}
-
-				// if Bioportal fails, this step is skipped, the annotation's URI will stay null and the annotation will tell 
-				// us the resolution has already failed, so we don't need to try again
-				oeann.setOntoTermUri ( uri );
-			}
 
 			// Save in memory store, for lookup and later persistence
 			store.put ( ResolvedOntoTermAnnotation.class, oekey, oeann );
@@ -117,73 +97,4 @@ public class OntoResolverAndAnnotator
 		
 	} // resolveOntoTerms ( oe )
 
-	private OntologyClass getOntoTermUriFromOLS ( String srcAcc, String acc ){
-		OLSClient olsClient = AnnotatorResources.getInstance().getOLSClient();
-		return olsClient.getOntologyClass(srcAcc, acc);
-	}
-
-	/**
-	 * Uses {@link BioportalClient} to resolve an ontology term, specified via accession + ontology acronym.   
-	 *//*
-	public OntologyClass getOntoTermUriFromBioportal ( String srcAcc, String acc )
-	{
-		// Currently Bioportal doesn't allow searches based on URI only
-		// TODO: indeed, we now have some 'ontology guessing' code in the BP client, but 
-		// some testing is needed.
-		if ( srcAcc == null ) return null; 
-		
-		// Normalise the accession into a format that can be adapted to the onto-service
-		String accNum = acc;
-		int idx = acc.lastIndexOf ( ':' );
-		if ( idx == -1 ) idx = acc.lastIndexOf ( '_' );
-		if ( idx != -1 ) accNum = acc.substring ( idx + 1 ); 
-		
-		OntologyClass result = null;
-		String[] testAccs = new String[] 
-		{
-			// Try this anyway, cause sometimes we might have things like: 
-			// NCBI_9096 within EFO as ontology
-			// Straight URIs, which are resolvable
-			//
-			acc,	
-		
-			accNum,
-			srcAcc + "_" + accNum, 
-			srcAcc.toUpperCase () + "_" + accNum, 
-			srcAcc.toLowerCase () + "_" + accNum, 
-			srcAcc + ":" + accNum,
-			srcAcc.toUpperCase () + ":" + accNum,
-			srcAcc.toLowerCase () + ":" + accNum					
-		};
-			
-		BioportalClient bpcli = AnnotatorResources.getInstance ().getBioportalClient ();
-		
-		try
-		{
-			// Try out different combinations for the term accession, this is because the end users suck at using proper
-			// term accessions and these are the variants they most frequently bother us with.
-			for ( String testAcc: testAccs )
-				if ( ( result = bpcli.getOntologyClass ( srcAcc.toUpperCase (), testAcc ) ) != null ) break;
-		} 
-		catch ( OntologyServiceException ex ) 
-		{
-			log.warn ( String.format ( 
-				"Internal Error about the Ontology Service: %s, ignoring ( '%s', '%s') ", ex.getMessage (), acc, srcAcc ), ex 
-			);
-			result = null;
-		}
-
-		return result; 
-	}*/
-	
-	/** 
-	 * Used for debugging 
-	 */
-	/*private OntologyClass getMockupClass ( String srcAcc, String acc )
-	{
-		if ( "EFO".equalsIgnoreCase (  srcAcc ) && "0000270".equals ( acc ) )
-			return new OntologyClass ( "http://www.ebi.ac.uk/efo/EFO_0000270" );
-		
-		return null;
-	}*/
 }

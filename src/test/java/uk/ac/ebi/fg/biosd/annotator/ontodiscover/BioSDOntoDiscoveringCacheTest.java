@@ -23,8 +23,6 @@ import org.slf4j.LoggerFactory;
 import uk.ac.ebi.fg.biosd.annotator.AnnotatorResources;
 import uk.ac.ebi.fg.biosd.annotator.PropertyValAnnotationManager;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
-import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
-import uk.ac.ebi.fg.biosd.annotator.olsclient.ontodiscovery.OLSOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.persistence.AnnotatorPersister;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
@@ -86,11 +84,6 @@ public class BioSDOntoDiscoveringCacheTest
 			AbstractZOOMASearch zoomaClient = new ZOOMASearchClient ();
 			//zoomaClient.setMinConfidence ( Confidence.fromScore ( 54d ) );
 			baseDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
-		}
-		else if ( "ols".equalsIgnoreCase ( ontoDiscovererProp ) )
-		{
-			OLSClient olsClient = AnnotatorResources.getInstance ().getOLSClient ();
-			baseDiscoverer = new OLSOntoTermDiscoverer( olsClient );
 		}
 		else throw new IllegalArgumentException ( String.format ( 
 			"Bad value '%s' for the property '%s'", ontoDiscovererProp, ONTO_DISCOVERER_PROP_NAME 

@@ -4,8 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.ebi.fg.biosd.annotator.datadiscover.NumericalDataAnnotator;
-import uk.ac.ebi.fg.biosd.annotator.olsclient.client.OLSClient;
-import uk.ac.ebi.fg.biosd.annotator.olsclient.ontodiscovery.OLSOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
@@ -71,9 +69,6 @@ public class PropertyValAnnotationManager
 		AbstractZOOMASearch zoomaClient = resources.getZoomaClient ();
 		zoomaBaseDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
 		zoomaUnitBaseDiscoverer = new ZoomaOntoTermDiscoverer ( new ZOOMAUnitSearch (	zoomaClient	) );
-
-		OLSClient olsClient = resources.getOLSClient ();
-		olsBaseDiscoverer = new OLSOntoTermDiscoverer( olsClient );
 
 		ZoomaNumAnnotator = new NumericalDataAnnotator (
 			new BioSDCachedOntoTermDiscoverer ( // 1st level, Memory Cache
