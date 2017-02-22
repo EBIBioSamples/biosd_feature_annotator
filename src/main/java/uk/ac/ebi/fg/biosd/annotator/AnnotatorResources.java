@@ -68,16 +68,6 @@ public class AnnotatorResources
 		
 	private AnnotatorResources () 
 	{
-		//Set general System properties
-		Properties properties = new Properties( System.getProperties() );
-		try {
-			properties.load ( getClass () .getClassLoader ().getResourceAsStream ("annotator.properties"));
-		} catch (IOException e) {
-			//handle differently if annotation properties are not vital to running the annotator
-			throw new RuntimeException ( "Annotator Properties not found" );
-		}
-		System.setProperties ( properties );
-
 		this.zoomaClient = new StatsZOOMASearchFilter ( new ZOOMASearchClient () );
 		this.pvAnnMgr = new PropertyValAnnotationManager ( this );
 

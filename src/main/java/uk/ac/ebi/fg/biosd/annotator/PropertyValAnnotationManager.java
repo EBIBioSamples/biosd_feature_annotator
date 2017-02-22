@@ -61,8 +61,6 @@ public class PropertyValAnnotationManager
 		ontoResolver = new OntoResolverAndAnnotator ();
 		
 		OntologyTermDiscoverer zoomaBaseDiscoverer = null, zoomaUnitBaseDiscoverer = null;
-		OntologyTermDiscoverer olsBaseDiscoverer = null, olsUnitBaseDiscoverer = null;
-
 
 		AbstractZOOMASearch zoomaClient = resources.getZoomaClient ();
 		zoomaBaseDiscoverer = new ZoomaOntoTermDiscoverer ( zoomaClient );
@@ -91,8 +89,7 @@ public class PropertyValAnnotationManager
 
 	/*
 	Annotate attribute values (text)
-	First try with zooma, and if no HIGH hits returned then
-	try with OLS
+	First try with zooma
 	 */
 	public void textAnnotation(ExperimentalPropertyValue<ExperimentalPropertyType> pv){
 		boolean isNumberOrDate = ZoomaNumAnnotator.annotate ( pv );

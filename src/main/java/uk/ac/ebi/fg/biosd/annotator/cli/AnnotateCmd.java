@@ -410,7 +410,7 @@ public class AnnotateCmd
 		out.println ();
 
 		out.println ( "\n\n *** BioSD Feature Annotator ***" );
-		out.println ( "\nAnnotates biosample attributes with ontology references (computed via ZOOMA and OLS) and numeric structures." );
+		out.println ( "\nAnnotates biosample attributes with ontology references (computed via ZOOMA) and numeric structures." );
 		
 		out.println ( "\nSyntax:" );
 		out.println ( "\n\tannotate.sh [options]" );		
