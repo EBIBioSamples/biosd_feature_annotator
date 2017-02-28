@@ -10,7 +10,6 @@ import javax.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
 
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.core_model.resources.Const;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 import uk.ac.ebi.fg.core_model.xref.ReferenceSource;

@@ -47,12 +47,7 @@ public class OntoResolverTest
 		oe.setLabel ( "Asthma Disease" );
 		pval.addOntologyTerm ( oe );
 		
-		
-		// Annotate
-		//
-		OntoResolverAndAnnotator ontoAnnotator = new OntoResolverAndAnnotator ();
-		ontoAnnotator.annotate ( pval );
-		
+				
 		// Check
 		//
 		Table<Class, String, Object> store = AnnotatorResources.getInstance ().getStore ();
@@ -84,7 +79,6 @@ public class OntoResolverTest
 		
 		ResolvedOntoTermAnnotation oeAnnDb = em.find ( ResolvedOntoTermAnnotation.class, oeAnn.getSourceText () );
 		assertNotNull ( "Ontology annotation not saved!", oeAnnDb );
-		assertEquals ( "Wrong annotation type!", OntoResolverAndAnnotator.ANNOTATION_TYPE_MARKER, oeAnnDb.getType () );
 		assertEquals ( "Wrong annotation provenance!", PropertyValAnnotationManager.PROVENANCE_MARKER, oeAnnDb.getProvenance () );
 	
 		assertNotNull ( "Resolved term not created in the DB!", oeCompDb );

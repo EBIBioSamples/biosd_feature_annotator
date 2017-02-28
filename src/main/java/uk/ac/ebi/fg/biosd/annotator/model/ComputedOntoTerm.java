@@ -8,7 +8,6 @@ import javax.persistence.Id;
 import javax.persistence.Index;
 import javax.persistence.Table;
 
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.core_model.resources.Const;
 import uk.ac.ebi.fg.core_model.terms.OntologyEntry;
 

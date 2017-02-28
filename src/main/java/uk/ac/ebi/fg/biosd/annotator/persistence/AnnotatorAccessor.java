@@ -22,7 +22,6 @@ import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberRangeItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.persistence.dao.DataItemDAO;
 import uk.ac.ebi.fg.biosd.annotator.persistence.dao.ExpPropValAnnotationDAO;
 import uk.ac.ebi.fg.biosd.annotator.persistence.dao.ResolvedOntoTermAnnotationDAO;

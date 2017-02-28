@@ -14,7 +14,6 @@ import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.DateItem;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberRangeItem;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyValue;
 import uk.ac.ebi.fg.core_model.expgraph.properties.Unit;
@@ -38,14 +37,12 @@ public class NumericalDataAnnotator
 	public static final String ANNOTATION_TYPE_MARKER = "Computed Numerical Data";
 	
 	private final OntologyTermDiscoverer unitOntoDiscoverer;
-	private final OntoResolverAndAnnotator unitOntoResolver;
 	
 	/**
 	 * @param unitOntoDiscoverer will be used to annotate a property value unit.
 	 */
 	public NumericalDataAnnotator ( OntologyTermDiscoverer ontoTermDiscoverer )
 	{
-		this.unitOntoResolver = new OntoResolverAndAnnotator ();
 		this.unitOntoDiscoverer = ontoTermDiscoverer;
 	}
 
@@ -73,7 +70,7 @@ public class NumericalDataAnnotator
 		
 		OntologyEntry uoe = u.getOntologyTerms ().size () == 1 ? u.getSingleOntologyTerm () : null;
 					
-		if ( uoe == null || !unitOntoResolver.annotate ( u ) )
+		if ( uoe == null )
 		{
 			// No explicit and valid OE associated to the Unit, so use ZOOMA
 			String unitLabel =  StringUtils.trimToNull ( u.getTermText () );

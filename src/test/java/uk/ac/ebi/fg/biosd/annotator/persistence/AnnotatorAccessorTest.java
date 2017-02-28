@@ -29,7 +29,6 @@ import uk.ac.ebi.fg.biosd.annotator.model.DataItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ExpPropValAnnotation;
 import uk.ac.ebi.fg.biosd.annotator.model.NumberItem;
 import uk.ac.ebi.fg.biosd.annotator.model.ResolvedOntoTermAnnotation;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.purge.Purger;
 import uk.ac.ebi.fg.biosd.annotator.test.AnnotatorResourcesResetRule;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
@@ -201,8 +200,6 @@ public class AnnotatorAccessorTest
 		
 		// Annotate and persist
 		//
-		OntoResolverAndAnnotator ontoAnnotator = new OntoResolverAndAnnotator ();
-		ontoAnnotator.annotate ( pval );
 		new AnnotatorPersister ().persist ();
 		
 		// Do this in the unlikely case you first annotated, then use the access API. The annotator leaves around resources

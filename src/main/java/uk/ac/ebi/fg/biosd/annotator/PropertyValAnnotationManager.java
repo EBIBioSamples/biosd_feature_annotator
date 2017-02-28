@@ -7,7 +7,6 @@ import uk.ac.ebi.fg.biosd.annotator.datadiscover.NumericalDataAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDCachedOntoTermDiscoverer;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.BioSDOntoDiscoveringCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoDiscoveryAndAnnotator;
-import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoResolverAndAnnotator;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.OntoTermDiscoveryStoreCache;
 import uk.ac.ebi.fg.biosd.annotator.ontodiscover.ZOOMAUnitSearch;
 import uk.ac.ebi.fg.core_model.expgraph.properties.ExperimentalPropertyType;
@@ -49,7 +48,6 @@ public class PropertyValAnnotationManager
 	public final static String PROVENANCE_MARKER = "BioSD Feature Annotation Tool";
 	
 	protected final NumericalDataAnnotator ZoomaNumAnnotator;
-	protected final OntoResolverAndAnnotator ontoResolver;
 	protected final OntoDiscoveryAndAnnotator zoomaOntoDiscoverer;
 
 
@@ -57,9 +55,7 @@ public class PropertyValAnnotationManager
 	
 	
 	protected PropertyValAnnotationManager ( AnnotatorResources resources )
-	{
-		ontoResolver = new OntoResolverAndAnnotator ();
-		
+	{		
 		OntologyTermDiscoverer zoomaBaseDiscoverer = null, zoomaUnitBaseDiscoverer = null;
 
 		AbstractZOOMASearch zoomaClient = resources.getZoomaClient ();
@@ -96,12 +92,6 @@ public class PropertyValAnnotationManager
 		zoomaOntoDiscoverer.tryToAnnotate ( pv, isNumberOrDate );
 	}
 
-	/*
-	Resolve suggested ontology terms through OLS
-	 */
-	public void ontologyTermAnnotation(ExperimentalPropertyValue<ExperimentalPropertyType> pv){
-		ontoResolver.annotate ( pv );
-	}
 
 	/**
 	 * Call different types of annotators and link the computed results to the property value. 
@@ -109,6 +99,5 @@ public class PropertyValAnnotationManager
 	public void annotate ( ExperimentalPropertyValue<ExperimentalPropertyType> pv )
 	{
 		textAnnotation(pv);
-		ontologyTermAnnotation(pv);
 	}
 }
